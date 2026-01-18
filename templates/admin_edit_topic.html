@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Topic - Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+  .edit-wrap{
+    max-width: 900px;
+    margin: 2rem auto;
+    background: white;
+    padding: 2rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  .row2{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  @media (max-width: 800px){
+    .row2{ grid-template-columns: 1fr; }
+  }
+  .hint{
+    font-size: .9rem;
+    color: #718096;
+    margin-top: -0.5rem;
+    margin-bottom: 1rem;
+  }
+  .pdf-box{
+    background:#f7fafc;
+    border:1px dashed #cbd5e0;
+    padding: 1rem;
+    border-radius: 8px;
+  }
+  .pdf-actions{
+    display:flex;
+    gap: .75rem;
+    flex-wrap: wrap;
+    margin-top: .75rem;
+  }
+  .pdf-actions a{
+    text-decoration:none;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="edit-wrap">
+  <h2 style="color:#667eea; margin-bottom:1rem;">✏️ Edit Topic</h2>
+
+  <form method="POST" enctype="multipart/form-data">
+    <div class="row2">
+      <div class="form-group">
+        <label for="name">Topic Name *</label>
+        <input id="name" name="name" type="text" value="{{ topic.name }}" required>
+      </div>
+
+      <div class="form-group">
+        <label for="topic_type">Topic Type</label>
+        <input id="topic_type" type="text" value="{{ topic.topic_type }}" disabled>
+        <div class="hint">ประเภทนี้แก้ผ่านระบบเดิม (AI-generated / manual)</div>
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label for="description">Description</label>
+      <textarea id="description" name="description" rows="3">{{ topic.description }}</textarea>
+    </div>
+
+    <div class="form-group pdf-box">
+      <label for="pdf_file">Upload PDF Slides (1 topic = 1 PDF)</label>
+      <input id="pdf_file" name="pdf_file" type="file" accept="application/pdf">
+      <div class="hint">อัปโหลดแล้วจะใช้ PDF แทน Slides แบบ JSON ในหน้า “View Slides” ของครู</div>
+
+      {% if topic.pdf_file %}
+        <div style="margin-top:.5rem;">
+          📄 Current PDF:
+          <strong>{{ topic.pdf_file }}</strong>
+          <div class="pdf-actions">
+            <a class="btn" href="{{ url_for('uploaded_file', filename=topic.pdf_file) }}" target="_blank">Open PDF</a>
+          </div>
+        </div>
+      {% else %}
+        <div class="hint" style="margin-top:.5rem;">ยังไม่มีไฟล์ PDF</div>
+      {% endif %}
+    </div>
+
+    <div class="form-group">
+      <label for="slides_json">Slides JSON</label>
+      <textarea id="slides_json" name="slides_json" rows="12">{{ topic.slides_json }}</textarea>
+      <div class="hint">ถ้ามี PDF ระบบจะโชว์ PDF ก่อน (JSON ยังเก็บไว้ได้)</div>
+    </div>
+
+    <div style="display:flex; gap:1rem; flex-wrap:wrap;">
+      <button type="submit" style="flex:1; min-width:200px;">Save Changes</button>
+      <a href="{{ url_for('admin_dashboard') }}" class="btn" style="flex:1; min-width:200px; text-align:center; background:#718096;">Back</a>
+    </div>
+  </form>
+</div>
+{% endblock %}

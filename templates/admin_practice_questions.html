@@ -1,0 +1,78 @@
+
+{% extends "base.html" %}
+
+{% block title %}Practice Questions - Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+    .questions-list {
+        background: white;
+        border-radius: 8px;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+        overflow: hidden;
+    }
+    
+    .question-item {
+        padding: 1.5rem;
+        border-bottom: 1px solid #e2e8f0;
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+    }
+    
+    .question-item:last-child {
+        border-bottom: none;
+    }
+    
+    .question-content {
+        flex: 1;
+    }
+    
+    .question-content h4 {
+        margin-bottom: 0.5rem;
+        color: #667eea;
+    }
+    
+    .question-content p {
+        font-size: 0.9rem;
+        color: #718096;
+        margin: 0.25rem 0;
+    }
+    
+    .question-actions {
+        display: flex;
+        gap: 0.5rem;
+        margin-left: 1rem;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+<div style="max-width: 900px; margin: 2rem auto;">
+    <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 2rem;">
+        <h2>{{ topic.name }} - Practice Questions</h2>
+        <a href="{{ url_for('admin_create_practice_question', topic_id=topic.id) }}" class="btn">+ Add Question</a>
+    </div>
+    
+    <div class="questions-list">
+        {% for question in questions %}
+        <div class="question-item">
+            <div class="question-content">
+                <h4>[{{ question.type }}] {{ question.question }}</h4>
+                <p>Answer: <strong>{{ question.correct_answer }}</strong></p>
+            </div>
+            <div class="question-actions">
+                <a href="{{ url_for('admin_edit_practice_question', q_id=question.id) }}" class="btn" style="padding: 0.5rem 1rem;">Edit</a>
+                <form method="POST" action="{{ url_for('admin_delete_practice_question', q_id=question.id) }}" style="display: inline;">
+                    <button type="submit" class="btn danger" style="padding: 0.5rem 1rem;" onclick="return confirm('Delete?');">Delete</button>
+                </form>
+            </div>
+        </div>
+        {% endfor %}
+    </div>
+    
+    {% if not questions %}
+    <p style="text-align: center; color: #718096; padding: 2rem;">No questions yet. <a href="{{ url_for('admin_create_practice_question', topic_id=topic.id) }}">Add one</a>.</p>
+    {% endif %}
+</div>
+{% endblock %}

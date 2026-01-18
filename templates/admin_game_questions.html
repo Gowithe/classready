@@ -1,0 +1,46 @@
+{% extends "base.html" %}
+{% block title %}Admin • Game Questions{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+  <div>
+    <h2 style="margin:0;">🎮 Game Questions</h2>
+    <div style="color:#64748b;margin-top:6px;">Topic: <b>{{ topic.name }}</b></div>
+  </div>
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <a class="btn" href="{{ url_for('admin_dashboard') }}">← Back</a>
+    <a class="btn" href="{{ url_for('game', topic_id=topic.id) }}">Open Game</a>
+  </div>
+</div>
+
+<hr style="margin:16px 0;">
+
+{% if questions and questions|length > 0 %}
+  <div style="overflow:auto;">
+    <table class="table" style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;">Set</th>
+          <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;">Tile</th>
+          <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;">Question</th>
+          <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;">Answer</th>
+          <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;">Points</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for q in questions %}
+          <tr>
+            <td style="padding:10px;border-bottom:1px solid #f1f5f9;">{{ q.set_no }}</td>
+            <td style="padding:10px;border-bottom:1px solid #f1f5f9;">{{ q.tile_no }}</td>
+            <td style="padding:10px;border-bottom:1px solid #f1f5f9;">{{ q.question }}</td>
+            <td style="padding:10px;border-bottom:1px solid #f1f5f9;"><b>{{ q.answer }}</b></td>
+            <td style="padding:10px;border-bottom:1px solid #f1f5f9;">{{ q.points }}</td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="card" style="padding:14px;">No game questions for this topic yet.</div>
+{% endif %}
+{% endblock %}

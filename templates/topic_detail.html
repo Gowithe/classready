@@ -1,0 +1,234 @@
+{% extends "base.html" %}
+
+{% block title %}{{ topic.name }} - Teacher Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+  .topic-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    border-radius: 8px;
+    margin-bottom: 1.25rem;
+  }
+
+  .topic-header h1 {
+    font-size: 2rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .topic-nav {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.25rem;
+    flex-wrap: wrap;
+  }
+
+  .topic-nav a {
+    padding: 0.75rem 1.5rem;
+    background: white;
+    color: #667eea;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 700;
+    transition: all 0.2s;
+  }
+
+  .topic-nav a:hover {
+    background: #f0f4ff;
+    transform: translateY(-1px);
+  }
+
+  .panel {
+    background: white;
+    padding: 1.25rem;
+    border-radius: 8px;
+    margin-bottom: 1rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+
+  .muted {
+    color: #718096;
+    font-size: 0.9rem;
+  }
+
+  .btnrow {
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top: 10px;
+  }
+
+  .btn2 {
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:8px;
+    padding: 10px 14px;
+    border-radius: 8px;
+    border: 1px solid rgba(0,0,0,0.08);
+    background: #667eea;
+    color: white;
+    cursor:pointer;
+    font-weight: 800;
+    text-decoration:none;
+  }
+  .btn2:hover { filter: brightness(0.98); }
+  .btn2.secondary { background:#0ea5e9; }
+  .btn2.green { background:#10b981; }
+  .btn2.orange { background:#f59e0b; }
+  .btn2.gray { background:#64748b; }
+  .btn2.danger { background:#ef4444; }
+
+  .btn2:disabled {
+    opacity: 0.55;
+    cursor:not-allowed;
+  }
+
+  .statusbar{
+    margin-top: 10px;
+    padding: 10px 12px;
+    border-radius: 8px;
+    background:#f8fafc;
+    border:1px solid #e2e8f0;
+    font-size: 0.95rem;
+    display:none;
+  }
+  .statusbar.show{ display:block; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="topic-header">
+  <h1>{{ topic.name }}</h1>
+  <p>{{ topic.description or 'No description' }}</p>
+
+  <div class="topic-nav">
+    <a href="{{ url_for('view_slides', topic_id=topic.id) }}">📽️ Slides</a>
+    <a href="{{ url_for('game', topic_id=topic.id) }}">🎮 Game</a>
+    <a href="{{ url_for('practice', topic_id=topic.id) }}">📝 Practice</a>
+  </div>
+</div>
+
+<div class="panel">
+  <h3 style="margin:0 0 6px;">About this topic</h3>
+  <div class="muted">
+    Type: {{ topic.topic_type }} |
+    Created: {{ (topic.created_at or '')[:19].replace('T',' ') }}
+  </div>
+
+  <div style="margin-top:10px;">
+    <strong>PDF:</strong>
+    {% if topic.pdf_file %}
+      <span class="muted">{{ topic.pdf_file }}</span>
+      <a class="btn2 gray" style="margin-left:10px;" href="{{ url_for('uploaded_file', filename=topic.pdf_file) }}" target="_blank">📄 Open PDF</a>
+    {% else %}
+      <span class="muted">ยังไม่มี PDF (อัปโหลดก่อนถึงจะ Generate จาก PDF ได้)</span>
+    {% endif %}
+  </div>
+</div>
+
+{% if is_owner or is_admin %}
+<div class="panel">
+  <h3 style="margin:0 0 8px;">⚙️ Manage</h3>
+
+  <div class="btnrow">
+    <a class="btn2 gray" href="{{ url_for('my_edit_topic', topic_id=topic.id) }}">✏️ Edit Topic</a>
+
+    <form method="POST" action="{{ url_for('my_delete_topic', topic_id=topic.id) }}"
+          onsubmit="return confirm('Delete this topic? (will remove slides/game/practice)');" style="margin:0;">
+      <button class="btn2 danger" type="submit">🗑 Delete</button>
+    </form>
+  </div>
+
+  <hr style="margin:14px 0; border:none; border-top:1px solid #e2e8f0;">
+
+  <div class="muted" style="margin-bottom:8px;">
+    Generate Game/Practice from PDF (จะเขียนทับคำถามเดิม)
+  </div>
+
+  <div class="btnrow">
+    <button class="btn2 green" id="btnGenAll" type="button" {% if not topic.pdf_file %}disabled{% endif %}>
+      ✨ Generate All
+    </button>
+    <button class="btn2 secondary" id="btnGenGame" type="button" {% if not topic.pdf_file %}disabled{% endif %}>
+      🎮 Generate Game
+    </button>
+    <button class="btn2 orange" id="btnGenPractice" type="button" {% if not topic.pdf_file %}disabled{% endif %}>
+      📝 Generate Practice
+    </button>
+  </div>
+
+  <div id="statusbar" class="statusbar"></div>
+</div>
+{% endif %}
+
+<script>
+  const topicId = {{ topic.id }};
+  const hasPdf = {{ 1 if topic.pdf_file else 0 }};
+
+  const statusbar = document.getElementById('statusbar');
+
+  function setStatus(msg){
+    statusbar.textContent = msg;
+    statusbar.classList.add('show');
+  }
+
+  async function callGenerate(mode){
+    if(!hasPdf){
+      alert('ยังไม่มี PDF — กรุณาอัปโหลด PDF ก่อน');
+      return;
+    }
+
+    // confirm overwrite
+    const ok = confirm(`ยืนยัน Generate (${mode}) จาก PDF?\nระบบจะเขียนทับคำถามเดิม`);
+    if(!ok) return;
+
+    const buttons = [document.getElementById('btnGenAll'), document.getElementById('btnGenGame'), document.getElementById('btnGenPractice')];
+    buttons.forEach(b => { if(b) b.disabled = true; });
+
+    try{
+      setStatus('⏳ Generating... (กำลังสร้างคำถามจาก PDF)');
+      const res = await fetch(`/api/topic/${topicId}/generate`, {
+        method: 'POST',
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ mode })
+      });
+      const data = await res.json();
+
+      if(!res.ok){
+        alert(data.error || 'Generate failed');
+        setStatus('❌ Generate failed: ' + (data.error || 'unknown error'));
+        return;
+      }
+
+      setStatus('✅ Generated successfully!');
+
+      // ไปหน้าเกม/แบบฝึกทันทีเพื่อดูผล
+      if(mode === 'game'){
+        window.location.href = `/topic/${topicId}/game`;
+      }else if(mode === 'practice'){
+        window.location.href = `/topic/${topicId}/practice`;
+      }else{
+        // all
+        window.location.href = `/topic/${topicId}`;
+      }
+
+    }catch(err){
+      alert('Error: ' + err);
+      setStatus('❌ Error: ' + err);
+    }finally{
+      // ถ้าจะ redirect มันจะไม่ทันเห็น enable แต่ใส่ไว้กันกรณีไม่ redirect
+      buttons.forEach(b => { if(b) b.disabled = false; });
+    }
+  }
+
+  const btnAll = document.getElementById('btnGenAll');
+  const btnGame = document.getElementById('btnGenGame');
+  const btnPractice = document.getElementById('btnGenPractice');
+
+  if(btnAll) btnAll.addEventListener('click', () => callGenerate('all'));
+  if(btnGame) btnGame.addEventListener('click', () => callGenerate('game'));
+  if(btnPractice) btnPractice.addEventListener('click', () => callGenerate('practice'));
+</script>
+{% endblock %}

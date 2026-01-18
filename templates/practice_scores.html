@@ -1,0 +1,84 @@
+{% extends "base.html" %}
+
+{% block title %}Student Scores - {{ topic.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .wrap{
+    max-width: 1000px;
+    margin: 2rem auto;
+    background: white;
+    padding: 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  table{
+    width:100%;
+    border-collapse: collapse;
+    overflow:hidden;
+    border-radius: 10px;
+  }
+  th{
+    background:#667eea;
+    color:white;
+    text-align:left;
+    padding: 12px;
+    font-weight:800;
+    font-size: 14px;
+  }
+  td{
+    padding: 12px;
+    border-bottom: 1px solid #e2e8f0;
+    font-size: 14px;
+  }
+  tr:hover{ background:#f7fafc; }
+  .muted{ color:#718096; font-size: 12px; }
+  .top-actions{
+    display:flex;
+    justify-content: space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap: 10px;
+    margin-bottom: 14px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrap">
+  <div class="top-actions">
+    <div>
+      <h2 style="margin:0;">📊 Student Scores</h2>
+      <div class="muted">{{ topic.name }} • latest 500 submissions</div>
+    </div>
+    <a class="btn" href="{{ url_for('practice', topic_id=topic.id) }}">↩️ Back to Practice</a>
+  </div>
+
+  {% if submissions %}
+  <table>
+    <thead>
+      <tr>
+        <th>#</th>
+        <th>Student</th>
+        <th>Score</th>
+        <th>Percent</th>
+        <th>Submitted</th>
+      </tr>
+    </thead>
+    <tbody>
+      {% for s in submissions %}
+      <tr>
+        <td>{{ loop.index }}</td>
+        <td><strong>{{ s.student_name }}</strong></td>
+        <td>{{ s.score }}/{{ s.total }}</td>
+        <td>{{ '%.1f'|format(s.percentage) }}%</td>
+        <td>{{ (s.created_at or '')[:19].replace('T',' ') }}</td>
+      </tr>
+      {% endfor %}
+    </tbody>
+  </table>
+  {% else %}
+    <p style="color:#718096;">ยังไม่มีนักเรียนส่งคำตอบผ่านลิงก์</p>
+  {% endif %}
+</div>
+{% endblock %}

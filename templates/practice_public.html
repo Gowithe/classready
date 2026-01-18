@@ -1,0 +1,131 @@
+{% extends "base.html" %}
+
+{% block title %}Practice - {{ topic.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .practice-form{max-width:900px;margin:2rem auto;background:#fff;padding:2rem;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.1)}
+  .question-item{margin-bottom:1.25rem;padding:1.15rem;background:#f7fafc;border-radius:8px;border-left:4px solid #667eea}
+  .question-title{font-weight:800;margin-bottom:0.75rem}
+  .choice{display:flex;align-items:center;gap:.6rem;padding:.45rem .25rem}
+  .choice input{width:auto;margin:0}
+  .results{max-width:900px;margin:2rem auto;background:#fff;padding:2rem;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.1)}
+  .score-badge{font-size:3rem;font-weight:900;text-align:center;color:var(--success);margin-bottom:1rem}
+  .feedback-item{padding:1rem;margin-bottom:1rem;border-radius:8px;border-left:4px solid}
+  .feedback-item.correct{background:#c6f6d5;border-color:var(--success)}
+  .feedback-item.incorrect{background:#fed7d7;border-color:var(--danger)}
+</style>
+{% endblock %}
+
+{% block content %}
+<h2 style="margin-bottom: 0.5rem;">📝 {{ topic.name }} - Student Practice</h2>
+<div class="card" style="padding:14px;margin-bottom:1rem;">
+  <div style="font-weight:900;margin-bottom:6px;">กรอกชื่อก่อนเริ่มทำ</div>
+  <div style="color:#64748b;font-size:12px;">ลิงก์นี้เป็นแบบฝึกหัดสำหรับนักเรียน ไม่ต้องล็อกอิน</div>
+</div>
+
+{% if questions|length == 0 %}
+  <div class="card" style="padding:16px;">
+    <p>ยังไม่มีแบบฝึกหัดสำหรับหัวข้อนี้</p>
+  </div>
+{% else %}
+
+<div class="practice-form" id="practice-wrap">
+  <form id="practice-form">
+    <label style="font-weight:900;">Student name</label>
+    <input id="student_name" type="text" required placeholder="Type your name">
+
+    {% for q in questions %}
+      <div class="question-item">
+        <div class="question-title">{{ loop.index }}. {{ q.prompt }}</div>
+        {% if q.choices %}
+          {% for c in q.choices %}
+            <label class="choice">
+              <input type="radio" name="q{{ q.id }}" value="{{ c }}" required>
+              <span>{{ c }}</span>
+            </label>
+          {% endfor %}
+        {% else %}
+          <input type="text" name="q{{ q.id }}" required placeholder="Type your answer">
+        {% endif %}
+      </div>
+    {% endfor %}
+
+    <button type="submit" style="width:100%; padding: 1rem; font-size: 1.1rem;">Submit & See Score</button>
+  </form>
+</div>
+
+<script>
+  const questions = {{ questions|tojson }};
+  const token = {{ token|tojson }};
+
+  document.getElementById('practice-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const studentName = document.getElementById('student_name').value.trim();
+    if(!studentName){
+      alert('Please enter your name');
+      return;
+    }
+
+    const answers = {};
+    for(const q of questions){
+      const name = 'q' + q.id;
+      const el = document.querySelector(`[name="${name}"]:checked`) || document.querySelector(`[name="${name}"]`);
+      answers[String(q.id)] = el ? el.value : '';
+    }
+
+    try{
+      const res = await fetch(`/api/p/${token}/submit`, {
+        method: 'POST',
+        headers: {'Content-Type':'application/json'},
+        body: JSON.stringify({ student_name: studentName, answers })
+      });
+      const result = await res.json();
+      if(result.error){
+        alert(result.error);
+        return;
+      }
+      renderResults(studentName, result);
+    }catch(err){
+      alert('Error submitting practice: ' + err);
+    }
+  });
+
+  function renderResults(studentName, result){
+    let html = `
+      <div class="results">
+        <div style="text-align:center;font-weight:900;margin-bottom:6px;">${escapeHtml(studentName)}</div>
+        <div class="score-badge">${result.score}/${result.total} (${Number(result.percentage).toFixed(1)}%)</div>
+        <h3 style="text-align:center; margin-bottom:1.5rem;">${result.percentage >= 70 ? '🎉 Great job!' : '💪 Keep practicing!'}</h3>
+    `;
+
+    let idx = 1;
+    for(const q of questions){
+      const fb = result.feedback[String(q.id)];
+      html += `
+        <div class="feedback-item ${fb.is_correct ? 'correct' : 'incorrect'}">
+          <strong>Q${idx}: ${escapeHtml(q.prompt)}</strong><br>
+          Your answer: <strong>${escapeHtml(fb.user_answer || '-')}</strong><br>
+          Correct answer: <strong>${escapeHtml(fb.correct_answer || '-')}</strong>
+          ${fb.is_correct ? ' ✓' : ' ✗'}
+        </div>
+      `;
+      idx++;
+    }
+
+    html += `
+        <a href="/p/${token}" class="btn" style="display:block; text-align:center; margin-top: 1.5rem;">Try Again</a>
+      </div>
+    `;
+
+    document.getElementById('practice-wrap').innerHTML = html;
+  }
+
+  function escapeHtml(s){
+    return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
+  }
+</script>
+
+{% endif %}
+{% endblock %}

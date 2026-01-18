@@ -1,0 +1,370 @@
+{% extends "base.html" %}
+{% block title %}Presentation - {{ topic.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .pres-wrap{
+    background:#0b1220;
+    border-radius:14px;
+    overflow:hidden;
+    box-shadow: 0 10px 30px rgba(0,0,0,.25);
+  }
+  .pres-topbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:12px;
+    padding:12px 14px;
+    background:rgba(255,255,255,.06);
+    color:#e6eefc;
+    flex-wrap:wrap;
+  }
+  .pres-title{ display:flex; flex-direction:column; gap:2px; }
+  .pres-title h2{ margin:0; font-size:16px; font-weight:700; }
+  .pres-title .muted{ opacity:.8; font-size:12px; }
+
+  .pres-controls{
+    display:flex; gap:8px; align-items:center; flex-wrap:wrap;
+  }
+  .pres-controls button{
+    background:rgba(255,255,255,.12);
+    border:1px solid rgba(255,255,255,.16);
+    color:#fff;
+    padding:8px 10px;
+    border-radius:10px;
+    cursor:pointer;
+    font-weight:700;
+  }
+  .pres-controls button:hover{ background:rgba(255,255,255,.18); }
+  .pres-controls button:disabled{ opacity:.5; cursor:not-allowed; }
+
+  .badge{
+    font-weight:700;
+    background:rgba(255,255,255,.12);
+    border:1px solid rgba(255,255,255,.16);
+    padding:8px 10px;
+    border-radius:10px;
+    color:#fff;
+    min-width:120px;
+    text-align:center;
+  }
+
+  .stage{
+    position:relative;
+    background:#050913;
+    display:flex;
+    justify-content:center;
+    align-items:center;
+    height: 78vh;
+    min-height: 520px;
+  }
+  canvas{
+    max-width:100%;
+    max-height:100%;
+    border-radius:12px;
+    background:#fff;
+  }
+
+  /* Pointer (laser) */
+  .laser{
+    position:absolute;
+    width:16px; height:16px;
+    border-radius:50%;
+    background: radial-gradient(circle, rgba(255,90,90,1) 0%, rgba(255,0,0,1) 45%, rgba(255,0,0,0) 70%);
+    transform: translate(-50%,-50%);
+    pointer-events:none;
+    display:none;
+    filter: drop-shadow(0 0 8px rgba(255,0,0,.85));
+  }
+  .laser.on{ display:block; }
+
+  .help{
+    color:#dbe7ff;
+    font-size:12px;
+    opacity:.75;
+    padding:10px 14px;
+    background:rgba(255,255,255,.04);
+  }
+
+  .error-box{
+    position:absolute;
+    inset: 20px;
+    display:none;
+    align-items:center;
+    justify-content:center;
+    color:#fff;
+    text-align:center;
+    padding:20px;
+    border-radius:12px;
+    background: rgba(245, 101, 101, 0.15);
+    border: 1px solid rgba(245, 101, 101, 0.35);
+  }
+  .error-box.show{ display:flex; }
+</style>
+{% endblock %}
+
+{% block content %}
+<section style="margin-bottom:14px;">
+  <div style="display:flex; justify-content:space-between; align-items:center; flex-wrap:wrap; gap:10px;">
+    <div>
+      <h1 style="margin:0 0 4px;">🎬 Presentation</h1>
+      <div style="color:#718096;">{{ topic.name }}</div>
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <a class="btn" href="{{ url_for('topic_detail', topic_id=topic.id) }}">← Back to Topic</a>
+      <a class="btn" href="{{ pdf_url }}" target="_blank">Open PDF file</a>
+    </div>
+  </div>
+</section>
+
+<div class="pres-wrap" id="presWrap">
+  <div class="pres-topbar">
+    <div class="pres-title">
+      <h2>Slide Show</h2>
+      <div class="muted">Controls: ← → / PageUp PageDown / Space | Clicker works!</div>
+    </div>
+
+    <div class="pres-controls">
+      <button id="prevBtn" title="Previous (← / PageUp)">← Prev</button>
+      <div class="badge"><span id="pageNum">1</span> / <span id="pageCount">?</span></div>
+      <button id="nextBtn" title="Next (→ / PageDown / Space)">Next →</button>
+
+      <button id="pointerBtn" title="Toggle laser pointer (P)">🔴 Pointer</button>
+      <button id="zoomOutBtn" title="Zoom out (-)">−</button>
+      <button id="zoomInBtn" title="Zoom in (+)">+</button>
+      <button id="fsBtn" title="Fullscreen (F)">⛶ Fullscreen</button>
+    </div>
+  </div>
+
+  <div class="stage" id="stage">
+    <canvas id="pdfCanvas"></canvas>
+    <div class="laser" id="laser"></div>
+    <div class="error-box" id="errorBox"></div>
+  </div>
+
+  <div class="help">
+    Tip: กด <b>P</b> เปิด/ปิด Pointer, กด <b>F</b> Fullscreen, กด <b>+</b>/<b>-</b> ซูม, กด <b>Space</b> ไปหน้าถัดไป
+  </div>
+</div>
+
+<!-- ✅ PDF.js (Stable v2) -->
+<script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.min.js"></script>
+<script>
+  const PDF_URL = "{{ pdf_url }}";
+
+  const canvas = document.getElementById('pdfCanvas');
+  const ctx = canvas.getContext('2d');
+
+  const pageNumEl = document.getElementById('pageNum');
+  const pageCountEl = document.getElementById('pageCount');
+
+  const prevBtn = document.getElementById('prevBtn');
+  const nextBtn = document.getElementById('nextBtn');
+  const fsBtn = document.getElementById('fsBtn');
+  const pointerBtn = document.getElementById('pointerBtn');
+  const zoomInBtn = document.getElementById('zoomInBtn');
+  const zoomOutBtn = document.getElementById('zoomOutBtn');
+
+  const stage = document.getElementById('stage');
+  const presWrap = document.getElementById('presWrap');
+  const laser = document.getElementById('laser');
+  const errorBox = document.getElementById('errorBox');
+
+  // ✅ worker (ต้องคู่กับเวอร์ชันเดียวกัน)
+  pdfjsLib.GlobalWorkerOptions.workerSrc =
+    "https://cdnjs.cloudflare.com/ajax/libs/pdf.js/2.16.105/pdf.worker.min.js";
+
+  let pdfDoc = null;
+  let pageNum = 1;
+  let pageCount = 0;
+  let scale = 1.15;
+  let rendering = false;
+  let pendingPage = null;
+
+  let pointerOn = false;
+
+  function showError(msg){
+    errorBox.innerHTML = `
+      <div>
+        <div style="font-size:18px; font-weight:800; margin-bottom:8px;">❌ โหลด PDF ไม่สำเร็จ</div>
+        <div style="opacity:.9; margin-bottom:10px;">${msg}</div>
+        <div style="opacity:.85; font-size:12px;">
+          ลองกด “Open PDF file” ถ้าเปิดได้แปลว่าไฟล์มีจริง<br>
+          ถ้าเปิดไม่ได้ แปลว่า URL/สิทธิ์เข้าถึง/ไฟล์เสีย
+        </div>
+      </div>
+    `;
+    errorBox.classList.add('show');
+  }
+
+  function hideError(){
+    errorBox.classList.remove('show');
+  }
+
+  function setButtons() {
+    prevBtn.disabled = (pageNum <= 1);
+    nextBtn.disabled = (pageNum >= pageCount);
+    pageNumEl.textContent = pageNum;
+    pageCountEl.textContent = pageCount || "?";
+  }
+
+  async function renderPage(num) {
+    rendering = true;
+    const page = await pdfDoc.getPage(num);
+
+    // Fit slide into stage height (presentation-like)
+    const viewport1 = page.getViewport({ scale: 1 });
+    const stageRect = stage.getBoundingClientRect();
+    const fitScale = (stageRect.height / viewport1.height);
+    const finalScale = fitScale * scale;
+
+    const viewport = page.getViewport({ scale: finalScale });
+    canvas.width = Math.floor(viewport.width);
+    canvas.height = Math.floor(viewport.height);
+
+    const renderContext = { canvasContext: ctx, viewport };
+    await page.render(renderContext).promise;
+
+    rendering = false;
+    if (pendingPage !== null) {
+      const p = pendingPage;
+      pendingPage = null;
+      queueRenderPage(p);
+    }
+  }
+
+  function queueRenderPage(num) {
+    if (rendering) {
+      pendingPage = num;
+      return;
+    }
+    renderPage(num).catch(err => {
+      console.error(err);
+      showError("Render error: " + (err?.message || err));
+    });
+  }
+
+  function prevPage() {
+    if (pageNum <= 1) return;
+    pageNum--;
+    setButtons();
+    queueRenderPage(pageNum);
+  }
+
+  function nextPage() {
+    if (pageNum >= pageCount) return;
+    pageNum++;
+    setButtons();
+    queueRenderPage(pageNum);
+  }
+
+  function toggleFullscreen() {
+    if (!document.fullscreenElement) {
+      presWrap.requestFullscreen?.();
+    } else {
+      document.exitFullscreen?.();
+    }
+  }
+
+  function togglePointer() {
+    pointerOn = !pointerOn;
+    pointerBtn.style.background = pointerOn ? "rgba(255,0,0,.35)" : "rgba(255,255,255,.12)";
+    if (!pointerOn) laser.classList.remove('on');
+  }
+
+  function updateLaser(e) {
+    if (!pointerOn) return;
+
+    const rect = stage.getBoundingClientRect();
+    let x, y;
+    if (e.touches && e.touches[0]) {
+      x = e.touches[0].clientX;
+      y = e.touches[0].clientY;
+    } else {
+      x = e.clientX;
+      y = e.clientY;
+    }
+
+    x = Math.max(rect.left, Math.min(rect.right, x));
+    y = Math.max(rect.top, Math.min(rect.bottom, y));
+
+    laser.style.left = (x - rect.left) + "px";
+    laser.style.top  = (y - rect.top) + "px";
+    laser.classList.add('on');
+  }
+
+  function hideLaser() {
+    laser.classList.remove('on');
+  }
+
+  function zoomIn() {
+    scale = Math.min(2.5, scale + 0.15);
+    queueRenderPage(pageNum);
+  }
+
+  function zoomOut() {
+    scale = Math.max(0.6, scale - 0.15);
+    queueRenderPage(pageNum);
+  }
+
+  // Buttons
+  prevBtn.addEventListener('click', prevPage);
+  nextBtn.addEventListener('click', nextPage);
+  fsBtn.addEventListener('click', toggleFullscreen);
+  pointerBtn.addEventListener('click', togglePointer);
+  zoomInBtn.addEventListener('click', zoomIn);
+  zoomOutBtn.addEventListener('click', zoomOut);
+
+  // Keyboard / Clicker support
+  document.addEventListener('keydown', (e) => {
+    const key = e.key;
+
+    if (key === 'p' || key === 'P') togglePointer();
+    if (key === 'f' || key === 'F') toggleFullscreen();
+
+    if (key === 'ArrowRight' || key === 'PageDown' || key === ' ') {
+      e.preventDefault();
+      nextPage();
+    }
+    if (key === 'ArrowLeft' || key === 'PageUp') {
+      e.preventDefault();
+      prevPage();
+    }
+
+    if (key === '+' || key === '=') zoomIn();
+    if (key === '-' || key === '_') zoomOut();
+  });
+
+  window.addEventListener('resize', () => queueRenderPage(pageNum));
+  document.addEventListener('fullscreenchange', () => queueRenderPage(pageNum));
+
+  stage.addEventListener('mousemove', updateLaser);
+  stage.addEventListener('mouseleave', hideLaser);
+  stage.addEventListener('touchstart', updateLaser, { passive: true });
+  stage.addEventListener('touchmove', updateLaser, { passive: true });
+  stage.addEventListener('touchend', hideLaser);
+
+  // Load PDF
+  (async function init(){
+    try{
+      hideError();
+      console.log("Loading PDF:", PDF_URL);
+
+      const loadingTask = pdfjsLib.getDocument({
+        url: PDF_URL,
+        withCredentials: true
+      });
+
+      pdfDoc = await loadingTask.promise;
+      pageCount = pdfDoc.numPages;
+      pageNum = 1;
+
+      setButtons();
+      queueRenderPage(pageNum);
+    } catch(err){
+      console.error("PDF load failed:", err);
+      showError((err && err.message) ? err.message : String(err));
+    }
+  })();
+</script>
+{% endblock %}

@@ -1,0 +1,269 @@
+{% extends "base.html" %}
+
+{% block title %}Practice - {{ topic.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  /* ===== Top Nav Buttons (Slides / Game / Practice / Back) ===== */
+  .top-nav{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin: 6px 0 14px;
+  }
+  .navbtn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    padding: 12px 22px;
+    border-radius: 14px;
+    font-weight: 900;
+    text-decoration:none;
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 10px 18px rgba(15, 23, 42, 0.08);
+    transition: transform .08s ease, box-shadow .12s ease, filter .12s ease;
+    user-select:none;
+  }
+  .navbtn:hover{
+    transform: translateY(-1px);
+    box-shadow: 0 14px 22px rgba(15, 23, 42, 0.12);
+    filter: brightness(1.01);
+  }
+  .navbtn:active{ transform: translateY(0px) scale(0.99); }
+
+  .navbtn-slides{ background: #eef2ff; color:#1f2a44; }
+  .navbtn-game{ background: #eafff3; color:#0f3d24; }
+  .navbtn-practice{ background: #fff4df; color:#3a2a00; }
+  .navbtn-back{ background: #eef2ff; color:#1f2a44; }
+
+  /* active state */
+  .navbtn.active{
+    outline: 3px solid rgba(99,102,241,0.20);
+    border-color: rgba(99,102,241,0.15);
+  }
+
+  /* ===== Existing styles ===== */
+  .practice-form {
+      max-width: 900px;
+      margin: 2rem auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  .question-item {
+      margin-bottom: 1.5rem;
+      padding: 1.25rem;
+      background: #f7fafc;
+      border-radius: 6px;
+      border-left: 4px solid #667eea;
+  }
+  .question-title {
+      font-weight: 700;
+      margin-bottom: 0.75rem;
+  }
+  .choice {
+      display: flex;
+      align-items: center;
+      gap: 0.6rem;
+      padding: 0.5rem 0.25rem;
+  }
+  .choice input { width: auto; margin: 0; }
+  .results {
+      max-width: 900px;
+      margin: 2rem auto;
+      background: white;
+      padding: 2rem;
+      border-radius: 8px;
+      box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
+  }
+  .score-badge {
+      font-size: 3rem;
+      font-weight: 800;
+      text-align: center;
+      color: var(--success);
+      margin-bottom: 1rem;
+  }
+  .feedback-item {
+      padding: 1rem;
+      margin-bottom: 1rem;
+      border-radius: 6px;
+      border-left: 4px solid;
+  }
+  .feedback-item.correct { background: #c6f6d5; border-color: var(--success); }
+  .feedback-item.incorrect { background: #fed7d7; border-color: var(--danger); }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<!-- ✅ Top buttons like screenshot -->
+<div class="top-nav">
+  <a class="navbtn navbtn-slides" href="/topic/{{ topic.id }}/slides">📽️ Slides</a>
+  <a class="navbtn navbtn-game" href="/topic/{{ topic.id }}/game">🎮 Game</a>
+  <a class="navbtn navbtn-practice active" href="/topic/{{ topic.id }}/practice">📝 Practice</a>
+  <a class="navbtn navbtn-back" href="/topic/{{ topic.id }}">↩️ Back</a>
+</div>
+
+<h2 style="margin-bottom: 1rem;">📝 {{ topic.name }} - Practice (Multiple Choice)</h2>
+
+<div class="card" style="margin-bottom: 1rem; padding: 14px;">
+  <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center; justify-content:space-between;">
+    <div>
+      <div style="font-weight:900; margin-bottom:6px;">Practice Tools</div>
+      <div style="color:#64748b; font-size:12px;">ส่งลิงก์ให้นักเรียนทำ + ดาวน์โหลดเป็น PDF</div>
+    </div>
+    <div style="display:flex; gap:10px; flex-wrap:wrap;">
+      <a class="btn" href="{{ url_for('practice_pdf', topic_id=topic.id) }}">📄 Download PDF</a>
+      <a class="btn" href="{{ url_for('practice_pdf', topic_id=topic.id) }}?answers=1">✅ Answer PDF</a>
+      <a class="btn" href="{{ url_for('practice_scores', topic_id=topic.id) }}">📊 View Student Scores</a>
+    </div>
+  </div>
+
+  <div style="margin-top: 12px; display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+    <button type="button" id="btnCreateLink" style="min-width:200px;">🔗 Create Student Link</button>
+    <input id="studentLink" type="text" value="{{ student_url or '' }}" readonly style="flex:1; min-width:260px; margin:0;" placeholder="Student link will appear here">
+    <button type="button" class="mini-copy" id="btnCopyLink" style="min-width:120px;">📋 Copy</button>
+  </div>
+  <div style="margin-top:6px; color:#64748b; font-size:12px;">
+    นักเรียนเปิดลิงก์นี้ได้เลย (ไม่ต้องล็อกอิน) แล้วระบบจะตรวจคะแนนให้ทันที
+  </div>
+</div>
+
+{% if questions|length == 0 %}
+  <div class="card" style="padding:16px;">
+    <p>ยังไม่มีแบบฝึกหัดสำหรับหัวข้อนี้</p>
+  </div>
+{% else %}
+
+<div class="practice-form" id="practice-wrap">
+  <form id="practice-form">
+    {% for q in questions %}
+      <div class="question-item">
+        <div class="question-title">{{ loop.index }}. {{ q.prompt }}</div>
+
+        {% if q.choices %}
+          {% for c in q.choices %}
+            <label class="choice">
+              <input type="radio" name="q{{ q.id }}" value="{{ c }}" required>
+              <span>{{ c }}</span>
+            </label>
+          {% endfor %}
+        {% else %}
+          <input type="text" name="q{{ q.id }}" required placeholder="Type your answer">
+        {% endif %}
+      </div>
+    {% endfor %}
+
+    <button type="submit" style="width:100%; padding: 1rem; font-size: 1.1rem;">Submit & Grade</button>
+  </form>
+</div>
+
+<script>
+  const questions = {{ questions|tojson }};
+  const topicId = {{ topic.id }};
+
+  // Create student link
+  const btnCreate = document.getElementById('btnCreateLink');
+  const linkInput = document.getElementById('studentLink');
+  const btnCopy = document.getElementById('btnCopyLink');
+
+  if(btnCreate){
+    btnCreate.addEventListener('click', async () => {
+      btnCreate.disabled = true;
+      btnCreate.textContent = '⏳ Creating...';
+      try{
+        const res = await fetch(`/api/practice/${topicId}/link`, { method:'POST' });
+        const data = await res.json();
+        if(data.url){
+          linkInput.value = data.url;
+          alert('สร้างลิงก์ให้นักเรียนแล้ว ✅');
+        }else{
+          alert(data.error || 'สร้างลิงก์ไม่สำเร็จ');
+        }
+      }catch(e){
+        alert('Error: ' + e);
+      }finally{
+        btnCreate.disabled = false;
+        btnCreate.textContent = '🔗 Create Student Link';
+      }
+    });
+  }
+
+  if(btnCopy){
+    btnCopy.addEventListener('click', async () => {
+      const v = linkInput.value.trim();
+      if(!v){
+        alert('ยังไม่มีลิงก์');
+        return;
+      }
+      try{
+        await navigator.clipboard.writeText(v);
+        alert('คัดลอกลิงก์แล้ว ✅');
+      }catch(e){
+        linkInput.select();
+        document.execCommand('copy');
+        alert('คัดลอกลิงก์แล้ว ✅');
+      }
+    });
+  }
+
+  document.getElementById('practice-form').addEventListener('submit', async (e) => {
+    e.preventDefault();
+
+    const answers = {};
+    for (const q of questions) {
+      const name = 'q' + q.id;
+      const el = document.querySelector(`[name="${name}"]:checked`) || document.querySelector(`[name="${name}"]`);
+      answers[String(q.id)] = el ? el.value : '';
+    }
+
+    try {
+      const res = await fetch(`/api/practice/${topicId}/submit`, {
+        method: 'POST',
+        headers: {'Content-Type': 'application/json'},
+        body: JSON.stringify({ answers })
+      });
+      const result = await res.json();
+      renderResults(result);
+    } catch (err) {
+      alert('Error submitting practice: ' + err);
+    }
+  });
+
+  function renderResults(result) {
+    let html = `
+      <div class="results">
+        <div class="score-badge">${result.score}/${result.total} (${Number(result.percentage).toFixed(1)}%)</div>
+        <h3 style="text-align:center; margin-bottom:1.5rem;">
+          ${result.percentage >= 70 ? '🎉 Great job!' : '💪 Keep practicing!'}
+        </h3>
+    `;
+
+    let idx = 1;
+    for (const q of questions) {
+      const fb = result.feedback[String(q.id)];
+      html += `
+        <div class="feedback-item ${fb.is_correct ? 'correct' : 'incorrect'}">
+          <strong>Q${idx}: ${q.prompt}</strong><br>
+          Your answer: <strong>${fb.user_answer || '-'}</strong><br>
+          Correct answer: <strong>${fb.correct_answer || '-'}</strong>
+          ${fb.is_correct ? ' ✓' : ' ✗'}
+        </div>
+      `;
+      idx++;
+    }
+
+    html += `
+        <a href="/topic/${topicId}/practice" class="btn" style="display:block; text-align:center; margin-top: 1.5rem;">Try Again</a>
+      </div>
+    `;
+
+    document.getElementById('practice-wrap').innerHTML = html;
+  }
+</script>
+
+{% endif %}
+{% endblock %}

@@ -1,0 +1,38 @@
+
+{% extends "base.html" %}
+
+{% block title %}Add Practice Question - Admin{% endblock %}
+
+{% block content %}
+<div style="max-width: 600px; margin: 2rem auto; background: white; padding: 2rem; border-radius: 8px; box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);">
+    <h2 style="color: #667eea; margin-bottom: 1.5rem;">Add Practice Question</h2>
+    
+    <form method="POST">
+        <input type="hidden" name="topic_id" value="{{ topic_id }}">
+        
+        <div class="form-group">
+            <label for="type">Question Type *</label>
+            <select id="type" name="type" required>
+                <option value="multiple_choice">Multiple Choice</option>
+                <option value="fill_blank">Fill in the Blank</option>
+                <option value="matching">Matching</option>
+            </select>
+        </div>
+        
+        <div class="form-group">
+            <label for="question">Question *</label>
+            <textarea id="question" name="question" rows="3" required></textarea>
+        </div>
+        
+        <div class="form-group">
+            <label for="correct_answer">Correct Answer *</label>
+            <textarea id="correct_answer" name="correct_answer" rows="3" required></textarea>
+        </div>
+        
+        <div style="display: flex; gap: 1rem;">
+            <button type="submit" style="flex: 1;">Create Question</button>
+            <a href="{{ url_for('admin_practice_questions', topic_id=topic_id) }}" class="btn" style="flex: 1; text-align: center;">Cancel</a>
+        </div>
+    </form>
+</div>
+{% endblock %}

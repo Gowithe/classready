@@ -1,0 +1,106 @@
+{% extends "base.html" %}
+{% block title %}Pricing{% endblock %}
+
+{% block extra_css %}
+
+
+<style>
+  .pricing-wrap{max-width:980px;margin:0 auto;}
+  .grid{display:grid;grid-template-columns:1fr;gap:16px;}
+  @media(min-width:820px){.grid{grid-template-columns:1fr 1fr 1fr;}}
+  .card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:16px;padding:18px;box-shadow:0 6px 18px rgba(0,0,0,.06);} 
+  .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;font-weight:900;font-size:12px;border:1px solid rgba(0,0,0,.12);background:#f8fafc;}
+  .price{font-size:30px;font-weight:1000;margin:10px 0;}
+  .muted{color:#64748b;}
+  .features{margin:12px 0 0;padding-left:18px;color:#0f172a;}
+  .features li{margin:6px 0;}
+  .cta{margin-top:14px;}
+  .cta form{display:inline;}
+  .cta button{width:100%;padding:12px 14px;border-radius:12px;font-weight:1000;border:none;cursor:pointer;}
+  .btn-dark{background:#0f172a;color:#fff;}
+  .btn-green{background:#22c55e;color:#05351d;}
+  .btn-gray{background:#e2e8f0;color:#0f172a;}
+  .current{border-color:rgba(34,197,94,.45);box-shadow:0 0 0 3px rgba(34,197,94,.18),0 10px 30px rgba(0,0,0,.08);} 
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pricing-wrap">
+  <div style="display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap;">
+    <div>
+      <h2 style="margin:0;">💳 Pricing</h2>
+      <div class="muted" style="margin-top:6px;">เวอร์ชันเดโม: ปุ่ม Subscribe ยังไม่เชื่อมชำระเงินจริง (ใช้สำหรับทดสอบระบบ)</div>
+    </div>
+    <a class="btn" href="{{ url_for('dashboard') }}">← Back</a>
+  </div>
+
+  <hr style="margin:16px 0;">
+
+  <div class="grid">
+    <!-- FREE -->
+    <div class="card {% if plan == 'free' %}current{% endif %}">
+      <div class="badge">🆓 FREE</div>
+      <div class="price">0฿ <span style="font-size:14px;font-weight:800;color:#64748b;">/ month</span></div>
+      <div class="muted">ใช้ได้ทุกอย่าง แต่จำกัดจำนวนเนื้อหา</div>
+      <ul class="features">
+        <li>Slides / Game / Practice ครบ</li>
+        <li>สร้างหัวข้อได้ <b>{{ topic_limit }}</b> หัวข้อ</li>
+        <li>แชร์ลิงก์แบบฝึกหัดให้เด็กทำได้</li>
+      </ul>
+      <div class="cta">
+        {% if plan == 'free' %}
+          <button class="btn-gray" disabled>Current Plan</button>
+        {% else %}
+          <form method="POST" action="{{ url_for('downgrade_free') }}">
+            <button class="btn-gray" type="submit">Switch to Free</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- PRO -->
+    <div class="card {% if plan == 'pro' %}current{% endif %}">
+      <div class="badge">⭐ PRO</div>
+      <div class="price">69฿ <span style="font-size:14px;font-weight:800;color:#64748b;">/ month</span></div>
+      <div class="muted">ไม่จำกัดจำนวนเนื้อหา</div>
+      <ul class="features">
+        <li>สร้างหัวข้อไม่จำกัด</li>
+        <li>AI สร้าง Slides+Game+Practice</li>
+        <li>Export PDF แบบฝึกหัด</li>
+      </ul>
+      <div class="cta">
+        {% if plan == 'pro' %}
+          <button class="btn-green" disabled>Current Plan</button>
+        {% else %}
+          <form method="POST" action="{{ url_for('subscribe_pro') }}">
+            <button class="btn-green" type="submit">Subscribe PRO (Demo)</button>
+          </form>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- ADMIN -->
+    <div class="card {% if session.role == 'admin' %}current{% endif %}">
+      <div class="badge">🛠 ADMIN</div>
+      <div class="price">—</div>
+      <div class="muted">สำหรับผู้ดูแลระบบ</div>
+      <ul class="features">
+        <li>จัดการ Topics ทั้งหมด</li>
+        <li>Seed demo data</li>
+        <li>จัดการผู้ใช้ (ถ้าทำเพิ่ม)</li>
+      </ul>
+      <div class="cta">
+        {% if session.role == 'admin' %}
+          <a class="btn" style="display:block;text-align:center;background:#0f172a;" href="{{ url_for('admin_dashboard') }}">Go to Admin</a>
+        {% else %}
+          <button class="btn-dark" disabled>Admin only</button>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div style="margin-top:18px;padding:12px 14px;border:1px solid rgba(0,0,0,.10);border-radius:14px;background:#f8fafc;" class="muted">
+    ✅ แนะนำ: โมเดลนี้โอเคมากสำหรับเริ่มขาย — Free ให้ลองใช้จริง, Pro ราคา 69฿ ตัดสินใจง่าย
+  </div>
+</div>
+{% endblock %}

@@ -1,0 +1,111 @@
+{% extends "base.html" %}
+
+{% block title %}Generate Slides with AI{% endblock %}
+
+{% block extra_css %}
+<style>
+  .wrap {
+    max-width: 860px;
+    margin: 2rem auto;
+    background: white;
+    padding: 1.75rem;
+    border-radius: 10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  }
+  .row2 {
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+  @media (max-width: 800px){
+    .row2 { grid-template-columns: 1fr; }
+  }
+  .hint{
+    font-size: 12px;
+    color: #64748b;
+    margin-top: 6px;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrap">
+  <h2 style="margin:0 0 8px; color:#667eea;">✨ Generate Slides with AI</h2>
+  <div class="hint">กรอกชื่อเรื่อง → เลือกภาษา/ระดับ/สไตล์ → ระบบจะสร้าง Slides + Game + Practice</div>
+
+  <form id="genForm" method="POST" action="{{ url_for('ai_slides') }}">
+    <div class="form-group">
+      <label for="title">Topic Title *</label>
+      <input id="title" name="title" type="text" required
+             placeholder="เช่น Past Simple / Food Vocabulary / การเขียนเรียงความ / วิทย์เรื่องแรง ฯลฯ">
+      <div class="hint">ถ้าเลือก Thai Only: พิมพ์หัวข้อภาษาไทยได้เลย</div>
+    </div>
+
+    <div class="row2">
+      <div class="form-group">
+        <label for="language">Language</label>
+        <select id="language" name="language">
+          <option value="EN" selected>English (EN)</option>
+          <option value="EN+TH">Thai + English (EN+TH)</option>
+          <option value="TH">Thai Only (TH)</option>
+        </select>
+        <div class="hint">EN+TH = สไลด์หลักภาษาอังกฤษ + มีคำแปล/ตัวอย่างภาษาไทยเฉพาะจุด • TH = ภาษาไทยล้วนทั้งหมด</div>
+      </div>
+
+      <div class="form-group">
+        <label for="level">Level</label>
+        <select id="level" name="level">
+          <option value="Primary">Primary</option>
+          <option value="Secondary" selected>Secondary</option>
+          <option value="University">University</option>
+          <option value="General">General</option>
+        </select>
+      </div>
+    </div>
+
+    <div class="row2">
+      <div class="form-group">
+        <label for="style">Style</label>
+        <select id="style" name="style">
+          <option value="Minimal" selected>Minimal</option>
+          <option value="Modern">Modern</option>
+          <option value="Colorful">Colorful</option>
+          <option value="Playful">Playful</option>
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>&nbsp;</label>
+        <button id="btnSubmit" type="submit" style="width:100%; padding: 0.9rem; font-weight:800;">
+          🚀 Generate Now
+        </button>
+        <div class="hint">กดแล้วจะแสดง Pop up กันกดซ้ำ</div>
+      </div>
+    </div>
+  </form>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+  const form = document.getElementById('genForm');
+  const btn = document.getElementById('btnSubmit');
+  const lang = document.getElementById('language');
+
+  form.addEventListener('submit', () => {
+    // กันกดซ้ำ
+    btn.disabled = true;
+    btn.textContent = '⏳ Generating...';
+
+    // popup
+    const v = (lang.value || 'EN');
+    if(v === 'TH'){
+      window.tpShowLoading('⏳ กำลัง Generate (Thai Only)', 'ระบบกำลังสร้างสไลด์/เกม/แบบฝึก ภาษาไทยล้วน…');
+    }else if(v === 'EN+TH'){
+      window.tpShowLoading('⏳ กำลัง Generate (EN+TH)', 'ระบบกำลังสร้างสไลด์ภาษาอังกฤษ + คำแปล/ตัวอย่างภาษาไทย…');
+    }else{
+      window.tpShowLoading('⏳ Generating Lesson', 'Generating Slides + Game + Practice in English…');
+    }
+  });
+</script>
+{% endblock %}

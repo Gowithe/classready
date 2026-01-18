@@ -1,0 +1,39 @@
+{% extends "base.html" %}
+
+{% block title %}Slides (PDF) - {{ topic.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .pdf-wrap{
+    background:white;
+    border-radius:10px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    overflow:hidden;
+  }
+  .pdf-head{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    gap:1rem;
+    margin-bottom:1rem;
+    flex-wrap:wrap;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="pdf-head">
+  <div>
+    <h2 style="margin:0;">📄 {{ topic.name }} - PDF Slides</h2>
+    <p style="margin:.25rem 0 0; color:#718096;">เปิดสไลด์แบบ PDF (ถ้าไม่มี PDF จะกลับไปใช้ Slides JSON)</p>
+  </div>
+  <div style="display:flex; gap:.75rem; flex-wrap:wrap;">
+    <a class="btn" href="{{ url_for('topic_detail', topic_id=topic.id) }}">← Back to Topic</a>
+    <a class="btn" href="{{ pdf_url }}" target="_blank">Open in new tab</a>
+  </div>
+</div>
+
+<div class="pdf-wrap">
+  <iframe src="{{ pdf_url }}" style="width:100%; height:80vh; border:0;"></iframe>
+</div>
+{% endblock %}

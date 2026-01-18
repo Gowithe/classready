@@ -1,0 +1,72 @@
+{% extends "base.html" %}
+{% block title %}Admin Dashboard{% endblock %}
+
+{% block content %}
+<div style="display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;">
+  <div>
+    <h2 style="margin:0;">🛠 Admin Dashboard</h2>
+    <div style="color:#64748b;margin-top:6px;">จัดการ Topics / Slides / PDF / Game / Practice</div>
+  </div>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;">
+    <a class="btn" href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
+    <a class="btn" href="{{ url_for('admin_create_topic') }}">➕ Create Topic</a>
+
+    <form method="POST" action="{{ url_for('admin_seed') }}" style="display:inline;">
+      <button class="btn" type="submit">🌱 Seed Demo</button>
+    </form>
+  </div>
+</div>
+
+<hr style="margin:16px 0;">
+
+{% if topics and topics|length > 0 %}
+  <div style="overflow:auto;">
+    <table class="table" style="width:100%;border-collapse:collapse;">
+      <thead>
+        <tr>
+          <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;">ID</th>
+          <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;">Name</th>
+          <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;">Type</th>
+          <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;">Owner</th>
+          <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;">Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        {% for topic in topics %}
+          <tr>
+            <td style="padding:10px;border-bottom:1px solid #f1f5f9;">{{ topic.id if topic.id is defined else topic.get('id') }}</td>
+            <td style="padding:10px;border-bottom:1px solid #f1f5f9;">
+              <b>{{ topic.name if topic.name is defined else topic.get('name') }}</b><br>
+              <span style="color:#64748b;font-size:13px;">
+                {{ topic.description if topic.description is defined else topic.get('description') }}
+              </span>
+            </td>
+            <td style="padding:10px;border-bottom:1px solid #f1f5f9;">
+              {{ topic.topic_type if topic.topic_type is defined else topic.get('topic_type') }}
+            </td>
+            <td style="padding:10px;border-bottom:1px solid #f1f5f9;">
+              {{ topic.owner_id if topic.owner_id is defined else topic.get('owner_id') }}
+            </td>
+            <td style="padding:10px;border-bottom:1px solid #f1f5f9;">
+              {% set tid = topic.id if topic.id is defined else topic.get('id') %}
+
+              <a class="btn" href="{{ url_for('admin_edit_topic', topic_id=tid) }}">✏ Edit</a>
+              <a class="btn" href="{{ url_for('topic_detail', topic_id=tid) }}">📌 Open</a>
+              <a class="btn" href="{{ url_for('game', topic_id=tid) }}">🎮 Game</a>
+              <a class="btn" href="{{ url_for('admin_game_questions', topic_id=tid) }}">Game Q's</a>
+
+              <form method="POST" action="{{ url_for('admin_delete_topic', topic_id=tid) }}" style="display:inline;" onsubmit="return confirm('Delete this topic?');">
+                <button class="btn" type="submit" style="background:#ef4444;">🗑 Delete</button>
+              </form>
+            </td>
+          </tr>
+        {% endfor %}
+      </tbody>
+    </table>
+  </div>
+{% else %}
+  <div class="card" style="padding:14px;">No topics yet. Click <b>Create Topic</b> or <b>Seed Demo</b>.</div>
+{% endif %}
+
+{% endblock %}

@@ -1,0 +1,145 @@
+
+{% extends "base.html" %}
+
+{% block title %}Teacher Platform - Home{% endblock %}
+
+{% block extra_css %}
+<style>
+    .landing-hero {
+        background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+        color: white;
+        padding: 4rem 2rem;
+        text-align: center;
+        border-radius: 12px;
+        margin-bottom: 3rem;
+    }
+    
+    .landing-hero h1 {
+        font-size: 3rem;
+        font-weight: 700;
+        margin-bottom: 1rem;
+    }
+    
+    .landing-hero p {
+        font-size: 1.2rem;
+        margin-bottom: 2rem;
+        opacity: 0.95;
+    }
+    
+    .cta-buttons {
+        display: flex;
+        gap: 1rem;
+        justify-content: center;
+        flex-wrap: wrap;
+    }
+    
+    .cta-buttons a {
+        padding: 1rem 2rem;
+        font-size: 1.1rem;
+        background: white;
+        color: #667eea;
+        font-weight: 700;
+        border-radius: 8px;
+        transition: all 0.3s;
+    }
+    
+    .cta-buttons a:hover {
+        background: #f0f4ff;
+        transform: translateY(-4px);
+        box-shadow: 0 10px 20px rgba(0, 0, 0, 0.2);
+    }
+    
+    .features {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+        gap: 2rem;
+        margin-bottom: 3rem;
+    }
+    
+    .feature {
+        background: white;
+        padding: 2rem;
+        border-radius: 8px;
+        text-align: center;
+        box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+    }
+    
+    .feature h3 {
+        font-size: 1.5rem;
+        margin-bottom: 1rem;
+    }
+    
+    .feature-icon {
+        font-size: 3rem;
+        margin-bottom: 1rem;
+    }
+    
+    .thai {
+        font-size: 1.1rem;
+        color: #667eea;
+        font-weight: 600;
+    }
+</style>
+{% endblock %}
+
+{% block content %}
+{% if not session.user_id %}
+
+<div class="landing-hero">
+    <h1>🎓 Teacher Platform</h1>
+    <p class="thai">แพลตฟอร์มสำหรับครูสอนภาษาไทยและอังกฤษ</p>
+    <p>Create beautiful lessons. Teach interactively. Track progress.</p>
+    
+    <div class="cta-buttons">
+        <a href="{{ url_for('login') }}">Login</a>
+        <a href="{{ url_for('register') }}">Register</a>
+    </div>
+</div>
+
+<div class="features">
+    <div class="feature">
+        <div class="feature-icon">📊</div>
+        <h3>Interactive Content</h3>
+        <p>Slides, games, and practice worksheets all in one place.</p>
+    </div>
+    <div class="feature">
+        <div class="feature-icon">✨</div>
+        <h3>AI-Powered Slides</h3>
+        <p>Generate beautiful slide decks with AI in seconds.</p>
+    </div>
+    <div class="feature">
+        <div class="feature-icon">🎮</div>
+        <h3>Bamboozle Games</h3>
+        <p>Engage students with fun team-based game shows.</p>
+    </div>
+    <div class="feature">
+        <div class="feature-icon">📈</div>
+        <h3>Track Progress</h3>
+        <p>See how students perform on practice worksheets.</p>
+    </div>
+    <div class="feature">
+        <div class="feature-icon">🛡️</div>
+        <h3>Secure & Private</h3>
+        <p>Teachers and admins only. Controlled access.</p>
+    </div>
+    <div class="feature">
+        <div class="feature-icon">🌐</div>
+        <h3>Multi-Language</h3>
+        <p>Support for Thai and English content.</p>
+    </div>
+</div>
+
+<div style="background: white; padding: 2rem; border-radius: 8px; text-align: center;">
+    <h2>Ready to start teaching?</h2>
+    <p style="margin: 1rem 0;">Sign up now and create your first lesson.</p>
+    <a href="{{ url_for('register') }}" class="btn" style="padding: 1rem 2.5rem; font-size: 1.1rem;">Get Started</a>
+</div>
+
+{% else %}
+
+<h2>Welcome back!</h2>
+<p>You are logged in as {{ session.email }}. <a href="{{ url_for('dashboard') }}">Go to your dashboard</a>.</p>
+
+{% endif %}
+{% endblock %}
+
