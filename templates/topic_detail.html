@@ -187,40 +187,39 @@
     const buttons = [document.getElementById('btnGenAll'), document.getElementById('btnGenGame'), document.getElementById('btnGenPractice')];
     buttons.forEach(b => { if(b) b.disabled = true; });
 
-    try{
-      setStatus('⏳ Generating... (กำลังสร้างคำถามจาก PDF)');
-      const res = await fetch(`/api/topic/${topicId}/generate`, {
+    try {
+      setStatus('⏳ Generating...');
+      if(window.tpShowLoading) tpShowLoading('⏳ กำลังสร้าง...', 'ระบบกำลังสร้างเกม/แบบฝึกหัดจาก PDF');
+
+      // ✅ เรียก API ผ่าน helper เพื่อให้ส่ง session + เช็ก JSON อัตโนมัติ
+      const data = await fetchJSON(`/api/topic/${topicId}/generate`, {
         method: 'POST',
-        headers: { 'Content-Type':'application/json' },
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ mode })
       });
-      const data = await res.json();
 
-      if(!res.ok){
-        alert(data.error || 'Generate failed');
-        setStatus('❌ Generate failed: ' + (data.error || 'unknown error'));
+      // ✅ ถ้า backend ส่ง error มา
+      if (data && data.error) {
+        alert(data.error);
+        setStatus('❌ Generate failed: ' + data.error);
         return;
       }
 
       setStatus('✅ Generated successfully!');
+      // รีโหลดหน้าเพื่อให้เห็น Game/Practice ล่าสุด
+      setTimeout(()=>location.reload(), 350);
+      // TODO: ถ้าคุณมีโค้ดรีโหลดส่วนเกม/แบบฝึกหัด ให้เรียกต่อตรงนี้ เช่น refreshUI()
 
-      // ไปหน้าเกม/แบบฝึกทันทีเพื่อดูผล
-      if(mode === 'game'){
-        window.location.href = `/topic/${topicId}/game`;
-      }else if(mode === 'practice'){
-        window.location.href = `/topic/${topicId}/practice`;
-      }else{
-        // all
-        window.location.href = `/topic/${topicId}`;
-      }
+    } catch (err) {
+      alert(err.message || 'Generate failed');
+      setStatus('❌ Generate failed: ' + (err.message || 'unknown error'));
+    }
 
-    }catch(err){
-      alert('Error: ' + err);
-      setStatus('❌ Error: ' + err);
-    }finally{
-      // ถ้าจะ redirect มันจะไม่ทันเห็น enable แต่ใส่ไว้กันกรณีไม่ redirect
+    finally {
+      if(window.tpHideLoading) tpHideLoading();
       buttons.forEach(b => { if(b) b.disabled = false; });
     }
+
   }
 
   const btnAll = document.getElementById('btnGenAll');
