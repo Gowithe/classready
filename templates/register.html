@@ -1,0 +1,37 @@
+{% extends "base.html" %}
+{% block title %}Register{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:520px;margin:2rem auto;padding:18px;">
+  <h2 style="margin:0 0 6px;">📝 Create account</h2>
+  <div style="color:#64748b;font-size:13px;margin-bottom:14px;">
+    สมัครใช้งานสำหรับครู (Teacher Platform)
+  </div>
+
+  {% if error %}
+    <div class="card" style="border-left:4px solid #ef4444;background:#fee2e2;padding:12px;margin-bottom:12px;">
+      {{ error }}
+    </div>
+  {% endif %}
+
+  <form method="post" action="{{ url_for('register') }}">
+    <label style="font-weight:800;">Email</label>
+    <input name="email" type="email" required placeholder="you@example.com">
+
+    <label style="font-weight:800;margin-top:10px;display:block;">Password</label>
+    <input name="password" type="password" required placeholder="••••••••">
+
+    <label style="font-weight:800;margin-top:10px;display:block;">Confirm password</label>
+    <input name="confirm_password" type="password" required placeholder="••••••••">
+
+    <button class="btn" type="submit" style="width:100%;margin-top:14px;">
+      Create account
+    </button>
+  </form>
+
+  <div style="margin-top:12px;font-size:13px;color:#64748b;">
+    Already have an account?
+    <a href="{{ url_for('login') }}">Login</a>
+  </div>
+</div>
+{% endblock %}
