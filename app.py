@@ -358,6 +358,17 @@ def pdf_presentation(topic_id):
     pdf_url = url_for("uploaded_file", filename=topic["pdf_file"])
     return render_template("slides_pdf_presentation.html", topic=topic, pdf_url=pdf_url)
 
+@app.get("/pricing")
+def pricing():
+    return """
+    <html><head><title>Pricing</title></head>
+    <body style="font-family:system-ui;padding:30px;">
+      <h1>Pricing</h1>
+      <p>Coming soon.</p>
+      <p><a href="/dashboard">Back to Dashboard</a></p>
+    </body></html>
+    """
+
 
 # =========================
 # Game
