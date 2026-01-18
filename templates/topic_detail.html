@@ -104,7 +104,7 @@
   <p>{{ topic.description or 'No description' }}</p>
 
   <div class="topic-nav">
-    <a href="{{ url_for('view_slides', topic_id=topic.id) }}">📽️ Slides</a>
+    <a href="{{ url_for('slides', topic_id=topic.id) }}">📽️ Slides</a>
     <a href="{{ url_for('game', topic_id=topic.id) }}">🎮 Game</a>
     <a href="{{ url_for('practice', topic_id=topic.id) }}">📝 Practice</a>
   </div>
@@ -133,9 +133,9 @@
   <h3 style="margin:0 0 8px;">⚙️ Manage</h3>
 
   <div class="btnrow">
-    <a class="btn2 gray" href="{{ url_for('my_edit_topic', topic_id=topic.id) }}">✏️ Edit Topic</a>
+    <a class="btn2 gray" href="{{ url_for('admin_edit_topic', topic_id=topic.id) }}">✏️ Edit Topic</a>
 
-    <form method="POST" action="{{ url_for('my_delete_topic', topic_id=topic.id) }}"
+    <form method="POST" action="{{ url_for('admin_delete_topic', topic_id=topic.id) }}"
           onsubmit="return confirm('Delete this topic? (will remove slides/game/practice)');" style="margin:0;">
       <button class="btn2 danger" type="submit">🗑 Delete</button>
     </form>
@@ -170,64 +170,65 @@
   const statusbar = document.getElementById('statusbar');
 
   function setStatus(msg){
+    if(!statusbar) return;
     statusbar.textContent = msg;
     statusbar.classList.add('show');
   }
 
-  async function callGenerate(mode){
+  async function callGenerate(endpoint){
     if(!hasPdf){
       alert('ยังไม่มี PDF — กรุณาอัปโหลด PDF ก่อน');
       return;
     }
 
-    // confirm overwrite
-    const ok = confirm(`ยืนยัน Generate (${mode}) จาก PDF?\nระบบจะเขียนทับคำถามเดิม`);
+    const ok = confirm('ยืนยัน Generate?\nระบบจะเขียนทับข้อมูลเดิม');
     if(!ok) return;
 
-    const buttons = [document.getElementById('btnGenAll'), document.getElementById('btnGenGame'), document.getElementById('btnGenPractice')];
-    buttons.forEach(b => { if(b) b.disabled = true; });
+    const buttons = [
+      document.getElementById('btnGenAll'),
+      document.getElementById('btnGenGame'),
+      document.getElementById('btnGenPractice')
+    ];
+    buttons.forEach(b => b && (b.disabled = true));
 
     try {
-      setStatus('⏳ Generating...');
-      if(window.tpShowLoading) tpShowLoading('⏳ กำลังสร้าง...', 'ระบบกำลังสร้างเกม/แบบฝึกหัดจาก PDF');
-
-      // ✅ เรียก API ผ่าน helper เพื่อให้ส่ง session + เช็ก JSON อัตโนมัติ
-      const data = await fetchJSON(`/api/topic/${topicId}/generate`, {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ mode })
-      });
-
-      // ✅ ถ้า backend ส่ง error มา
-      if (data && data.error) {
-        alert(data.error);
-        setStatus('❌ Generate failed: ' + data.error);
-        return;
+      setStatus('⏳ กำลังสร้างจาก AI...');
+      if(window.tpShowLoading){
+        tpShowLoading('⏳ กำลังสร้าง...', 'ระบบกำลังสร้าง Slides / Game / Practice');
       }
 
-      setStatus('✅ Generated successfully!');
-      // รีโหลดหน้าเพื่อให้เห็น Game/Practice ล่าสุด
-      setTimeout(()=>location.reload(), 350);
-      // TODO: ถ้าคุณมีโค้ดรีโหลดส่วนเกม/แบบฝึกหัด ให้เรียกต่อตรงนี้ เช่น refreshUI()
+      const res = await fetch(endpoint, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' }
+      });
 
-    } catch (err) {
+      // พยายามอ่าน JSON เสมอ (เพื่อเอา error message)
+      let data = {};
+      try { data = await res.json(); } catch(e) { data = {}; }
+
+      if(!res.ok || (data && data.error)){
+        throw new Error((data && data.error) ? data.error : `HTTP ${res.status}`);
+      }
+
+      setStatus('✅ Generate สำเร็จ กำลังรีโหลด...');
+      setTimeout(()=> location.reload(), 400);
+
+    } catch(err){
       alert(err.message || 'Generate failed');
-      setStatus('❌ Generate failed: ' + (err.message || 'unknown error'));
-    }
-
-    finally {
+      setStatus('❌ Error: ' + (err.message || 'unknown error'));
+    } finally {
       if(window.tpHideLoading) tpHideLoading();
-      buttons.forEach(b => { if(b) b.disabled = false; });
+      buttons.forEach(b => b && (b.disabled = false));
     }
-
   }
 
-  const btnAll = document.getElementById('btnGenAll');
-  const btnGame = document.getElementById('btnGenGame');
-  const btnPractice = document.getElementById('btnGenPractice');
+  document.getElementById('btnGenAll')
+    ?.addEventListener('click', () => callGenerate(`/topic/${topicId}/generate/all`));
 
-  if(btnAll) btnAll.addEventListener('click', () => callGenerate('all'));
-  if(btnGame) btnGame.addEventListener('click', () => callGenerate('game'));
-  if(btnPractice) btnPractice.addEventListener('click', () => callGenerate('practice'));
+  document.getElementById('btnGenGame')
+    ?.addEventListener('click', () => callGenerate(`/topic/${topicId}/generate/game`));
+
+  document.getElementById('btnGenPractice')
+    ?.addEventListener('click', () => callGenerate(`/topic/${topicId}/generate/practice`));
 </script>
 {% endblock %}
