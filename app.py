@@ -1,16 +1,10 @@
-# ==============================================================================
-# FILE: app.py
-# Teacher Platform MVP (Flask + SQLite)
-# UPDATED: My Topics (owner) CRUD + Upload PDF + Generate Game/Practice from PDF
-# + FIX: practice_scores endpoint + fixed practice_pdf return + fixed generate modes
-# ==============================================================================
-
+# app.py
 import os
 import json
 import secrets
-from io import BytesIO
 from functools import wraps
-from typing import Optional
+from datetime import datetime
+
 from flask import (
     Flask, render_template, request, redirect, url_for,
     session, flash, jsonify, send_from_directory, abort
@@ -19,191 +13,176 @@ from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
 
 from models import (
-    get_db,
-    init_db, User, Topic, GameQuestion, PracticeQuestion, AttemptHistory,
+    init_db, get_db,
+    User, Topic,
+    GameQuestion, PracticeQuestion,
     PracticeLink, PracticeSubmission,
+    AttemptHistory
 )
+
 from ai_generator import generate_lesson_bundle
 
-# PDF (reportlab)
-from reportlab.lib.pagesizes import A4
-from reportlab.pdfgen import canvas
-from reportlab.lib.units import cm
-from reportlab.lib.utils import simpleSplit
 
-import openai
-print("[AI] openai package version =", getattr(openai, "__version__", "unknown"))
-
-app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-prod")
-
-# ------------------------------------------------------------------------------
-# Uploads (PDF)
-# ------------------------------------------------------------------------------
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
-os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
-app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024  # 25MB
+# =========================
+# App Config
+# =========================
+BASE_DIR = os.path.dirname(__file__)
+UPLOAD_FOLDER = os.environ.get("UPLOAD_FOLDER", os.path.join(BASE_DIR, "uploads"))
 ALLOWED_EXTENSIONS = {"pdf"}
 
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+app = Flask(__name__)
+app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-me")
+app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024  # 25MB
+
+
+# =========================
+# Helpers
+# =========================
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 
 
-# ------------------------------------------------------------------------------
-# DB init + default admin
-# ------------------------------------------------------------------------------
-with app.app_context():
-    init_db()
-    admin_email = os.environ.get("ADMIN_EMAIL", "admin@teacherplatform.com")
-    admin_password = os.environ.get("ADMIN_PASSWORD", "Admin@12345")
-    if not User.get_by_email(admin_email):
-        User.create(admin_email, admin_password, "admin")
-        print(f"✓ Default admin created: {admin_email}")
-
-
-# ------------------------------------------------------------------------------
-# Subscription / Plans
-# ------------------------------------------------------------------------------
-# Plans:
-# - free: ใช้ได้ทุกอย่าง แต่สร้าง/มีได้สูงสุด FREE_TOPIC_LIMIT เนื้อหา (Topics)
-# - pro:  ไม่จำกัด (ราคา 69 บาท/เดือน — โค้ดนี้ยังเป็น "เดโม" ยังไม่ผูกชำระเงิน)
-FREE_TOPIC_LIMIT = int(os.environ.get("FREE_TOPIC_LIMIT", "5"))
-
-
-def _current_user() -> Optional[dict]:
-    if "user_id" not in session:
-        return None
-    return User.get_by_id(session["user_id"])
-
-
-def _current_plan(user: Optional[dict]) -> str:
-    if not user:
-        return "free"
-    if user.get("role") == "admin":
-        return "admin"
-    return (user.get("plan") or "free").strip().lower()
-
-
-def _topic_limit_for_user(user: Optional[dict]) -> Optional[int]:
-    if not user:
-        return FREE_TOPIC_LIMIT
-    if user.get("role") == "admin":
-        return None
-    plan = _current_plan(user)
-    if plan == "pro":
-        return None
-    # free
-    lim = user.get("topic_limit")
-    try:
-        lim = int(lim)
-    except Exception:
-        lim = FREE_TOPIC_LIMIT
-    return lim if lim > 0 else FREE_TOPIC_LIMIT
-
-
-def _topic_count_for_user(user_id: int) -> int:
-    try:
-        return int(Topic.count_by_owner(user_id))
-    except Exception:
-        # safety fallback
-        rows = Topic.get_by_owner(user_id)
-        return len(rows or [])
-
-
-def _can_create_topic(user: Optional[dict]) -> bool:
-    if not user:
-        return False
-    if user.get("role") == "admin":
-        return True
-    limit = _topic_limit_for_user(user)
-    if limit is None:
-        return True
-    return _topic_count_for_user(user["id"]) < limit
-
-
-def _plan_badge_text(user: Optional[dict]) -> str:
-    plan = _current_plan(user)
-    if plan == "admin":
-        return "ADMIN"
-    if plan == "pro":
-        return "PRO 69฿"
-    return "FREE"
-
-
-# ------------------------------------------------------------------------------
-# Auth decorators
-# ------------------------------------------------------------------------------
-def login_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if "user_id" not in session:
-            flash("Please log in first.", "error")
+def login_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not session.get("user_id"):
             return redirect(url_for("login"))
-        return f(*args, **kwargs)
-    return decorated
+        return fn(*args, **kwargs)
+    return wrapper
 
-def admin_required(f):
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if "user_id" not in session:
-            flash("Please log in first.", "error")
+
+def admin_required(fn):
+    @wraps(fn)
+    def wrapper(*args, **kwargs):
+        if not session.get("user_id"):
             return redirect(url_for("login"))
         user = User.get_by_id(session["user_id"])
         if not user or user.get("role") != "admin":
-            flash("Admin access required.", "error")
-            return redirect(url_for("dashboard"))
-        return f(*args, **kwargs)
-    return decorated
-
-def _is_admin() -> bool:
-    return session.get("role") == "admin"
-
-def _can_access_topic(topic: dict) -> bool:
-    if _is_admin():
-        return True
-    return int(topic.get("owner_id") or 0) == int(session.get("user_id") or 0)
-
-def _get_topic_or_404(topic_id: int) -> dict:
-    topic = Topic.get_by_id(topic_id)
-    if not topic:
-        abort(404)
-    if not _can_access_topic(topic):
-        abort(403)
-    return topic
+            abort(403)
+        return fn(*args, **kwargs)
+    return wrapper
 
 
-# ------------------------------------------------------------------------------
-# Landing & Auth
-# ------------------------------------------------------------------------------
-@app.route("/")
+def current_user():
+    uid = session.get("user_id")
+    return User.get_by_id(uid) if uid else None
+
+
+def parse_practice_row(row: dict) -> dict:
+    """
+    DB row practice_questions:
+      - question: JSON string {"prompt":"..","choices":[...]}
+      - correct_answer: correct choice text
+    Convert to template-friendly object:
+      {id, prompt, choices, correct_answer}
+    """
+    qjson = {}
+    try:
+        qjson = json.loads(row.get("question") or "{}")
+    except Exception:
+        qjson = {}
+    prompt = qjson.get("prompt") or ""
+    choices = qjson.get("choices") or []
+    if not isinstance(choices, list):
+        choices = []
+    return {
+        "id": row.get("id"),
+        "prompt": prompt,
+        "choices": choices,
+        "correct_answer": row.get("correct_answer", "")
+    }
+
+
+def grade_answers(practice_rows: list, answers: dict):
+    """
+    practice_rows: list of parsed objects {id, prompt, choices, correct_answer}
+    answers: {"<id>":"user answer text"}
+    returns score, total, percentage, feedback dict
+    """
+    score = 0
+    total = len(practice_rows)
+    feedback = {}
+
+    for q in practice_rows:
+        qid = str(q["id"])
+        user_ans = (answers.get(qid) or "").strip()
+        correct = (q.get("correct_answer") or "").strip()
+        is_correct = (user_ans == correct)
+
+        if is_correct:
+            score += 1
+
+        feedback[qid] = {
+            "is_correct": is_correct,
+            "user_answer": user_ans,
+            "correct_answer": correct
+        }
+
+    pct = (score / total * 100.0) if total else 0.0
+    return score, total, pct, feedback
+
+
+def topic_slides(topic: dict):
+    """
+    topic.slides_json: JSON string (list or dict)
+    slides_viewer.html expects slides list
+    """
+    raw = topic.get("slides_json") or "[]"
+    try:
+        data = json.loads(raw)
+    except Exception:
+        data = []
+
+    if isinstance(data, dict) and "slides" in data:
+        data = data.get("slides") or []
+    if not isinstance(data, list):
+        data = []
+    return data
+
+
+# =========================
+# Init DB
+# =========================
+with app.app_context():
+    init_db()
+
+
+# =========================
+# Auth
+# =========================
+@app.get("/")
 def landing():
-    return render_template("landing.html")
+    # ถ้าล็อกอินแล้วไป dashboard
+    if session.get("user_id"):
+        return redirect(url_for("dashboard"))
+    return render_template("landing.html") if os.path.exists(os.path.join(BASE_DIR, "templates", "landing.html")) else redirect(url_for("login"))
+
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
         email = (request.form.get("email") or "").strip().lower()
         password = (request.form.get("password") or "").strip()
-        confirm = (request.form.get("confirm_password") or "").strip()
 
         if not email or not password:
-            flash("Email and password required.", "error")
-            return render_template("register.html")
-
-        if password != confirm:
-            flash("Passwords do not match.", "error")
-            return render_template("register.html")
+            flash("Please fill email and password", "danger")
+            return redirect(url_for("register"))
 
         if User.get_by_email(email):
-            flash("Email already registered.", "error")
-            return render_template("register.html")
+            flash("Email already registered", "danger")
+            return redirect(url_for("register"))
 
-        User.create(email, password, "teacher")
-        flash("Registration successful! Please log in.", "success")
-        return redirect(url_for("login"))
+        # Default role = teacher
+        user = User.create(email=email, password=password, role="teacher")
+        session["user_id"] = user["id"]
+        flash("Registered successfully ✅", "success")
+        return redirect(url_for("dashboard"))
 
     return render_template("register.html")
+
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -212,855 +191,657 @@ def login():
         password = (request.form.get("password") or "").strip()
 
         user = User.get_by_email(email)
-        if user and check_password_hash(user["password_hash"], password):
-            session["user_id"] = user["id"]
-            session["email"] = user["email"]
-            session["role"] = user["role"]
-            session["plan"] = (user.get("plan") or "free")
-            flash(f"Welcome back, {email}!", "success")
-            return redirect(url_for("dashboard"))
+        if not user:
+            flash("Invalid email or password", "danger")
+            return redirect(url_for("login"))
 
-        flash("Invalid email or password.", "error")
+        if not check_password_hash(user["password_hash"], password):
+            flash("Invalid email or password", "danger")
+            return redirect(url_for("login"))
+
+        session["user_id"] = user["id"]
+        flash("Welcome ✅", "success")
+        return redirect(url_for("dashboard"))
 
     return render_template("login.html")
 
-@app.route("/logout")
+
+@app.get("/logout")
 def logout():
     session.clear()
-    flash("Logged out successfully.", "success")
-    return redirect(url_for("landing"))
+    flash("Logged out", "success")
+    return redirect(url_for("login"))
 
 
-# ------------------------------------------------------------------------------
-# Pricing / Subscribe (Demo)
-# ------------------------------------------------------------------------------
-@app.route("/pricing")
-@login_required
-def pricing():
-    user = _current_user()
-    user_id = session["user_id"]
-    limit = _topic_limit_for_user(user)
-    count = _topic_count_for_user(user_id)
-    remaining = None if limit is None else max(0, limit - count)
-    return render_template(
-        "pricing.html",
-        plan=_current_plan(user),
-        plan_badge=_plan_badge_text(user),
-        topic_limit=limit,
-        topic_count=count,
-        topic_remaining=remaining,
-        free_limit=FREE_TOPIC_LIMIT,
-    )
-
-@app.route("/billing/upgrade-pro", methods=["POST"])
-@login_required
-def upgrade_pro():
-    # ป้องกัน teacher ไปยุ่ง admin: อนุญาตให้เปลี่ยนเฉพาะ free/pro
-    User.update_plan(session["user_id"], "pro")
-    session["plan"] = "pro"
-    flash("อัปเกรดเป็น PRO เรียบร้อยแล้ว ✅", "success")
-    return redirect(url_for("pricing"))
-
-@app.route("/billing/downgrade-free", methods=["POST"])
-@login_required
-def downgrade_free():
-    User.update_plan(session["user_id"], "free")
-    session["plan"] = "free"
-    flash("เปลี่ยนกลับเป็น FREE เรียบร้อยแล้ว ✅", "success")
-    return redirect(url_for("pricing"))
-
-
-@app.route("/subscribe/pro", methods=["POST"])
-@login_required
-def subscribe_pro():
-    user = _current_user()
-    if not user:
-        return redirect(url_for("login"))
-
-    if user.get("role") == "admin":
-        flash("Admin ไม่จำเป็นต้องอัปเกรด", "success")
-        return redirect(url_for("dashboard"))
-
-    # DEMO: ยังไม่ผูก payment gateway
-    User.set_plan(user["id"], plan="pro", topic_limit=None)
-    session["plan"] = "pro"
-    flash("อัปเกรดเป็น PRO สำเร็จ! (โหมดเดโม)", "success")
-    return redirect(url_for("dashboard"))
-
-
-@app.route("/subscribe/free", methods=["POST"])
-@login_required
-def subscribe_free():
-    user = _current_user()
-    if not user:
-        return redirect(url_for("login"))
-    if user.get("role") == "admin":
-        flash("Admin ไม่สามารถลดแพ็กเกจ", "error")
-        return redirect(url_for("dashboard"))
-
-    User.set_plan(user["id"], plan="free", topic_limit=FREE_TOPIC_LIMIT)
-    session["plan"] = "free"
-    flash("เปลี่ยนเป็น FREE แล้ว", "success")
-    return redirect(url_for("pricing"))
-
-@app.route("/billing")
-def billing():
-    return render_template("billing.html")
-
-# ------------------------------------------------------------------------------
-# Serve uploads (PDF) - login required
-# ------------------------------------------------------------------------------
-@app.route("/uploads/<path:filename>")
-@login_required
-def uploaded_file(filename):
-    return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
-
-
-# ------------------------------------------------------------------------------
+# =========================
 # Dashboard / Topics
-# ------------------------------------------------------------------------------
-@app.route("/dashboard")
+# =========================
+@app.get("/dashboard")
 @login_required
 def dashboard():
-    user_id = session["user_id"]
-    user = User.get_by_id(user_id)
+    user = current_user()
+    topics = Topic.get_all()
+    recent = AttemptHistory.get_recent_by_user(user["id"]) if user else []
+    return render_template("dashboard.html", user=user, topics=topics, recent=recent)
 
-    my_topics = Topic.get_by_owner(user_id)
-    all_topics = Topic.get_all() if _is_admin() else my_topics
 
-    recent = AttemptHistory.get_recent_by_user(user_id, limit=5)
-
-    limit = _topic_limit_for_user(user)
-    count = _topic_count_for_user(user_id)
-    remaining = None if limit is None else max(0, limit - count)
-
-    return render_template(
-        "dashboard.html",
-        my_topics=my_topics,
-        topics=all_topics,
-        recent=recent,
-        plan_badge=_plan_badge_text(user),
-        plan=_current_plan(user),
-        topic_limit=limit,
-        topic_count=count,
-        topic_remaining=remaining,
-        can_create=_can_create_topic(user),
-    )
-
-@app.route("/topic/<int:topic_id>")
+@app.get("/topic/<int:topic_id>")
 @login_required
 def topic_detail(topic_id):
-    topic = _get_topic_or_404(topic_id)
-    AttemptHistory.track_view(session["user_id"], topic_id)
+    user = current_user()
+    topic = Topic.get_by_id(topic_id)
+    if not topic:
+        abort(404)
 
-    is_owner = int(topic.get("owner_id") or 0) == int(session["user_id"])
-    return render_template("topic_detail.html", topic=topic, is_owner=is_owner, is_admin=_is_admin())
-
-
-# ------------------------------------------------------------------------------
-# My Topics CRUD
-# ------------------------------------------------------------------------------
-@app.route("/my/topics/create", methods=["GET", "POST"])
-@login_required
-def my_create_topic():
-    user = _current_user()
-    if not _can_create_topic(user):
-        # Free plan hit the cap
-        flash(f"Free plan จำกัดได้ {FREE_TOPIC_LIMIT} เนื้อหาเท่านั้น — อัปเกรดเพื่อสร้างเพิ่ม", "error")
-        return redirect(url_for("pricing"))
-
-    if request.method == "POST":
-        name = (request.form.get("name") or "").strip()
-        description = (request.form.get("description") or "").strip()
-        if not name:
-            flash("Topic name required.", "error")
-            return render_template("my_topic_edit.html", topic=None, mode="create")
-
-        slides_json = json.dumps({"slides": []}, ensure_ascii=False)
-        topic = Topic.create(
-            owner_id=session["user_id"],
-            name=name,
-            description=description,
-            slides_json=slides_json,
-            topic_type="manual",
-            pdf_file=None,
-        )
-        flash("Created topic successfully.", "success")
-        return redirect(url_for("my_edit_topic", topic_id=topic["id"]))
-
-    return render_template("my_topic_edit.html", topic=None, mode="create")
-
-@app.route("/my/topics/<int:topic_id>/edit", methods=["GET", "POST"])
-@login_required
-def my_edit_topic(topic_id):
-    topic = _get_topic_or_404(topic_id)
-
-    if request.method == "POST":
-        name = (request.form.get("name") or "").strip()
-        description = (request.form.get("description") or "").strip()
-        slides_json = (request.form.get("slides_json") or "").strip()
-
-        if not name:
-            flash("Topic name required.", "error")
-            return render_template("my_topic_edit.html", topic=topic, mode="edit")
-
-        try:
-            json.loads(slides_json)
-        except Exception:
-            flash("Invalid JSON in slides.", "error")
-            return render_template("my_topic_edit.html", topic=topic, mode="edit")
-
-        pdf_filename = topic.get("pdf_file")
-        file = request.files.get("pdf_file")
-        if file and file.filename:
-            if not allowed_file(file.filename):
-                flash("Only PDF files are allowed.", "error")
-                return render_template("my_topic_edit.html", topic=topic, mode="edit")
-
-            safe_name = secure_filename(file.filename)
-            token = secrets.token_hex(6)
-            final_name = f"user{session['user_id']}_topic{topic_id}_{token}_{safe_name}"
-            save_path = os.path.join(app.config["UPLOAD_FOLDER"], final_name)
-            file.save(save_path)
-            pdf_filename = final_name
-
-        Topic.update(topic_id, name, description, slides_json, pdf_filename)
-        flash("Saved changes.", "success")
-        return redirect(url_for("topic_detail", topic_id=topic_id))
-
-    return render_template("my_topic_edit.html", topic=topic, mode="edit")
-
-@app.route("/my/topics/<int:topic_id>/delete", methods=["POST"])
-@login_required
-def my_delete_topic(topic_id):
-    _ = _get_topic_or_404(topic_id)
-    Topic.delete(topic_id)
-    flash("Deleted topic.", "success")
-    return redirect(url_for("dashboard"))
-
-
-# ------------------------------------------------------------------------------
-# Slides
-# ------------------------------------------------------------------------------
-@app.route("/topic/<int:topic_id>/slides")
-@login_required
-def view_slides(topic_id):
-    topic = _get_topic_or_404(topic_id)
-
+    # show pdf url if exists
+    pdf_url = None
     if topic.get("pdf_file"):
         pdf_url = url_for("uploaded_file", filename=topic["pdf_file"])
-        return render_template("slides_pdf_presentation.html", topic=topic, pdf_url=pdf_url)
 
-    slides = []
-    if topic.get("slides_json"):
-        try:
-            obj = json.loads(topic["slides_json"])
-            slides = obj.get("slides", obj) if isinstance(obj, dict) else obj
-        except Exception:
-            slides = []
+    # show counts
+    game_count = 0
+    for set_no in (1, 2, 3):
+        game_count += len(GameQuestion.get_by_topic_and_set(topic_id, set_no))
+    practice_count = len(PracticeQuestion.get_by_topic(topic_id))
 
-    return render_template("slides_viewer.html", topic=topic, slides=slides)
-
-
-# ------------------------------------------------------------------------------
-# Game (Bamboozle)
-# ------------------------------------------------------------------------------
-@app.route("/topic/<int:topic_id>/game")
-@login_required
-def game(topic_id):
-    topic = _get_topic_or_404(topic_id)
-    return render_template("game.html", topic=topic)
-
-@app.route("/api/game/<int:topic_id>/sets")
-@login_required
-def api_game_sets(topic_id):
-    _ = _get_topic_or_404(topic_id)
-
-    sets_data = {}
-    for set_no in range(1, 4):
-        questions = GameQuestion.get_by_topic_and_set(topic_id, set_no)
-        if questions:
-            tiles = [
-                {"id": q["id"], "question": q["question"], "answer": q["answer"], "points": q["points"]}
-                for q in questions
-            ]
-            sets_data[str(set_no)] = tiles
-
-    return jsonify(sets_data)
-
-
-# ------------------------------------------------------------------------------
-# Practice helpers
-# ------------------------------------------------------------------------------
-def _normalize_practice_questions(rows):
-    """Convert DB rows into a template-ready list with prompt/choices."""
-    out = []
-    for r in rows:
-        q = dict(r)
-        prompt = ""
-        choices = []
-        raw = q.get("question") or ""
-        try:
-            obj = json.loads(raw)
-            if isinstance(obj, dict):
-                prompt = (obj.get("prompt") or "").strip()
-                ch = obj.get("choices") or []
-                if isinstance(ch, list):
-                    choices = [str(x) for x in ch]
-            else:
-                prompt = str(obj)
-        except Exception:
-            prompt = str(raw)
-
-        out.append({
-            "id": q.get("id"),
-            "prompt": prompt,
-            "choices": choices,
-            "correct_answer": q.get("correct_answer") or "",
-        })
-    return out
-
-def _build_practice_pdf(topic_title: str, questions, include_answers: bool = False) -> bytes:
-    """Generate a simple A4 PDF for practice."""
-    buf = BytesIO()
-    c = canvas.Canvas(buf, pagesize=A4)
-    width, height = A4
-
-    margin_x = 2 * cm
-    y = height - 2 * cm
-    line_h = 14
-    max_w = width - (2 * margin_x)
-
-    def draw_lines(lines, y0):
-        y = y0
-        for ln in lines:
-            if y < 2 * cm:
-                c.showPage()
-                y = height - 2 * cm
-            c.drawString(margin_x, y, ln)
-            y -= line_h
-        return y
-
-    c.setFont("Helvetica-Bold", 16)
-    y = draw_lines([f"Practice Worksheet: {topic_title}"], y)
-    c.setFont("Helvetica", 11)
-    y = draw_lines(["Name: ________________________   Class: __________   No.: ________", ""], y)
-
-    for i, q in enumerate(questions, start=1):
-        prompt = q.get("prompt") or ""
-        choices = q.get("choices") or []
-
-        c.setFont("Helvetica-Bold", 12)
-        wrapped_q = simpleSplit(f"{i}. {prompt}", "Helvetica-Bold", 12, max_w)
-        y = draw_lines(wrapped_q, y)
-
-        c.setFont("Helvetica", 11)
-        if choices and len(choices) == 4:
-            labels = ["A", "B", "C", "D"]
-            for lab, ch in zip(labels, choices):
-                wrapped_c = simpleSplit(f"   ({lab}) {ch}", "Helvetica", 11, max_w)
-                y = draw_lines(wrapped_c, y)
-        else:
-            y = draw_lines(["   _______________________________"], y)
-
-        if include_answers:
-            ans = q.get("correct_answer") or ""
-            y = draw_lines([f"   Answer: {ans}"], y)
-
-        y = draw_lines([""], y)
-
-    c.showPage()
-    c.save()
-    return buf.getvalue()
-
-
-# ------------------------------------------------------------------------------
-# Practice (Teacher view)
-# ------------------------------------------------------------------------------
-@app.route("/topic/<int:topic_id>/practice")
-@login_required
-def practice(topic_id):
-    topic = _get_topic_or_404(topic_id)
-
-    rows = PracticeQuestion.get_by_topic(topic_id)
-    questions = _normalize_practice_questions(rows)
-
-    link = PracticeLink.get_latest_active_by_topic_and_user(topic_id, session["user_id"])
-    student_url = None
-    if link:
-        student_url = request.url_root.rstrip("/") + url_for("public_practice", token=link["token"])
-
-    return render_template("practice.html", topic=topic, questions=questions, student_url=student_url)
-
-@app.route("/api/practice/<int:topic_id>/submit", methods=["POST"])
-@login_required
-def api_practice_submit(topic_id):
-    _ = _get_topic_or_404(topic_id)
-
-    data = request.get_json() or {}
-    answers = data.get("answers", {})
-
-    questions = _normalize_practice_questions(PracticeQuestion.get_by_topic(topic_id))
-    score = 0
-    total = len(questions)
-    feedback = {}
-
-    for q in questions:
-        q_id = str(q["id"])
-        user_answer = (answers.get(q_id, "") or "").strip().lower()
-        correct_answer = (q.get("correct_answer") or "").strip().lower()
-
-        is_correct = user_answer == correct_answer
-        if is_correct:
-            score += 1
-
-        feedback[q_id] = {
-            "is_correct": is_correct,
-            "user_answer": answers.get(q_id, ""),
-            "correct_answer": q.get("correct_answer"),
-        }
-
-    percentage = (score / total * 100) if total > 0 else 0
-    AttemptHistory.create(session["user_id"], topic_id, score, total, percentage)
-    return jsonify({"score": score, "total": total, "percentage": percentage, "feedback": feedback})
-
-@app.route("/api/practice/<int:topic_id>/link", methods=["POST"])
-@login_required
-def api_practice_create_link(topic_id):
-    _ = _get_topic_or_404(topic_id)
-
-    old = PracticeLink.get_latest_active_by_topic_and_user(topic_id, session["user_id"])
-    if old:
-        PracticeLink.deactivate(old["id"])
-
-    token = secrets.token_urlsafe(12)
-    link = PracticeLink.create(topic_id, session["user_id"], token)
-    student_url = request.url_root.rstrip("/") + url_for("public_practice", token=link["token"])
-    return jsonify({"url": student_url})
-
-@app.route("/topic/<int:topic_id>/practice/pdf")
-@login_required
-def practice_pdf(topic_id):
-    topic = _get_topic_or_404(topic_id)
-
-    include_answers = (request.args.get("answers") == "1")
-    questions = _normalize_practice_questions(PracticeQuestion.get_by_topic(topic_id))
-    pdf_bytes = _build_practice_pdf(topic["name"], questions, include_answers=include_answers)
-
-    filename = f"practice_topic{topic_id}{'_answers' if include_answers else ''}.pdf"
-    return (
-        pdf_bytes,
-        200,
-        {
-            "Content-Type": "application/pdf",
-            "Content-Disposition": f"attachment; filename={filename}",
-        },
+    return render_template(
+        "topic_detail.html",
+        user=user,
+        topic=topic,
+        pdf_url=pdf_url,
+        game_count=game_count,
+        practice_count=practice_count,
     )
 
-@app.route("/topic/<int:topic_id>/practice/scores")
-@login_required
-def practice_scores(topic_id):
-    topic = _get_topic_or_404(topic_id)
 
-    # owner or admin only
-    is_owner = int(topic.get("owner_id") or 0) == int(session["user_id"])
-    if not (is_owner or _is_admin()):
-        abort(403)
-
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("""
-        SELECT
-            ps.id,
-            ps.student_name,
-            ps.score,
-            ps.total,
-            ps.percentage,
-            ps.created_at
-        FROM practice_submissions ps
-        JOIN practice_links pl ON ps.link_id = pl.id
-        WHERE pl.topic_id = ?
-        ORDER BY ps.id DESC
-        LIMIT 500
-    """, (topic_id,))
-    rows = c.fetchall()
-    conn.close()
-
-    submissions = [dict(r) for r in rows]
-    return render_template("practice_scores.html", topic=topic, submissions=submissions)
-
-
-# ------------------------------------------------------------------------------
-# Public practice link (no login)
-# ------------------------------------------------------------------------------
-@app.route("/p/<token>")
-def public_practice(token):
-    link = PracticeLink.get_by_token(token)
-    if not link or int(link.get("is_active") or 0) != 1:
-        return render_template("error.html", error_code=404, error_msg="ลิงก์แบบฝึกหัดนี้ใช้ไม่ได้หรือหมดอายุ"), 404
-
-    topic = Topic.get_by_id(link["topic_id"])
-    if not topic:
-        return render_template("error.html", error_code=404, error_msg="Topic not found"), 404
-
-    questions = _normalize_practice_questions(PracticeQuestion.get_by_topic(topic["id"]))
-    return render_template("practice_public.html", topic=topic, questions=questions, token=token)
-
-@app.route("/api/p/<token>/submit", methods=["POST"])
-def api_public_practice_submit(token):
-    link = PracticeLink.get_by_token(token)
-    if not link or int(link.get("is_active") or 0) != 1:
-        return jsonify({"error": "Invalid link"}), 404
-
-    data = request.get_json() or {}
-    student_name = (data.get("student_name") or "").strip()
-    answers = data.get("answers", {})
-    if not student_name:
-        return jsonify({"error": "student_name required"}), 400
-
-    topic_id = link["topic_id"]
-    questions = _normalize_practice_questions(PracticeQuestion.get_by_topic(topic_id))
-
-    score = 0
-    total = len(questions)
-    feedback = {}
-
-    for q in questions:
-        q_id = str(q["id"])
-        user_answer = (answers.get(q_id, "") or "").strip().lower()
-        correct_answer = (q.get("correct_answer") or "").strip().lower()
-        is_correct = (user_answer == correct_answer)
-        if is_correct:
-            score += 1
-        feedback[q_id] = {
-            "is_correct": is_correct,
-            "user_answer": answers.get(q_id, ""),
-            "correct_answer": q.get("correct_answer"),
-        }
-
-    percentage = (score / total * 100) if total > 0 else 0
-    PracticeSubmission.create(
-        link_id=link["id"],
-        student_name=student_name,
-        answers_json=json.dumps({"answers": answers}, ensure_ascii=False),
-        score=score,
-        total=total,
-        percentage=percentage,
-    )
-
-    return jsonify({"score": score, "total": total, "percentage": percentage, "feedback": feedback})
-
-
-# ------------------------------------------------------------------------------
-# AI Lesson Bundle Generator: slides + game + practice
-# ------------------------------------------------------------------------------
-@app.route("/ai-slides", methods=["GET", "POST"])
-@login_required
-def ai_slides():
-    user = _current_user()
-    if not _can_create_topic(user):
-        flash(f"Free plan จำกัดได้ {FREE_TOPIC_LIMIT} เนื้อหาเท่านั้น — อัปเกรดเพื่อสร้างเพิ่ม", "error")
-        return redirect(url_for("pricing"))
-
-    if request.method == "POST":
-        title = (request.form.get("title") or "").strip()
-        level = request.form.get("level", "Secondary")
-        language = request.form.get("language", "EN")
-        style = request.form.get("style", "Minimal")
-
-        if not title:
-            flash("Topic title required.", "error")
-            return render_template("ai_slides_form.html")
-
-        bundle = generate_lesson_bundle(
-            title=title,
-            level=level,
-            language=language,
-            style=style,
-            text_model="gpt-4.1-mini",
-        )
-
-        slides = bundle.get("slides", []) or []
-        game_data = bundle.get("game", {}) or {}
-        practice_data = bundle.get("practice", []) or []
-
-        slides_json_str = json.dumps({"slides": slides}, ensure_ascii=False)
-
-        topic = Topic.create(
-            owner_id=session["user_id"],
-            name=title,
-            description=f"AI generated • Level: {level} • Lang: {language} • Style: {style}",
-            slides_json=slides_json_str,
-            topic_type="ai",
-            pdf_file=None,
-        )
-
-        _save_game_and_practice(topic["id"], game_data, practice_data)
-
-        flash("Slides + Game + Practice generated!", "success")
-        return redirect(url_for("topic_detail", topic_id=topic["id"]))
-
-    return render_template("ai_slides_form.html")
-
-
-# ------------------------------------------------------------------------------
-# Generate from PDF
-# ------------------------------------------------------------------------------
-def _extract_text_from_pdf(pdf_path: str) -> str:
-    """
-    Extract text from PDF using pypdf.
-    If pypdf is not installed, raise RuntimeError.
-    """
-    try:
-        from pypdf import PdfReader
-    except Exception:
-        raise RuntimeError("PDF text extraction requires 'pypdf'. Install: pip install pypdf")
-
-    reader = PdfReader(pdf_path)
-    texts = []
-    for page in reader.pages:
-        try:
-            t = page.extract_text() or ""
-            if t.strip():
-                texts.append(t.strip())
-        except Exception:
-            continue
-    return "\n\n".join(texts).strip()
-
-def _save_game_only(topic_id: int, game: dict) -> None:
-    GameQuestion.delete_by_topic(topic_id)
-    for set_no in [1, 2, 3]:
-        items = (game.get(str(set_no), []) or [])[:24]
-        for tile_no, it in enumerate(items, start=1):
-            q = (it.get("question") or "").strip()
-            a = (it.get("answer") or "").strip()
-            pts = int(it.get("points") or 10)
-            if q and a:
-                GameQuestion.create(topic_id, set_no, tile_no, q, a, pts)
-
-def _save_practice_only(topic_id: int, practice: list) -> None:
-    PracticeQuestion.delete_by_topic(topic_id)
-    for it in (practice or []):
-        prompt = (it.get("question") or "").strip()
-        choices = it.get("choices") or []
-        if not prompt or not isinstance(choices, list) or len(choices) != 4:
-            continue
-        ci = int(it.get("correct_index") or 0)
-        ci = max(0, min(ci, 3))
-        correct_answer = str(choices[ci]).strip()
-
-        payload = {"prompt": prompt, "choices": [str(c).strip() for c in choices]}
-        PracticeQuestion.create(
-            topic_id,
-            "multiple_choice",
-            json.dumps(payload, ensure_ascii=False),
-            correct_answer,
-        )
-
-def _save_game_and_practice(topic_id: int, game: dict, practice: list) -> None:
-    _save_game_only(topic_id, game)
-    _save_practice_only(topic_id, practice)
-
-@app.route("/api/topic/<int:topic_id>/generate", methods=["POST"])
-@login_required
-def api_generate_from_pdf(topic_id):
-    topic = _get_topic_or_404(topic_id)
-
-    if not topic.get("pdf_file"):
-        return jsonify({"error": "No PDF uploaded for this topic yet."}), 400
-
-    data = request.get_json() or {}
-    mode = (data.get("mode") or "all").strip().lower()  # game|practice|all
-
-    pdf_path = os.path.join(app.config["UPLOAD_FOLDER"], topic["pdf_file"])
-    if not os.path.exists(pdf_path):
-        return jsonify({"error": "PDF file not found on server."}), 404
-
-    try:
-        pdf_text = _extract_text_from_pdf(pdf_path)
-    except Exception as e:
-        return jsonify({"error": str(e)}), 400
-
-    context_title = f"{topic['name']}\n\n[PDF CONTEXT]\n{pdf_text[:8000]}"
-
-    bundle = generate_lesson_bundle(
-        title=context_title,
-        level="Secondary",
-        language="EN",
-        style="Minimal",
-        text_model="gpt-4.1-mini",
-    )
-
-    game_data = bundle.get("game", {}) or {}
-    practice_data = bundle.get("practice", []) or []
-
-    if mode == "game":
-        _save_game_only(topic_id, game_data)
-    elif mode == "practice":
-        _save_practice_only(topic_id, practice_data)
-    else:
-        _save_game_and_practice(topic_id, game_data, practice_data)
-
-    return jsonify({"ok": True})
-
-
-# ------------------------------------------------------------------------------
-# Admin panel
-# ------------------------------------------------------------------------------
-@app.route("/admin")
+@app.route("/admin/topic/new", methods=["GET", "POST"])
 @admin_required
-def admin_dashboard():
-    topics = Topic.get_all()
-    return render_template("admin_dashboard.html", topics=topics)
-
-
-@app.route("/admin/seed", methods=["POST"])
-@admin_required
-def admin_seed():
-    """
-    Seed demo data (optional)
-    - ถ้าคุณไม่ต้องการปุ่มนี้ คุณลบ route นี้ได้
-    - แต่ตอนนี้ใส่ไว้เพื่อไม่ให้ admin_dashboard.html พัง
-    """
-    try:
-        # ตัวอย่าง: ถ้าไม่มี topic เลย ให้สร้าง demo 1 อัน
-        existing = Topic.get_all() or []
-        if len(existing) == 0:
-            Topic.create(
-                owner_id=session["user_id"],
-                name="Demo Topic",
-                description="Seed demo topic (created by admin_seed).",
-                slides_json=json.dumps({"slides": []}, ensure_ascii=False),
-                topic_type="manual",
-                pdf_file=None,
-            )
-        flash("Seed completed.", "success")
-    except Exception as e:
-        print("admin_seed error:", e)
-        flash("Seed failed.", "error")
-
-    return redirect(url_for("admin_dashboard"))
-
-
-@app.route("/admin/topics/create", methods=["GET", "POST"])
-@admin_required
-def admin_create_topic():
+def admin_new_topic():
     if request.method == "POST":
         name = (request.form.get("name") or "").strip()
         description = (request.form.get("description") or "").strip()
-        if not name:
-            flash("Topic name required.", "error")
-            return render_template("admin_create_topic.html")
+        slides_json = request.form.get("slides_json") or "[]"
+        topic_type = request.form.get("topic_type") or "manual"
 
-        topic = Topic.create(
-            owner_id=session["user_id"],  # admin owns it by default
-            name=name,
-            description=description,
-            slides_json=json.dumps({"slides": []}, ensure_ascii=False),
-            topic_type="manual",
-            pdf_file=None,
-        )
-        flash(f'Topic "{name}" created.', "success")
-        return redirect(url_for("admin_edit_topic", topic_id=topic["id"]))
+        pdf_file = None
+        f = request.files.get("pdf")
+        if f and f.filename:
+            if not allowed_file(f.filename):
+                flash("Only PDF allowed", "danger")
+                return redirect(url_for("admin_new_topic"))
+            fn = secure_filename(f.filename)
+            # unique
+            fn = f"{secrets.token_hex(8)}_{fn}"
+            f.save(os.path.join(app.config["UPLOAD_FOLDER"], fn))
+            pdf_file = fn
 
-    return render_template("admin_create_topic.html")
+        Topic.create(name=name, description=description, slides_json=slides_json, topic_type=topic_type, pdf_file=pdf_file)
+        flash("Created topic ✅", "success")
+        return redirect(url_for("dashboard"))
+
+    return render_template("admin_topic_form.html") if os.path.exists(os.path.join(BASE_DIR, "templates", "admin_topic_form.html")) else abort(404)
 
 
-@app.route("/admin/topics/<int:topic_id>/edit", methods=["GET", "POST"])
+@app.route("/admin/topic/<int:topic_id>/edit", methods=["GET", "POST"])
 @admin_required
 def admin_edit_topic(topic_id):
     topic = Topic.get_by_id(topic_id)
     if not topic:
-        flash("Topic not found.", "error")
-        return redirect(url_for("admin_dashboard"))
+        abort(404)
 
     if request.method == "POST":
         name = (request.form.get("name") or "").strip()
         description = (request.form.get("description") or "").strip()
-        slides_json = (request.form.get("slides_json") or "").strip()
+        slides_json = request.form.get("slides_json") or (topic.get("slides_json") or "[]")
 
-        if not name:
-            flash("Topic name required.", "error")
-            return render_template("admin_edit_topic.html", topic=topic)
+        pdf_file = topic.get("pdf_file")
+        f = request.files.get("pdf")
+        if f and f.filename:
+            if not allowed_file(f.filename):
+                flash("Only PDF allowed", "danger")
+                return redirect(url_for("admin_edit_topic", topic_id=topic_id))
+            fn = secure_filename(f.filename)
+            fn = f"{secrets.token_hex(8)}_{fn}"
+            f.save(os.path.join(app.config["UPLOAD_FOLDER"], fn))
+            pdf_file = fn
 
-        try:
-            json.loads(slides_json)
-        except Exception:
-            flash("Invalid JSON in slides.", "error")
-            return render_template("admin_edit_topic.html", topic=topic)
+        Topic.update(topic_id=topic_id, name=name, description=description, slides_json=slides_json, pdf_file=pdf_file)
+        flash("Updated ✅", "success")
+        return redirect(url_for("topic_detail", topic_id=topic_id))
 
-        pdf_filename = topic.get("pdf_file")
-        file = request.files.get("pdf_file")
-        if file and file.filename:
-            if not allowed_file(file.filename):
-                flash("Only PDF files are allowed.", "error")
-                return render_template("admin_edit_topic.html", topic=topic)
-
-            safe_name = secure_filename(file.filename)
-            token = secrets.token_hex(6)
-            final_name = f"topic{topic_id}_{token}_{safe_name}"
-            save_path = os.path.join(app.config["UPLOAD_FOLDER"], final_name)
-            file.save(save_path)
-            pdf_filename = final_name
-
-        Topic.update(topic_id, name, description, slides_json, pdf_filename)
-        flash("Topic updated.", "success")
-        return redirect(url_for("admin_edit_topic", topic_id=topic_id))
-
-    return render_template("admin_edit_topic.html", topic=topic)
+    return render_template("admin_topic_form.html", topic=topic) if os.path.exists(os.path.join(BASE_DIR, "templates", "admin_topic_form.html")) else abort(404)
 
 
-@app.route("/admin/topics/<int:topic_id>/delete", methods=["POST"])
+@app.post("/admin/topic/<int:topic_id>/delete")
 @admin_required
 def admin_delete_topic(topic_id):
     Topic.delete(topic_id)
-    flash("Topic deleted.", "success")
-    return redirect(url_for("admin_dashboard"))
+    flash("Deleted ✅", "success")
+    return redirect(url_for("dashboard"))
 
 
-@app.route("/admin/topic/<int:topic_id>/game-questions")
-@admin_required
-def admin_game_questions(topic_id):
+# =========================
+# Upload Serving
+# =========================
+@app.get("/uploads/<path:filename>")
+@login_required
+def uploaded_file(filename):
+    # ครูดูไฟล์ได้หลัง login
+    return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
+
+
+# =========================
+# Slides
+# =========================
+@app.get("/topic/<int:topic_id>/slides")
+@login_required
+def slides(topic_id):
     topic = Topic.get_by_id(topic_id)
     if not topic:
-        flash("Topic not found", "error")
-        return redirect(url_for("admin_dashboard"))
+        abort(404)
 
-    # ✅ ใช้เมธอดที่คุณมีอยู่จริง: get_by_topic_and_set
-    questions_by_set = {}
-    total = 0
-    for set_no in (1, 2, 3):
-        rows = GameQuestion.get_by_topic_and_set(topic_id, set_no) or []
-        questions_by_set[set_no] = rows
-        total += len(rows)
+    slides_list = topic_slides(topic)
+    return render_template("slides_viewer.html", topic=topic, slides=slides_list)
+
+
+@app.get("/topic/<int:topic_id>/presentation")
+@login_required
+def pdf_presentation(topic_id):
+    topic = Topic.get_by_id(topic_id)
+    if not topic:
+        abort(404)
+
+    if not topic.get("pdf_file"):
+        flash("No PDF uploaded for this topic", "danger")
+        return redirect(url_for("topic_detail", topic_id=topic_id))
+
+    pdf_url = url_for("uploaded_file", filename=topic["pdf_file"])
+    return render_template("slides_pdf_presentation.html", topic=topic, pdf_url=pdf_url)
+
+
+# =========================
+# Game
+# =========================
+@app.get("/topic/<int:topic_id>/game")
+@login_required
+def game(topic_id):
+    topic = Topic.get_by_id(topic_id)
+    if not topic:
+        abort(404)
+
+    set_no = int(request.args.get("set", "1") or "1")
+    if set_no not in (1, 2, 3):
+        set_no = 1
+
+    questions = GameQuestion.get_by_topic_and_set(topic_id, set_no)
+
+    # ensure 24 tiles
+    questions = (questions or [])[:24]
+    while len(questions) < 24:
+        questions.append({
+            "id": 0,
+            "topic_id": topic_id,
+            "set_no": set_no,
+            "tile_no": len(questions) + 1,
+            "question": f"Bonus Q{len(questions)+1}",
+            "answer": "Any reasonable answer",
+            "points": 10,
+        })
+
+    return render_template("game.html", topic=topic, set_no=set_no, questions=questions)
+
+
+# =========================
+# Practice (Teacher view)
+# =========================
+@app.get("/topic/<int:topic_id>/practice")
+@login_required
+def practice(topic_id):
+    user = current_user()
+    topic = Topic.get_by_id(topic_id)
+    if not topic:
+        abort(404)
+
+    rows = PracticeQuestion.get_by_topic(topic_id)
+    questions = [parse_practice_row(r) for r in rows]
+
+    # latest active student link (if any)
+    student_url = None
+    if user:
+        link = PracticeLink.get_latest_active_by_topic_and_user(topic_id, user["id"])
+        if link:
+            student_url = url_for("public_practice", token=link["token"], _external=True)
+
+    return render_template("practice.html", topic=topic, questions=questions, student_url=student_url)
+
+
+# =========================
+# Practice - Public Student Link
+# =========================
+@app.get("/p/<token>")
+def public_practice(token):
+    link = PracticeLink.get_by_token(token)
+    if not link or link.get("is_active") != 1:
+        return "This link is inactive.", 404
+
+    topic = Topic.get_by_id(link["topic_id"])
+    if not topic:
+        return "Topic not found.", 404
+
+    rows = PracticeQuestion.get_by_topic(topic["id"])
+    questions = [parse_practice_row(r) for r in rows]
+    return render_template("practice_public.html", topic=topic, questions=questions, token=token)
+
+
+# =========================
+# API: Create student link
+# =========================
+@app.post("/api/practice/<int:topic_id>/link")
+@login_required
+def api_create_practice_link(topic_id):
+    user = current_user()
+    if not user:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    topic = Topic.get_by_id(topic_id)
+    if not topic:
+        return jsonify({"error": "Topic not found"}), 404
+
+    # deactivate existing active link (optional)
+    prev = PracticeLink.get_latest_active_by_topic_and_user(topic_id, user["id"])
+    if prev:
+        PracticeLink.deactivate(prev["id"])
+
+    token = secrets.token_urlsafe(16)
+    link = PracticeLink.create(topic_id=topic_id, created_by=user["id"], token=token)
+
+    url = url_for("public_practice", token=link["token"], _external=True)
+    return jsonify({"url": url})
+
+
+# =========================
+# API: Submit practice (teacher view)
+# =========================
+@app.post("/api/practice/<int:topic_id>/submit")
+@login_required
+def api_submit_practice(topic_id):
+    user = current_user()
+    topic = Topic.get_by_id(topic_id)
+    if not user or not topic:
+        return jsonify({"error": "Not found"}), 404
+
+    payload = request.get_json(silent=True) or {}
+    answers = payload.get("answers") or {}
+    if not isinstance(answers, dict):
+        answers = {}
+
+    rows = PracticeQuestion.get_by_topic(topic_id)
+    parsed = [parse_practice_row(r) for r in rows]
+
+    score, total, pct, feedback = grade_answers(parsed, answers)
+
+    # track history
+    AttemptHistory.create(user_id=user["id"], topic_id=topic_id, score=score, total=total, percentage=pct)
+
+    return jsonify({
+        "score": score,
+        "total": total,
+        "percentage": pct,
+        "feedback": feedback
+    })
+
+
+# =========================
+# API: Submit practice (public students)
+# =========================
+@app.post("/api/p/<token>/submit")
+def api_submit_public_practice(token):
+    link = PracticeLink.get_by_token(token)
+    if not link or link.get("is_active") != 1:
+        return jsonify({"error": "Invalid link"}), 404
+
+    payload = request.get_json(silent=True) or {}
+    student_name = (payload.get("student_name") or "").strip()
+    answers = payload.get("answers") or {}
+    if not student_name:
+        return jsonify({"error": "Student name required"}), 400
+    if not isinstance(answers, dict):
+        answers = {}
+
+    topic_id = link["topic_id"]
+    rows = PracticeQuestion.get_by_topic(topic_id)
+    parsed = [parse_practice_row(r) for r in rows]
+
+    score, total, pct, feedback = grade_answers(parsed, answers)
+
+    PracticeSubmission.create(
+        link_id=link["id"],
+        student_name=student_name,
+        answers_json=json.dumps(answers, ensure_ascii=False),
+        score=score,
+        total=total,
+        percentage=pct,
+    )
+
+    return jsonify({
+        "score": score,
+        "total": total,
+        "percentage": pct,
+        "feedback": feedback
+    })
+
+
+# =========================
+# Practice Scores (Teacher)
+# =========================
+@app.get("/topic/<int:topic_id>/practice_scores")
+@login_required
+def practice_scores(topic_id):
+    user = current_user()
+    topic = Topic.get_by_id(topic_id)
+    if not topic or not user:
+        abort(404)
+
+    # default: latest active link created by this user for this topic
+    link = PracticeLink.get_latest_active_by_topic_and_user(topic_id, user["id"])
+    link_id = None
+    if request.args.get("link_id"):
+        try:
+            link_id = int(request.args.get("link_id"))
+        except Exception:
+            link_id = None
+
+    if link_id:
+        link = PracticeLink.get_by_id(link_id)
+
+    submissions = []
+    student_url = None
+    if link:
+        student_url = url_for("public_practice", token=link["token"], _external=True)
+        submissions = PracticeSubmission.get_by_link(link["id"], limit=500)
 
     return render_template(
-        "admin_game_questions.html",
+        "practice_scores.html",
         topic=topic,
-        questions_by_set=questions_by_set,
-        total=total
+        link=link,
+        student_url=student_url,
+        submissions=submissions
     )
 
 
-# ------------------------------------------------------------------------------
-# Errors
-# ------------------------------------------------------------------------------
-@app.errorhandler(403)
-def forbidden(e):
-    return render_template("error.html", error_code=403, error_msg="คุณไม่มีสิทธิ์เข้าถึงหน้านี้ (Forbidden)"), 403
+# =========================
+# PDF Export Practice
+# =========================
+@app.get("/topic/<int:topic_id>/practice.pdf")
+@login_required
+def practice_pdf(topic_id):
+    """
+    สร้าง PDF แบบฝึกหัดแบบง่าย (EN friendly)
+    - ?answers=1 จะใส่เฉลย
+    """
+    topic = Topic.get_by_id(topic_id)
+    if not topic:
+        abort(404)
 
-@app.errorhandler(404)
-def not_found(e):
-    return render_template("error.html", error_code=404, error_msg="หน้านี้ไม่พบ (Page not found)"), 404
+    show_answers = (request.args.get("answers") == "1")
 
-@app.errorhandler(500)
-def server_error(e):
-    return render_template("error.html", error_code=500, error_msg="เกิดข้อผิดพลาด (Server error)"), 500
+    rows = PracticeQuestion.get_by_topic(topic_id)
+    questions = [parse_practice_row(r) for r in rows]
+
+    # create PDF file in memory-like temp file
+    from reportlab.lib.pagesizes import A4
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.units import cm
+
+    tmp_name = f"practice_{topic_id}_{secrets.token_hex(6)}.pdf"
+    tmp_path = os.path.join(app.config["UPLOAD_FOLDER"], tmp_name)
+
+    c = canvas.Canvas(tmp_path, pagesize=A4)
+    width, height = A4
+
+    x = 2 * cm
+    y = height - 2 * cm
+
+    c.setFont("Helvetica-Bold", 14)
+    c.drawString(x, y, f"Practice Worksheet: {topic.get('name','')}")
+    y -= 1.0 * cm
+
+    c.setFont("Helvetica", 11)
+    if show_answers:
+        c.drawString(x, y, "Answer key included")
+    else:
+        c.drawString(x, y, "Choose the best answer.")
+    y -= 1.0 * cm
+
+    for i, q in enumerate(questions, start=1):
+        prompt = q.get("prompt", "")
+        choices = q.get("choices", [])
+        correct = q.get("correct_answer", "")
+
+        # page break
+        if y < 4 * cm:
+            c.showPage()
+            c.setFont("Helvetica", 11)
+            y = height - 2 * cm
+
+        c.setFont("Helvetica-Bold", 11)
+        c.drawString(x, y, f"{i}. {prompt}")
+        y -= 0.7 * cm
+
+        c.setFont("Helvetica", 11)
+        labels = ["A", "B", "C", "D"]
+        for j, ch in enumerate(choices[:4]):
+            line = f"   {labels[j]}) {ch}"
+            if show_answers and ch == correct:
+                line += "  ✓"
+            c.drawString(x, y, line)
+            y -= 0.6 * cm
+
+        y -= 0.3 * cm
+
+    c.save()
+
+    return send_from_directory(app.config["UPLOAD_FOLDER"], tmp_name, as_attachment=True, download_name=f"practice_topic_{topic_id}.pdf")
 
 
+# =========================
+# AI Generate: All / Game / Practice (Fix 500 here)
+# =========================
+def save_game_practice_from_bundle(topic_id: int, bundle: dict, replace: bool = True):
+    """
+    ✅ FIX จุดพัง: practice ต้องเก็บ question เป็น JSON และ correct_answer เป็น "ข้อความคำตอบจริง"
+    """
+    if replace:
+        # clear old
+        GameQuestion.delete_by_topic(topic_id)
+        PracticeQuestion.delete_by_topic(topic_id)
+
+    # ---- Game ----
+    game = bundle.get("game") or {}
+    for set_key in ("1", "2", "3"):
+        tiles = game.get(set_key) or []
+        set_no = int(set_key)
+
+        # ensure 24
+        tiles = tiles[:24]
+        while len(tiles) < 24:
+            tiles.append({"question": f"Bonus Q{len(tiles)+1}", "answer": "Any reasonable answer", "points": 10})
+
+        for idx, t in enumerate(tiles, start=1):
+            qtext = (t.get("question") or "").strip()
+            ans = (t.get("answer") or "").strip()
+            pts = int(t.get("points") or 10)
+            if pts not in (10, 15, 20):
+                pts = 10
+
+            if not qtext:
+                qtext = f"Q{idx}"
+            if not ans:
+                ans = "Any reasonable answer"
+
+            GameQuestion.create(
+                topic_id=topic_id,
+                set_no=set_no,
+                tile_no=idx,
+                question=qtext,
+                answer=ans,
+                points=pts
+            )
+
+    # ---- Practice ----
+    practice = bundle.get("practice") or []
+    for p in practice:
+        q = (p.get("question") or "").strip()
+        choices = p.get("choices") or []
+        ci = p.get("correct_index")
+
+        if not q or not isinstance(choices, list) or len(choices) < 2:
+            continue
+
+        # normalize to 4 choices
+        choices = [str(x).strip() for x in choices if str(x).strip()]
+        while len(choices) < 4:
+            choices.append(f"Option {len(choices)+1}")
+        choices = choices[:4]
+
+        try:
+            ci = int(ci)
+        except Exception:
+            ci = 0
+        if ci < 0 or ci > 3:
+            ci = 0
+
+        correct_answer = choices[ci]  # ✅ สำคัญ: เก็บเป็น "ข้อความคำตอบจริง"
+
+        question_json = json.dumps({
+            "prompt": q,
+            "choices": choices
+        }, ensure_ascii=False)
+
+        PracticeQuestion.create(
+            topic_id=topic_id,
+            q_type="multiple_choice",
+            question=question_json,      # ✅ JSON string
+            correct_answer=correct_answer # ✅ text
+        )
+
+
+@app.post("/topic/<int:topic_id>/generate/all")
+@login_required
+def generate_all(topic_id):
+    topic = Topic.get_by_id(topic_id)
+    if not topic:
+        return jsonify({"error": "Topic not found"}), 404
+
+    try:
+        bundle = generate_lesson_bundle(title=topic["name"], level="Secondary", language="EN+TH", style="Modern")
+        # save slides too
+        slides = bundle.get("slides") or []
+        Topic.update(topic_id, topic["name"], topic.get("description") or "", json.dumps(slides, ensure_ascii=False), topic.get("pdf_file"))
+
+        save_game_practice_from_bundle(topic_id, bundle, replace=True)
+        return jsonify({"ok": True})
+    except Exception as e:
+        print("GEN ALL ERROR:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.post("/topic/<int:topic_id>/generate/game")
+@login_required
+def generate_game_only(topic_id):
+    topic = Topic.get_by_id(topic_id)
+    if not topic:
+        return jsonify({"error": "Topic not found"}), 404
+
+    try:
+        bundle = generate_lesson_bundle(title=topic["name"], level="Secondary", language="EN+TH", style="Modern")
+        # only game replace
+        if bundle.get("game"):
+            GameQuestion.delete_by_topic(topic_id)
+
+            game = bundle.get("game") or {}
+            for set_key in ("1", "2", "3"):
+                tiles = (game.get(set_key) or [])[:24]
+                while len(tiles) < 24:
+                    tiles.append({"question": f"Bonus Q{len(tiles)+1}", "answer": "Any reasonable answer", "points": 10})
+
+                for idx, t in enumerate(tiles, start=1):
+                    GameQuestion.create(
+                        topic_id=topic_id,
+                        set_no=int(set_key),
+                        tile_no=idx,
+                        question=(t.get("question") or "").strip() or f"Q{idx}",
+                        answer=(t.get("answer") or "").strip() or "Any reasonable answer",
+                        points=int(t.get("points") or 10) if int(t.get("points") or 10) in (10, 15, 20) else 10
+                    )
+
+        return jsonify({"ok": True})
+    except Exception as e:
+        print("GEN GAME ERROR:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+@app.post("/topic/<int:topic_id>/generate/practice")
+@login_required
+def generate_practice_only(topic_id):
+    topic = Topic.get_by_id(topic_id)
+    if not topic:
+        return jsonify({"error": "Topic not found"}), 404
+
+    try:
+        bundle = generate_lesson_bundle(title=topic["name"], level="Secondary", language="EN+TH", style="Modern")
+        # only practice replace (✅ fixed)
+        PracticeQuestion.delete_by_topic(topic_id)
+
+        practice = bundle.get("practice") or []
+        for p in practice:
+            q = (p.get("question") or "").strip()
+            choices = p.get("choices") or []
+            ci = p.get("correct_index")
+
+            if not q or not isinstance(choices, list):
+                continue
+
+            choices = [str(x).strip() for x in choices if str(x).strip()]
+            while len(choices) < 4:
+                choices.append(f"Option {len(choices)+1}")
+            choices = choices[:4]
+
+            try:
+                ci = int(ci)
+            except Exception:
+                ci = 0
+            if ci < 0 or ci > 3:
+                ci = 0
+
+            correct_answer = choices[ci]  # ✅ FIX
+
+            question_json = json.dumps({"prompt": q, "choices": choices}, ensure_ascii=False)
+
+            PracticeQuestion.create(
+                topic_id=topic_id,
+                q_type="multiple_choice",
+                question=question_json,
+                correct_answer=correct_answer
+            )
+
+        return jsonify({"ok": True})
+    except Exception as e:
+        print("GEN PRACTICE ERROR:", e)
+        return jsonify({"error": str(e)}), 500
+
+
+# =========================
+# Health
+# =========================
+@app.get("/healthz")
+def healthz():
+    return "ok", 200
+
+
+# =========================
+# Run (local)
+# =========================
 if __name__ == "__main__":
-    app.run(
-        debug=os.environ.get("FLASK_ENV") == "development",
-        host="0.0.0.0",
-        port=int(os.environ.get("PORT", "5000")),
-    )
+    port = int(os.environ.get("PORT", "5000"))
+    app.run(host="0.0.0.0", port=port, debug=True)
