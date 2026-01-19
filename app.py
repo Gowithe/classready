@@ -119,17 +119,6 @@ def _wants_json_response() -> bool:
 def _json_error(message: str, status: int = 400):
     return jsonify({"ok": False, "error": message}), status
 
-def api_login_required(f):
-    """
-    สำหรับ /api/*: ถ้าไม่ login ให้คืน JSON 401 (ไม่ redirect เป็น HTML)
-    """
-    @wraps(f)
-    def decorated(*args, **kwargs):
-        if "user_id" not in session:
-            return _json_error("Unauthorized. Please login again.", 401)
-        return f(*args, **kwargs)
-    return decorated
-
 
 # ------------------------------------------------------------------------------
 # Landing & Auth
@@ -630,7 +619,7 @@ def ai_slides():
             level=level,
             language=language,
             style=style,
-            text_model="gpt-4.1-mini",
+            text_model="gpt-4o-mini",  # ✅ แก้ไขจาก gpt-4.1-mini
         )
 
         slides = bundle.get("slides", []) or []
@@ -715,63 +704,57 @@ def _save_game_and_practice(topic_id: int, game: dict, practice: list) -> None:
     _save_practice_only(topic_id, practice)
 
 @app.route("/api/topic/<int:topic_id>/generate", methods=["POST"])
-@api_login_required
+@login_required
 def api_generate_from_pdf(topic_id):
-    # ✅ catch-all: ป้องกัน 500 HTML หลุดออกไป
+    topic = _get_topic_or_404(topic_id)
+
+    if not topic.get("pdf_file"):
+        return _json_error("No PDF uploaded for this topic yet.", 400)
+
+    data = request.get_json(silent=True) or {}
+    mode = (data.get("mode") or "all").strip().lower()  # game|practice|all
+
+    pdf_path = os.path.join(app.config["UPLOAD_FOLDER"], topic["pdf_file"])
+    if not os.path.exists(pdf_path):
+        return _json_error("PDF file not found on server.", 404)
+
     try:
-        topic = _get_topic_or_404(topic_id)
-
-        if not topic.get("pdf_file"):
-            return _json_error("No PDF uploaded for this topic yet.", 400)
-
-        data = request.get_json(silent=True) or {}
-        mode = (data.get("mode") or "all").strip().lower()  # game|practice|all
-
-        pdf_path = os.path.join(app.config["UPLOAD_FOLDER"], topic["pdf_file"])
-        if not os.path.exists(pdf_path):
-            return _json_error("PDF file not found on server.", 404)
-
-        try:
-            pdf_text = _extract_text_from_pdf(pdf_path)
-        except Exception as e:
-            return _json_error(str(e), 400)
-
-        context_title = f"{topic['name']}\n\n[PDF CONTEXT]\n{pdf_text[:8000]}"
-
-        try:
-            bundle = generate_lesson_bundle(
-                title=context_title,
-                level="Secondary",
-                language="EN",
-                style="Minimal",
-                text_model="gpt-4.1-mini",
-            )
-        except Exception as e:
-            print("[AI] Bundle generation error:", repr(e))
-            traceback.print_exc()
-            return _json_error(str(e), 500)
-
-        game_data = bundle.get("game", {}) or {}
-        practice_data = bundle.get("practice", []) or []
-
-        try:
-            if mode == "game":
-                _save_game_only(topic_id, game_data)
-            elif mode == "practice":
-                _save_practice_only(topic_id, practice_data)
-            else:
-                _save_game_and_practice(topic_id, game_data, practice_data)
-        except Exception as e:
-            print("[DB] Save game/practice error:", repr(e))
-            traceback.print_exc()
-            return _json_error(str(e), 500)
-
-        return jsonify({"ok": True})
-
+        pdf_text = _extract_text_from_pdf(pdf_path)
     except Exception as e:
-        print("[API] /api/topic/<id>/generate unexpected error:", repr(e))
+        return _json_error(str(e), 400)
+
+    context_title = f"{topic['name']}\n\n[PDF CONTEXT]\n{pdf_text[:8000]}"
+
+    try:
+        bundle = generate_lesson_bundle(
+            title=context_title,
+            level="Secondary",
+            language="EN",
+            style="Minimal",
+            text_model="gpt-4o-mini",  # ✅ แก้ไขจาก gpt-4.1-mini
+        )
+    except Exception as e:
+        # สำคัญ: log ให้เห็นใน Render logs
+        print("[AI] Bundle generation error:", repr(e))
         traceback.print_exc()
-        return _json_error("Server error: " + str(e), 500)
+        return _json_error(str(e), 500)
+
+    game_data = bundle.get("game", {}) or {}
+    practice_data = bundle.get("practice", []) or []
+
+    try:
+        if mode == "game":
+            _save_game_only(topic_id, game_data)
+        elif mode == "practice":
+            _save_practice_only(topic_id, practice_data)
+        else:
+            _save_game_and_practice(topic_id, game_data, practice_data)
+    except Exception as e:
+        print("[DB] Save game/practice error:", repr(e))
+        traceback.print_exc()
+        return _json_error(str(e), 500)
+
+    return jsonify({"ok": True})
 
 
 # ------------------------------------------------------------------------------
@@ -793,6 +776,7 @@ def admin_seed():
     - แต่ตอนนี้ใส่ไว้เพื่อไม่ให้ admin_dashboard.html พัง
     """
     try:
+        # ตัวอย่าง: ถ้าไม่มี topic เลย ให้สร้าง demo 1 อัน
         existing = Topic.get_all() or []
         if len(existing) == 0:
             Topic.create(
@@ -822,7 +806,7 @@ def admin_create_topic():
             return render_template("admin_create_topic.html")
 
         topic = Topic.create(
-            owner_id=session["user_id"],
+            owner_id=session["user_id"],  # admin owns it by default
             name=name,
             description=description,
             slides_json=json.dumps({"slides": []}, ensure_ascii=False),
@@ -895,6 +879,7 @@ def admin_game_questions(topic_id):
         flash("Topic not found", "error")
         return redirect(url_for("admin_dashboard"))
 
+    # ✅ ใช้เมธอดที่คุณมีอยู่จริง: get_by_topic_and_set
     questions_by_set = {}
     total = 0
     for set_no in (1, 2, 3):
