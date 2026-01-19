@@ -569,8 +569,8 @@
 
     let all = [];
     try{
-      // โหลดคำถามเป็น JSON จาก backend
-      const data = await fetchJSON('{{ url_for("api_game_sets", topic_id=topic.id) }}');
+      const response = await fetch('{{ url_for("api_game_sets", topic_id=topic.id) }}');
+      const data = await response.json();
       all = (data[String(gameState.gameSet)] || data[gameState.gameSet] || []);
       if(!Array.isArray(all) || all.length === 0){
         alert('No questions available for this set.');
@@ -578,7 +578,7 @@
       }
     }catch(e){
       console.error(e);
-      alert('Error loading questions: ' + (e.message || e));
+      alert('Error loading questions');
       return;
     }
 
