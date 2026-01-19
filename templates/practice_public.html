@@ -76,17 +76,19 @@
     }
 
     try{
-      const result = await fetchJSON(`/api/p/${token}/submit`, {
+      const res = await fetch(`/api/p/${token}/submit`, {
         method: 'POST',
+        headers: {'Content-Type':'application/json'},
         body: JSON.stringify({ student_name: studentName, answers })
       });
+      const result = await res.json();
       if(result.error){
         alert(result.error);
         return;
       }
       renderResults(studentName, result);
     }catch(err){
-      alert('Error submitting practice: ' + (err.message || err));
+      alert('Error submitting practice: ' + err);
     }
   });
 
