@@ -34,9 +34,16 @@
     transition: all 0.2s;
   }
 
-  .topic-nav a:hover {
+  .topic-nav a:hover:not(.disabled) {
     background: #f0f4ff;
     transform: translateY(-1px);
+  }
+
+  .topic-nav a.disabled {
+    background: #e2e8f0;
+    color: #94a3b8;
+    cursor: not-allowed;
+    pointer-events: none;
   }
 
   .panel {
@@ -95,6 +102,81 @@
     display:none;
   }
   .statusbar.show{ display:block; }
+
+  /* Modal Overlay */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0, 0, 0, 0.5);
+    z-index: 1000;
+    justify-content: center;
+    align-items: center;
+  }
+  .modal-overlay.show {
+    display: flex;
+  }
+
+  /* Modal Box */
+  .modal-box {
+    background: white;
+    padding: 2rem;
+    border-radius: 12px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    text-align: center;
+    max-width: 400px;
+    width: 90%;
+  }
+
+  .modal-box h3 {
+    margin: 0 0 1rem;
+    font-size: 1.25rem;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 8px;
+  }
+
+  /* Spinner */
+  .spinner {
+    width: 40px;
+    height: 40px;
+    border: 4px solid #e2e8f0;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+  }
+
+  @keyframes spin {
+    to { transform: rotate(360deg); }
+  }
+
+  .modal-box p {
+    margin: 0.5rem 0;
+    color: #475569;
+    font-size: 0.95rem;
+  }
+
+  .modal-box .hint {
+    color: #94a3b8;
+    font-size: 0.85rem;
+    margin-top: 1rem;
+  }
+
+  /* Badge for disabled buttons */
+  .nav-badge {
+    font-size: 0.7rem;
+    background: #fbbf24;
+    color: #1e293b;
+    padding: 2px 6px;
+    border-radius: 4px;
+    margin-left: 6px;
+  }
 </style>
 {% endblock %}
 
@@ -105,8 +187,18 @@
 
   <div class="topic-nav">
     <a href="{{ url_for('view_slides', topic_id=topic.id) }}">🎬 Slides</a>
-    <a href="{{ url_for('game', topic_id=topic.id) }}">🎮 Game</a>
-    <a href="{{ url_for('practice', topic_id=topic.id) }}">📝 Practice</a>
+    
+    {% if has_game %}
+      <a href="{{ url_for('game', topic_id=topic.id) }}">🎮 Game</a>
+    {% else %}
+      <a class="disabled" href="javascript:void(0)" title="กรุณา Generate Game ก่อน">🎮 Game <span class="nav-badge">ยังไม่มี</span></a>
+    {% endif %}
+    
+    {% if has_practice %}
+      <a href="{{ url_for('practice', topic_id=topic.id) }}">📝 Practice</a>
+    {% else %}
+      <a class="disabled" href="javascript:void(0)" title="กรุณา Generate Practice ก่อน">📝 Practice <span class="nav-badge">ยังไม่มี</span></a>
+    {% endif %}
   </div>
 </div>
 
@@ -163,20 +255,46 @@
 </div>
 {% endif %}
 
+<!-- Modal Popup -->
+<div class="modal-overlay" id="generatingModal">
+  <div class="modal-box">
+    <h3>⏳ Generating Lesson</h3>
+    <div class="spinner"></div>
+    <p id="modalMessage">Generating Game + Practice from PDF...</p>
+    <p class="hint">โปรดอย่าปิดหน้าเว็บระหว่างทำงาน</p>
+  </div>
+</div>
+
 <script>
   const topicId = {{ topic.id }};
   const hasPdf = {{ 1 if topic.pdf_file else 0 }};
   const statusbar = document.getElementById('statusbar');
+  const modal = document.getElementById('generatingModal');
+  const modalMessage = document.getElementById('modalMessage');
 
   function setStatus(msg){
     statusbar.textContent = msg;
     statusbar.classList.add('show');
   }
 
+  function showModal(mode) {
+    let message = 'Generating Game + Practice from PDF...';
+    if (mode === 'game') {
+      message = 'Generating Game from PDF...';
+    } else if (mode === 'practice') {
+      message = 'Generating Practice from PDF...';
+    }
+    modalMessage.textContent = message;
+    modal.classList.add('show');
+  }
+
+  function hideModal() {
+    modal.classList.remove('show');
+  }
+
   async function readJsonSafely(res){
     const ct = (res.headers.get('content-type') || '').toLowerCase();
 
-    // ถ้า server ส่ง HTML กลับมา (เช่น error page) จะไม่พยายาม parse json
     if(!ct.includes('application/json')){
       const text = await res.text();
       const preview = (text || '').slice(0, 200);
@@ -203,6 +321,9 @@
     ];
     buttons.forEach(b => { if(b) b.disabled = true; });
 
+    // Show modal popup
+    showModal(mode);
+
     try{
       setStatus('⏳ Generating... (กำลังสร้างคำถามจาก PDF)');
 
@@ -216,22 +337,26 @@
 
       if(!res.ok || data.ok === false){
         const msg = (data && (data.error || data.message)) || 'Generate failed';
+        hideModal();
         alert(msg);
         setStatus('❌ Generate failed: ' + msg);
         return;
       }
 
       setStatus('✅ Generated successfully!');
+      hideModal();
 
       if(mode === 'game'){
         window.location.href = `/topic/${topicId}/game`;
       }else if(mode === 'practice'){
         window.location.href = `/topic/${topicId}/practice`;
       }else{
-        window.location.href = `/topic/${topicId}`;
+        // Reload หน้าเพื่ออัปเดตสถานะปุ่ม
+        window.location.reload();
       }
 
     }catch(err){
+      hideModal();
       alert('Error: ' + (err && err.message ? err.message : err));
       setStatus('❌ Error: ' + (err && err.message ? err.message : err));
       console.error(err);
