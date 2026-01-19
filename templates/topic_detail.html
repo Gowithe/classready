@@ -104,7 +104,7 @@
   <p>{{ topic.description or 'No description' }}</p>
 
   <div class="topic-nav">
-    <a href="{{ url_for('slides', topic_id=topic.id) }}">📽️ Slides</a>
+    <a href="{{ url_for('view_slides', topic_id=topic.id) }}">📽️ Slides</a>
     <a href="{{ url_for('game', topic_id=topic.id) }}">🎮 Game</a>
     <a href="{{ url_for('practice', topic_id=topic.id) }}">📝 Practice</a>
   </div>
@@ -133,9 +133,9 @@
   <h3 style="margin:0 0 8px;">⚙️ Manage</h3>
 
   <div class="btnrow">
-    <a class="btn2 gray" href="{{ url_for('admin_edit_topic', topic_id=topic.id) }}">✏️ Edit Topic</a>
+    <a class="btn2 gray" href="{{ url_for('my_edit_topic', topic_id=topic.id) }}">✏️ Edit Topic</a>
 
-    <form method="POST" action="{{ url_for('admin_delete_topic', topic_id=topic.id) }}"
+    <form method="POST" action="{{ url_for('my_delete_topic', topic_id=topic.id) }}"
           onsubmit="return confirm('Delete this topic? (will remove slides/game/practice)');" style="margin:0;">
       <button class="btn2 danger" type="submit">🗑 Delete</button>
     </form>
@@ -170,65 +170,65 @@
   const statusbar = document.getElementById('statusbar');
 
   function setStatus(msg){
-    if(!statusbar) return;
     statusbar.textContent = msg;
     statusbar.classList.add('show');
   }
 
-  async function callGenerate(endpoint){
+  async function callGenerate(mode){
     if(!hasPdf){
       alert('ยังไม่มี PDF — กรุณาอัปโหลด PDF ก่อน');
       return;
     }
 
-    const ok = confirm('ยืนยัน Generate?\nระบบจะเขียนทับข้อมูลเดิม');
+    // confirm overwrite
+    const ok = confirm(`ยืนยัน Generate (${mode}) จาก PDF?\nระบบจะเขียนทับคำถามเดิม`);
     if(!ok) return;
 
-    const buttons = [
-      document.getElementById('btnGenAll'),
-      document.getElementById('btnGenGame'),
-      document.getElementById('btnGenPractice')
-    ];
-    buttons.forEach(b => b && (b.disabled = true));
+    const buttons = [document.getElementById('btnGenAll'), document.getElementById('btnGenGame'), document.getElementById('btnGenPractice')];
+    buttons.forEach(b => { if(b) b.disabled = true; });
 
-    try {
-      setStatus('⏳ กำลังสร้างจาก AI...');
-      if(window.tpShowLoading){
-        tpShowLoading('⏳ กำลังสร้าง...', 'ระบบกำลังสร้าง Slides / Game / Practice');
-      }
-
-      const res = await fetch(endpoint, {
+    try{
+      setStatus('⏳ Generating... (กำลังสร้างคำถามจาก PDF)');
+      const res = await fetch(`/api/topic/${topicId}/generate`, {
         method: 'POST',
-        headers: { 'Content-Type': 'application/json' }
+        headers: { 'Content-Type':'application/json' },
+        body: JSON.stringify({ mode })
       });
+      const data = await res.json();
 
-      // พยายามอ่าน JSON เสมอ (เพื่อเอา error message)
-      let data = {};
-      try { data = await res.json(); } catch(e) { data = {}; }
-
-      if(!res.ok || (data && data.error)){
-        throw new Error((data && data.error) ? data.error : `HTTP ${res.status}`);
+      if(!res.ok){
+        alert(data.error || 'Generate failed');
+        setStatus('❌ Generate failed: ' + (data.error || 'unknown error'));
+        return;
       }
 
-      setStatus('✅ Generate สำเร็จ กำลังรีโหลด...');
-      setTimeout(()=> location.reload(), 400);
+      setStatus('✅ Generated successfully!');
 
-    } catch(err){
-      alert(err.message || 'Generate failed');
-      setStatus('❌ Error: ' + (err.message || 'unknown error'));
-    } finally {
-      if(window.tpHideLoading) tpHideLoading();
-      buttons.forEach(b => b && (b.disabled = false));
+      // ไปหน้าเกม/แบบฝึกทันทีเพื่อดูผล
+      if(mode === 'game'){
+        window.location.href = `/topic/${topicId}/game`;
+      }else if(mode === 'practice'){
+        window.location.href = `/topic/${topicId}/practice`;
+      }else{
+        // all
+        window.location.href = `/topic/${topicId}`;
+      }
+
+    }catch(err){
+      alert('Error: ' + err);
+      setStatus('❌ Error: ' + err);
+    }finally{
+      // ถ้าจะ redirect มันจะไม่ทันเห็น enable แต่ใส่ไว้กันกรณีไม่ redirect
+      buttons.forEach(b => { if(b) b.disabled = false; });
     }
   }
 
-  document.getElementById('btnGenAll')
-    ?.addEventListener('click', () => callGenerate(`/topic/${topicId}/generate/all`));
+  const btnAll = document.getElementById('btnGenAll');
+  const btnGame = document.getElementById('btnGenGame');
+  const btnPractice = document.getElementById('btnGenPractice');
 
-  document.getElementById('btnGenGame')
-    ?.addEventListener('click', () => callGenerate(`/topic/${topicId}/generate/game`));
-
-  document.getElementById('btnGenPractice')
-    ?.addEventListener('click', () => callGenerate(`/topic/${topicId}/generate/practice`));
+  if(btnAll) btnAll.addEventListener('click', () => callGenerate('all'));
+  if(btnGame) btnGame.addEventListener('click', () => callGenerate('game'));
+  if(btnPractice) btnPractice.addEventListener('click', () => callGenerate('practice'));
 </script>
 {% endblock %}
