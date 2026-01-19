@@ -619,7 +619,7 @@ def ai_slides():
             level=level,
             language=language,
             style=style,
-            text_model="gpt-4.1-mini",
+            text_model="gpt-4o-mini",
         )
 
         slides = bundle.get("slides", []) or []
@@ -731,7 +731,7 @@ def api_generate_from_pdf(topic_id):
             level="Secondary",
             language="EN",
             style="Minimal",
-            text_model="gpt-4.1-mini",
+            text_model="gpt-4o-mini",
         )
     except Exception as e:
         # สำคัญ: log ให้เห็นใน Render logs
