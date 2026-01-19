@@ -4,6 +4,7 @@
 # UPDATED: My Topics (owner) CRUD + Upload PDF + Generate Game/Practice from PDF
 # + FIX: practice_scores endpoint + fixed practice_pdf return + fixed generate modes
 # + FIX: API always returns JSON (no more "<html> is not valid JSON")
+# + FIX: has_game / has_practice check for topic_detail
 # ==============================================================================
 
 import os
@@ -207,7 +208,19 @@ def topic_detail(topic_id):
     AttemptHistory.track_view(session["user_id"], topic_id)
 
     is_owner = int(topic.get("owner_id") or 0) == int(session["user_id"])
-    return render_template("topic_detail.html", topic=topic, is_owner=is_owner, is_admin=_is_admin())
+    
+    # เช็คว่ามี game และ practice หรือยัง
+    has_game = len(GameQuestion.get_by_topic_and_set(topic_id, 1) or []) > 0
+    has_practice = len(PracticeQuestion.get_by_topic(topic_id) or []) > 0
+    
+    return render_template(
+        "topic_detail.html", 
+        topic=topic, 
+        is_owner=is_owner, 
+        is_admin=_is_admin(),
+        has_game=has_game,
+        has_practice=has_practice
+    )
 
 
 # ------------------------------------------------------------------------------
