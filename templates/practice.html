@@ -4,6 +4,47 @@
 
 {% block extra_css %}
 <style>
+  /* ===== Top Nav Buttons (Slides / Game / Practice / Back) ===== */
+  .top-nav{
+    display:flex;
+    gap:12px;
+    flex-wrap:wrap;
+    align-items:center;
+    margin: 6px 0 14px;
+  }
+  .navbtn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:10px;
+    padding: 12px 22px;
+    border-radius: 14px;
+    font-weight: 900;
+    text-decoration:none;
+    border: 1px solid rgba(0,0,0,0.06);
+    box-shadow: 0 10px 18px rgba(15, 23, 42, 0.08);
+    transition: transform .08s ease, box-shadow .12s ease, filter .12s ease;
+    user-select:none;
+  }
+  .navbtn:hover{
+    transform: translateY(-1px);
+    box-shadow: 0 14px 22px rgba(15, 23, 42, 0.12);
+    filter: brightness(1.01);
+  }
+  .navbtn:active{ transform: translateY(0px) scale(0.99); }
+
+  .navbtn-slides{ background: #eef2ff; color:#1f2a44; }
+  .navbtn-game{ background: #eafff3; color:#0f3d24; }
+  .navbtn-practice{ background: #fff4df; color:#3a2a00; }
+  .navbtn-back{ background: #eef2ff; color:#1f2a44; }
+
+  /* active state */
+  .navbtn.active{
+    outline: 3px solid rgba(99,102,241,0.20);
+    border-color: rgba(99,102,241,0.15);
+  }
+
+  /* ===== Existing styles ===== */
   .practice-form {
       max-width: 900px;
       margin: 2rem auto;
@@ -57,6 +98,15 @@
 {% endblock %}
 
 {% block content %}
+
+<!-- ✅ Top buttons like screenshot -->
+<div class="top-nav">
+  <a class="navbtn navbtn-slides" href="/topic/{{ topic.id }}/slides">📽️ Slides</a>
+  <a class="navbtn navbtn-game" href="/topic/{{ topic.id }}/game">🎮 Game</a>
+  <a class="navbtn navbtn-practice active" href="/topic/{{ topic.id }}/practice">📝 Practice</a>
+  <a class="navbtn navbtn-back" href="/topic/{{ topic.id }}">↩️ Back</a>
+</div>
+
 <h2 style="margin-bottom: 1rem;">📝 {{ topic.name }} - Practice (Multiple Choice)</h2>
 
 <div class="card" style="margin-bottom: 1rem; padding: 14px;">
@@ -125,7 +175,8 @@
       btnCreate.disabled = true;
       btnCreate.textContent = '⏳ Creating...';
       try{
-        const data = await fetchJSON(`/api/practice/${topicId}/link`, { method: 'POST' });
+        const res = await fetch(`/api/practice/${topicId}/link`, { method:'POST' });
+        const data = await res.json();
         if(data.url){
           linkInput.value = data.url;
           alert('สร้างลิงก์ให้นักเรียนแล้ว ✅');
@@ -133,7 +184,7 @@
           alert(data.error || 'สร้างลิงก์ไม่สำเร็จ');
         }
       }catch(e){
-        alert('Error: ' + (e.message || e));
+        alert('Error: ' + e);
       }finally{
         btnCreate.disabled = false;
         btnCreate.textContent = '🔗 Create Student Link';
@@ -170,13 +221,15 @@
     }
 
     try {
-      const result = await fetchJSON(`/api/practice/${topicId}/submit`, {
+      const res = await fetch(`/api/practice/${topicId}/submit`, {
         method: 'POST',
+        headers: {'Content-Type': 'application/json'},
         body: JSON.stringify({ answers })
       });
+      const result = await res.json();
       renderResults(result);
     } catch (err) {
-      alert('Error submitting practice: ' + (err.message || err));
+      alert('Error submitting practice: ' + err);
     }
   });
 
