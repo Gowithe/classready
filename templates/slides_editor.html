@@ -1,0 +1,1449 @@
+{% extends "base.html" %}
+
+{% block title %}Edit Slides - {{ topic.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root {
+    --editor-bg: #f8fafc;
+    --card-bg: #ffffff;
+    --primary: #667eea;
+    --secondary: #764ba2;
+    --success: #10b981;
+    --warning: #f59e0b;
+    --danger: #ef4444;
+    --text: #1e293b;
+    --muted: #64748b;
+    --border: #e2e8f0;
+  }
+
+  .editor-container {
+    max-width: 1400px;
+    margin: 0 auto;
+    padding: 1rem;
+  }
+
+  /* Header */
+  .editor-header {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    padding: 1.5rem 2rem;
+    border-radius: 12px;
+    margin-bottom: 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+
+  .editor-header h1 {
+    margin: 0;
+    font-size: 1.5rem;
+  }
+
+  .editor-header .subtitle {
+    opacity: 0.9;
+    font-size: 0.9rem;
+    margin-top: 4px;
+  }
+
+  .header-actions {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+  }
+
+  .btn-header {
+    padding: 0.6rem 1.2rem;
+    border-radius: 8px;
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+  }
+
+  .btn-save {
+    background: var(--success);
+    color: white;
+  }
+  .btn-save:hover {
+    background: #059669;
+    transform: translateY(-1px);
+  }
+
+  .btn-preview {
+    background: rgba(255,255,255,0.2);
+    color: white;
+    border: 1px solid rgba(255,255,255,0.3);
+  }
+  .btn-preview:hover {
+    background: rgba(255,255,255,0.3);
+  }
+
+  .btn-back {
+    background: rgba(255,255,255,0.15);
+    color: white;
+  }
+  .btn-back:hover {
+    background: rgba(255,255,255,0.25);
+  }
+
+  /* Main Layout */
+  .editor-main {
+    display: grid;
+    grid-template-columns: 320px 1fr;
+    gap: 1.5rem;
+    align-items: start;
+  }
+
+  @media (max-width: 900px) {
+    .editor-main {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  /* Sidebar - Slides List */
+  .slides-sidebar {
+    background: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    overflow: hidden;
+    position: sticky;
+    top: 1rem;
+  }
+
+  .sidebar-header {
+    background: linear-gradient(135deg, #f1f5f9, #e2e8f0);
+    padding: 1rem 1.25rem;
+    border-bottom: 1px solid var(--border);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .sidebar-header h3 {
+    margin: 0;
+    font-size: 1rem;
+    color: var(--text);
+  }
+
+  .slide-count {
+    background: var(--primary);
+    color: white;
+    padding: 2px 10px;
+    border-radius: 12px;
+    font-size: 0.85rem;
+    font-weight: 700;
+  }
+
+  .slides-list {
+    max-height: calc(100vh - 280px);
+    overflow-y: auto;
+    padding: 0.75rem;
+  }
+
+  /* Slide Item */
+  .slide-item {
+    background: #f8fafc;
+    border: 2px solid var(--border);
+    border-radius: 10px;
+    padding: 0.75rem;
+    margin-bottom: 0.5rem;
+    cursor: grab;
+    transition: all 0.2s;
+    position: relative;
+  }
+
+  .slide-item:hover {
+    border-color: var(--primary);
+    box-shadow: 0 4px 12px rgba(102, 126, 234, 0.15);
+  }
+
+  .slide-item.active {
+    border-color: var(--primary);
+    background: linear-gradient(135deg, rgba(102,126,234,0.08), rgba(118,75,162,0.05));
+  }
+
+  .slide-item.dragging {
+    opacity: 0.5;
+    transform: scale(0.98);
+  }
+
+  .slide-item.drag-over {
+    border-color: var(--success);
+    border-style: dashed;
+  }
+
+  .slide-item-header {
+    display: flex;
+    align-items: center;
+    gap: 8px;
+    margin-bottom: 4px;
+  }
+
+  .drag-handle {
+    color: var(--muted);
+    cursor: grab;
+    font-size: 1.1rem;
+  }
+
+  .slide-number {
+    background: var(--primary);
+    color: white;
+    width: 24px;
+    height: 24px;
+    border-radius: 6px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 800;
+  }
+
+  .slide-type-badge {
+    background: #e0e7ff;
+    color: #4338ca;
+    padding: 2px 8px;
+    border-radius: 4px;
+    font-size: 0.7rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  .slide-title {
+    font-weight: 600;
+    font-size: 0.9rem;
+    color: var(--text);
+    margin-left: 32px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+  }
+
+  .slide-actions {
+    position: absolute;
+    top: 8px;
+    right: 8px;
+    display: flex;
+    gap: 4px;
+    opacity: 0;
+    transition: opacity 0.2s;
+  }
+
+  .slide-item:hover .slide-actions {
+    opacity: 1;
+  }
+
+  .slide-action-btn {
+    width: 28px;
+    height: 28px;
+    border-radius: 6px;
+    border: none;
+    cursor: pointer;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.85rem;
+    transition: all 0.2s;
+  }
+
+  .slide-action-btn.edit {
+    background: #dbeafe;
+    color: #2563eb;
+  }
+  .slide-action-btn.edit:hover {
+    background: #2563eb;
+    color: white;
+  }
+
+  .slide-action-btn.delete {
+    background: #fee2e2;
+    color: #dc2626;
+  }
+  .slide-action-btn.delete:hover {
+    background: #dc2626;
+    color: white;
+  }
+
+  /* Add Slide Button */
+  .add-slide-btn {
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(135deg, rgba(102,126,234,0.1), rgba(118,75,162,0.05));
+    border: 2px dashed var(--primary);
+    border-radius: 10px;
+    color: var(--primary);
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+    margin-top: 0.5rem;
+  }
+
+  .add-slide-btn:hover {
+    background: linear-gradient(135deg, rgba(102,126,234,0.2), rgba(118,75,162,0.1));
+    transform: translateY(-1px);
+  }
+
+  /* Preview Panel */
+  .preview-panel {
+    background: var(--card-bg);
+    border-radius: 12px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    overflow: hidden;
+  }
+
+  .preview-header {
+    background: linear-gradient(135deg, #1e293b, #334155);
+    color: white;
+    padding: 1rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .preview-header h3 {
+    margin: 0;
+    font-size: 1rem;
+  }
+
+  .preview-content {
+    padding: 2rem;
+    min-height: 400px;
+    background: linear-gradient(135deg, #0f172a, #1e293b);
+    color: white;
+  }
+
+  .preview-slide-type {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    background: rgba(102,126,234,0.3);
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    text-transform: uppercase;
+    margin-bottom: 1rem;
+  }
+
+  .preview-slide-type .dot {
+    width: 8px;
+    height: 8px;
+    background: #10b981;
+    border-radius: 50%;
+  }
+
+  .preview-title {
+    font-size: 1.8rem;
+    font-weight: 800;
+    margin-bottom: 0.5rem;
+  }
+
+  .preview-subtitle {
+    font-size: 1.1rem;
+    opacity: 0.8;
+    margin-bottom: 1.5rem;
+  }
+
+  .preview-card {
+    background: rgba(255,255,255,0.08);
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 12px;
+    padding: 1.5rem;
+  }
+
+  .preview-empty {
+    text-align: center;
+    padding: 4rem 2rem;
+    color: rgba(255,255,255,0.6);
+  }
+
+  .preview-empty-icon {
+    font-size: 3rem;
+    margin-bottom: 1rem;
+  }
+
+  /* Modal */
+  .modal-overlay {
+    display: none;
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.7);
+    z-index: 1000;
+    align-items: center;
+    justify-content: center;
+    padding: 1rem;
+  }
+
+  .modal-overlay.show {
+    display: flex;
+  }
+
+  .modal-box {
+    background: white;
+    border-radius: 16px;
+    width: 100%;
+    max-width: 700px;
+    max-height: 90vh;
+    overflow: hidden;
+    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+  }
+
+  .modal-header {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .modal-header h3 {
+    margin: 0;
+    font-size: 1.2rem;
+  }
+
+  .modal-close {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    width: 32px;
+    height: 32px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.2rem;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .modal-close:hover {
+    background: rgba(255,255,255,0.3);
+  }
+
+  .modal-body {
+    padding: 1.5rem;
+    max-height: calc(90vh - 140px);
+    overflow-y: auto;
+  }
+
+  .form-group {
+    margin-bottom: 1.25rem;
+  }
+
+  .form-group label {
+    display: block;
+    font-weight: 600;
+    margin-bottom: 0.5rem;
+    color: var(--text);
+  }
+
+  .form-group input,
+  .form-group textarea,
+  .form-group select {
+    width: 100%;
+    padding: 0.75rem;
+    border: 2px solid var(--border);
+    border-radius: 8px;
+    font-size: 1rem;
+    transition: border-color 0.2s;
+  }
+
+  .form-group input:focus,
+  .form-group textarea:focus,
+  .form-group select:focus {
+    outline: none;
+    border-color: var(--primary);
+  }
+
+  .form-group textarea {
+    min-height: 100px;
+    resize: vertical;
+  }
+
+  .form-row {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 1rem;
+  }
+
+  @media (max-width: 600px) {
+    .form-row {
+      grid-template-columns: 1fr;
+    }
+  }
+
+  .form-hint {
+    font-size: 0.85rem;
+    color: var(--muted);
+    margin-top: 0.25rem;
+  }
+
+  /* Dynamic List Items */
+  .list-items-container {
+    background: #f8fafc;
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 1rem;
+  }
+
+  .list-item-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+  }
+
+  .list-item-row input {
+    flex: 1;
+    margin-bottom: 0;
+  }
+
+  .list-item-row .remove-item-btn {
+    width: 36px;
+    height: 36px;
+    background: #fee2e2;
+    color: #dc2626;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+  }
+
+  .list-item-row .remove-item-btn:hover {
+    background: #dc2626;
+    color: white;
+  }
+
+  .add-item-btn {
+    width: 100%;
+    padding: 0.5rem;
+    background: #dbeafe;
+    color: #2563eb;
+    border: 1px dashed #2563eb;
+    border-radius: 6px;
+    cursor: pointer;
+    font-weight: 600;
+    margin-top: 0.5rem;
+  }
+
+  .add-item-btn:hover {
+    background: #2563eb;
+    color: white;
+  }
+
+  /* Image Upload */
+  .image-upload-area {
+    border: 2px dashed var(--border);
+    border-radius: 8px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #f8fafc;
+  }
+
+  .image-upload-area:hover {
+    border-color: var(--primary);
+    background: rgba(102,126,234,0.05);
+  }
+
+  .image-upload-area.has-image {
+    padding: 1rem;
+  }
+
+  .image-upload-area img {
+    max-width: 100%;
+    max-height: 200px;
+    border-radius: 8px;
+  }
+
+  .image-upload-icon {
+    font-size: 2.5rem;
+    color: var(--muted);
+    margin-bottom: 0.5rem;
+  }
+
+  .image-upload-text {
+    color: var(--muted);
+    font-size: 0.9rem;
+  }
+
+  .remove-image-btn {
+    margin-top: 0.75rem;
+    padding: 0.4rem 1rem;
+    background: var(--danger);
+    color: white;
+    border: none;
+    border-radius: 6px;
+    cursor: pointer;
+    font-size: 0.85rem;
+  }
+
+  /* Modal Footer */
+  .modal-footer {
+    padding: 1rem 1.5rem;
+    background: #f8fafc;
+    border-top: 1px solid var(--border);
+    display: flex;
+    justify-content: flex-end;
+    gap: 0.75rem;
+  }
+
+  .btn-modal {
+    padding: 0.7rem 1.5rem;
+    border-radius: 8px;
+    border: none;
+    font-weight: 700;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+
+  .btn-modal.cancel {
+    background: #e2e8f0;
+    color: var(--text);
+  }
+
+  .btn-modal.cancel:hover {
+    background: #cbd5e1;
+  }
+
+  .btn-modal.save {
+    background: var(--primary);
+    color: white;
+  }
+
+  .btn-modal.save:hover {
+    background: var(--secondary);
+  }
+
+  /* Toast Notification */
+  .toast {
+    position: fixed;
+    bottom: 2rem;
+    right: 2rem;
+    background: var(--success);
+    color: white;
+    padding: 1rem 1.5rem;
+    border-radius: 10px;
+    box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+    display: none;
+    align-items: center;
+    gap: 10px;
+    z-index: 2000;
+    font-weight: 600;
+  }
+
+  .toast.show {
+    display: flex;
+    animation: slideInRight 0.3s ease;
+  }
+
+  .toast.error {
+    background: var(--danger);
+  }
+
+  @keyframes slideInRight {
+    from { transform: translateX(100px); opacity: 0; }
+    to { transform: translateX(0); opacity: 1; }
+  }
+
+  /* Vocabulary Table in Modal */
+  .vocab-table {
+    width: 100%;
+    border-collapse: collapse;
+  }
+
+  .vocab-table th {
+    background: #f1f5f9;
+    padding: 0.75rem;
+    text-align: left;
+    font-size: 0.85rem;
+  }
+
+  .vocab-table td {
+    padding: 0.5rem;
+    border-bottom: 1px solid var(--border);
+  }
+
+  .vocab-table input {
+    width: 100%;
+    padding: 0.5rem;
+    border: 1px solid var(--border);
+    border-radius: 6px;
+  }
+
+  .vocab-row {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 0.5rem;
+    align-items: center;
+  }
+
+  .vocab-row input {
+    flex: 1;
+    margin-bottom: 0;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="editor-container">
+  <!-- Header -->
+  <div class="editor-header">
+    <div>
+      <h1>✏️ Edit Slides</h1>
+      <div class="subtitle">{{ topic.name }}</div>
+    </div>
+    <div class="header-actions">
+      <a href="{{ url_for('view_slides', topic_id=topic.id) }}" class="btn-header btn-preview" target="_blank">👁️ Preview</a>
+      <button class="btn-header btn-save" id="btnSave">💾 Save Changes</button>
+      <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="btn-header btn-back">← Back</a>
+    </div>
+  </div>
+
+  <!-- Main Layout -->
+  <div class="editor-main">
+    <!-- Sidebar - Slides List -->
+    <div class="slides-sidebar">
+      <div class="sidebar-header">
+        <h3>📑 Slides</h3>
+        <span class="slide-count" id="slideCount">0</span>
+      </div>
+      <div class="slides-list" id="slidesList">
+        <!-- Slides will be rendered here -->
+      </div>
+      <div style="padding: 0.75rem;">
+        <button class="add-slide-btn" id="btnAddSlide">➕ Add New Slide</button>
+      </div>
+    </div>
+
+    <!-- Preview Panel -->
+    <div class="preview-panel">
+      <div class="preview-header">
+        <h3>📺 Preview</h3>
+        <span id="previewSlideNum">-</span>
+      </div>
+      <div class="preview-content" id="previewContent">
+        <div class="preview-empty">
+          <div class="preview-empty-icon">📝</div>
+          <p>Select a slide to preview</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Edit Slide Modal -->
+<div class="modal-overlay" id="editModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="modalTitle">Edit Slide</h3>
+      <button class="modal-close" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body" id="modalBody">
+      <!-- Dynamic form will be rendered here -->
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal cancel" id="modalCancel">Cancel</button>
+      <button class="btn-modal save" id="modalSave">💾 Save Slide</button>
+    </div>
+  </div>
+</div>
+
+<!-- Add Slide Modal -->
+<div class="modal-overlay" id="addModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>➕ Add New Slide</h3>
+      <button class="modal-close" id="addModalClose">✕</button>
+    </div>
+    <div class="modal-body">
+      <div class="form-group">
+        <label>Select Slide Type</label>
+        <select id="newSlideType">
+          <option value="hook">🎣 Hook - ดึงดูดความสนใจ</option>
+          <option value="objectives">🎯 Objectives - วัตถุประสงค์</option>
+          <option value="vocabulary">📚 Vocabulary - คำศัพท์</option>
+          <option value="concept">💡 Concept - แนวคิดหลัก</option>
+          <option value="examples">📖 Examples - ตัวอย่าง</option>
+          <option value="guided_practice">✍️ Guided Practice - ฝึกปฏิบัติ</option>
+          <option value="dialogue">💬 Dialogue - บทสนทนา</option>
+          <option value="review">🔄 Review - ทบทวน</option>
+          <option value="action">🚀 Action - กิจกรรมต่อไป</option>
+          <option value="exit_ticket">🎫 Exit Ticket - คำถามปิดท้าย</option>
+          <option value="slide">📄 Generic Slide - สไลด์ทั่วไป</option>
+        </select>
+      </div>
+    </div>
+    <div class="modal-footer">
+      <button class="btn-modal cancel" id="addModalCancel">Cancel</button>
+      <button class="btn-modal save" id="addModalSave">➕ Add Slide</button>
+    </div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast">
+  <span id="toastIcon">✓</span>
+  <span id="toastMessage">Saved successfully!</span>
+</div>
+
+<script>
+const TOPIC_ID = {{ topic.id }};
+let slides = [];
+let currentSlideIndex = -1;
+let editingSlideIndex = -1;
+
+// Load initial slides
+try {
+  const rawJson = {{ topic.slides_json | safe if topic.slides_json else '{"slides":[]}' }};
+  if (typeof rawJson === 'string') {
+    const parsed = JSON.parse(rawJson);
+    slides = parsed.slides || parsed || [];
+  } else if (rawJson.slides) {
+    slides = rawJson.slides;
+  } else if (Array.isArray(rawJson)) {
+    slides = rawJson;
+  }
+} catch (e) {
+  console.error('Error parsing slides:', e);
+  slides = [];
+}
+
+// DOM Elements
+const slidesList = document.getElementById('slidesList');
+const slideCount = document.getElementById('slideCount');
+const previewContent = document.getElementById('previewContent');
+const previewSlideNum = document.getElementById('previewSlideNum');
+const editModal = document.getElementById('editModal');
+const addModal = document.getElementById('addModal');
+const modalBody = document.getElementById('modalBody');
+const toast = document.getElementById('toast');
+
+// Render slides list
+function renderSlidesList() {
+  slideCount.textContent = slides.length;
+  
+  if (slides.length === 0) {
+    slidesList.innerHTML = `
+      <div style="text-align:center; padding:2rem; color:var(--muted);">
+        <div style="font-size:2rem; margin-bottom:0.5rem;">📭</div>
+        <p>No slides yet</p>
+      </div>
+    `;
+    return;
+  }
+
+  slidesList.innerHTML = slides.map((slide, i) => `
+    <div class="slide-item ${i === currentSlideIndex ? 'active' : ''}" 
+         data-index="${i}" 
+         draggable="true">
+      <div class="slide-item-header">
+        <span class="drag-handle">☰</span>
+        <span class="slide-number">${i + 1}</span>
+        <span class="slide-type-badge">${getTypeLabel(slide.type)}</span>
+      </div>
+      <div class="slide-title">${escapeHtml(slide.title || 'Untitled')}</div>
+      <div class="slide-actions">
+        <button class="slide-action-btn edit" onclick="openEditModal(${i})" title="Edit">✏️</button>
+        <button class="slide-action-btn delete" onclick="deleteSlide(${i})" title="Delete">🗑️</button>
+      </div>
+    </div>
+  `).join('');
+
+  // Add drag-and-drop listeners
+  document.querySelectorAll('.slide-item').forEach(item => {
+    item.addEventListener('click', (e) => {
+      if (!e.target.closest('.slide-actions')) {
+        selectSlide(parseInt(item.dataset.index));
+      }
+    });
+
+    item.addEventListener('dragstart', handleDragStart);
+    item.addEventListener('dragend', handleDragEnd);
+    item.addEventListener('dragover', handleDragOver);
+    item.addEventListener('drop', handleDrop);
+    item.addEventListener('dragleave', handleDragLeave);
+  });
+}
+
+// Drag and Drop handlers
+let draggedIndex = null;
+
+function handleDragStart(e) {
+  draggedIndex = parseInt(this.dataset.index);
+  this.classList.add('dragging');
+  e.dataTransfer.effectAllowed = 'move';
+}
+
+function handleDragEnd(e) {
+  this.classList.remove('dragging');
+  document.querySelectorAll('.slide-item').forEach(item => {
+    item.classList.remove('drag-over');
+  });
+}
+
+function handleDragOver(e) {
+  e.preventDefault();
+  e.dataTransfer.dropEffect = 'move';
+  this.classList.add('drag-over');
+}
+
+function handleDragLeave(e) {
+  this.classList.remove('drag-over');
+}
+
+function handleDrop(e) {
+  e.preventDefault();
+  this.classList.remove('drag-over');
+  
+  const targetIndex = parseInt(this.dataset.index);
+  if (draggedIndex !== null && draggedIndex !== targetIndex) {
+    // Reorder slides
+    const [removed] = slides.splice(draggedIndex, 1);
+    slides.splice(targetIndex, 0, removed);
+    
+    // Update current selection
+    if (currentSlideIndex === draggedIndex) {
+      currentSlideIndex = targetIndex;
+    } else if (currentSlideIndex > draggedIndex && currentSlideIndex <= targetIndex) {
+      currentSlideIndex--;
+    } else if (currentSlideIndex < draggedIndex && currentSlideIndex >= targetIndex) {
+      currentSlideIndex++;
+    }
+    
+    renderSlidesList();
+    showToast('Slide order updated');
+  }
+  draggedIndex = null;
+}
+
+// Select slide for preview
+function selectSlide(index) {
+  currentSlideIndex = index;
+  renderSlidesList();
+  renderPreview();
+}
+
+// Render preview
+function renderPreview() {
+  if (currentSlideIndex < 0 || currentSlideIndex >= slides.length) {
+    previewSlideNum.textContent = '-';
+    previewContent.innerHTML = `
+      <div class="preview-empty">
+        <div class="preview-empty-icon">📝</div>
+        <p>Select a slide to preview</p>
+      </div>
+    `;
+    return;
+  }
+
+  const slide = slides[currentSlideIndex];
+  previewSlideNum.textContent = `Slide ${currentSlideIndex + 1} of ${slides.length}`;
+
+  let contentHtml = '';
+  const type = (slide.type || 'slide').toLowerCase();
+
+  // Build content based on type
+  if (slide.content) {
+    contentHtml += `<p style="margin-bottom:1rem; line-height:1.7;">${escapeHtml(slide.content)}</p>`;
+  }
+
+  // Objectives
+  if (slide.objectives && slide.objectives.length) {
+    contentHtml += `<ul style="margin:1rem 0; padding-left:1.5rem;">`;
+    slide.objectives.forEach(obj => {
+      contentHtml += `<li style="margin-bottom:0.5rem;">${escapeHtml(obj)}</li>`;
+    });
+    contentHtml += `</ul>`;
+  }
+
+  // Key points
+  if (slide.key_points && slide.key_points.length) {
+    contentHtml += `<ul style="margin:1rem 0; padding-left:1.5rem;">`;
+    slide.key_points.forEach(point => {
+      contentHtml += `<li style="margin-bottom:0.5rem;">${escapeHtml(point)}</li>`;
+    });
+    contentHtml += `</ul>`;
+  }
+
+  // Vocabulary
+  if (slide.vocabulary && slide.vocabulary.length) {
+    contentHtml += `<div style="display:grid; gap:0.5rem; margin-top:1rem;">`;
+    slide.vocabulary.forEach(v => {
+      contentHtml += `
+        <div style="display:flex; gap:1rem; background:rgba(255,255,255,0.08); padding:0.75rem; border-radius:8px;">
+          <strong style="min-width:100px;">${escapeHtml(v.word || '')}</strong>
+          <span style="opacity:0.8;">${escapeHtml(v.meaning || '')}</span>
+        </div>
+      `;
+    });
+    contentHtml += `</div>`;
+  }
+
+  // Examples
+  if (slide.examples && slide.examples.length) {
+    contentHtml += `<div style="margin-top:1rem;">`;
+    slide.examples.forEach((ex, i) => {
+      contentHtml += `<p style="margin-bottom:0.5rem; padding-left:1rem; border-left:3px solid var(--primary);">${i+1}. ${escapeHtml(ex)}</p>`;
+    });
+    contentHtml += `</div>`;
+  }
+
+  // Questions
+  if (slide.questions && slide.questions.length) {
+    contentHtml += `<div style="margin-top:1rem;">`;
+    slide.questions.forEach((q, i) => {
+      contentHtml += `<p style="margin-bottom:0.5rem;">❓ ${escapeHtml(q)}</p>`;
+    });
+    contentHtml += `</div>`;
+  }
+
+  // Image
+  if (slide.image_url) {
+    contentHtml += `<div style="margin-top:1rem;"><img src="${escapeHtml(slide.image_url)}" style="max-width:100%; border-radius:8px;"></div>`;
+  }
+
+  // Teacher notes
+  if (slide.teacher_notes) {
+    contentHtml += `<div style="margin-top:1.5rem; background:rgba(245,158,11,0.2); padding:1rem; border-radius:8px; border-left:4px solid #f59e0b;">
+      <strong>📝 Teacher Notes:</strong><br>${escapeHtml(slide.teacher_notes)}
+    </div>`;
+  }
+
+  previewContent.innerHTML = `
+    <div class="preview-slide-type">
+      <span class="dot"></span>
+      ${getTypeLabel(type)}
+    </div>
+    <div class="preview-title">${escapeHtml(slide.title || 'Untitled')}</div>
+    ${slide.subtitle ? `<div class="preview-subtitle">${escapeHtml(slide.subtitle)}</div>` : ''}
+    <div class="preview-card">
+      ${contentHtml || '<p style="opacity:0.6;">No content</p>'}
+    </div>
+  `;
+}
+
+// Open edit modal
+function openEditModal(index) {
+  editingSlideIndex = index;
+  const slide = slides[index];
+  const type = (slide.type || 'slide').toLowerCase();
+
+  document.getElementById('modalTitle').textContent = `Edit Slide ${index + 1}: ${getTypeLabel(type)}`;
+
+  let formHtml = `
+    <div class="form-row">
+      <div class="form-group">
+        <label>Slide Type</label>
+        <select id="editType">
+          <option value="hook" ${type === 'hook' ? 'selected' : ''}>🎣 Hook</option>
+          <option value="objectives" ${type === 'objectives' ? 'selected' : ''}>🎯 Objectives</option>
+          <option value="vocabulary" ${type === 'vocabulary' ? 'selected' : ''}>📚 Vocabulary</option>
+          <option value="concept" ${type === 'concept' ? 'selected' : ''}>💡 Concept</option>
+          <option value="examples" ${type === 'examples' ? 'selected' : ''}>📖 Examples</option>
+          <option value="guided_practice" ${type === 'guided_practice' ? 'selected' : ''}>✍️ Guided Practice</option>
+          <option value="dialogue" ${type === 'dialogue' ? 'selected' : ''}>💬 Dialogue</option>
+          <option value="review" ${type === 'review' ? 'selected' : ''}>🔄 Review</option>
+          <option value="action" ${type === 'action' ? 'selected' : ''}>🚀 Action</option>
+          <option value="exit_ticket" ${type === 'exit_ticket' ? 'selected' : ''}>🎫 Exit Ticket</option>
+          <option value="slide" ${type === 'slide' ? 'selected' : ''}>📄 Generic</option>
+        </select>
+      </div>
+      <div class="form-group">
+        <label>Title</label>
+        <input type="text" id="editTitle" value="${escapeHtml(slide.title || '')}">
+      </div>
+    </div>
+
+    <div class="form-group">
+      <label>Subtitle (optional)</label>
+      <input type="text" id="editSubtitle" value="${escapeHtml(slide.subtitle || '')}">
+    </div>
+
+    <div class="form-group">
+      <label>Content</label>
+      <textarea id="editContent" rows="4">${escapeHtml(slide.content || '')}</textarea>
+    </div>
+  `;
+
+  // Type-specific fields
+  if (type === 'objectives' || type === 'review') {
+    formHtml += buildListField('Objectives / Key Points', 'editObjectives', slide.objectives || slide.key_points || []);
+  }
+
+  if (type === 'vocabulary') {
+    formHtml += buildVocabField('Vocabulary', 'editVocab', slide.vocabulary || slide.items || []);
+  }
+
+  if (type === 'examples' || type === 'guided_practice') {
+    formHtml += buildListField('Examples / Items', 'editExamples', slide.examples || slide.items || []);
+  }
+
+  if (type === 'exit_ticket') {
+    formHtml += buildListField('Questions', 'editQuestions', slide.questions || []);
+  }
+
+  // Image upload
+  formHtml += `
+    <div class="form-group">
+      <label>Image (optional)</label>
+      <div class="image-upload-area ${slide.image_url ? 'has-image' : ''}" id="imageUploadArea">
+        ${slide.image_url ? 
+          `<img src="${escapeHtml(slide.image_url)}" id="previewImage">
+           <button type="button" class="remove-image-btn" onclick="removeImage()">🗑️ Remove Image</button>` :
+          `<div class="image-upload-icon">🖼️</div>
+           <div class="image-upload-text">Click to upload or drag image here</div>`
+        }
+      </div>
+      <input type="file" id="imageInput" accept="image/*" style="display:none;">
+      <input type="hidden" id="editImageUrl" value="${escapeHtml(slide.image_url || '')}">
+    </div>
+  `;
+
+  // Teacher notes
+  formHtml += `
+    <div class="form-group">
+      <label>Teacher Notes (optional)</label>
+      <textarea id="editTeacherNotes" rows="3">${escapeHtml(slide.teacher_notes || '')}</textarea>
+    </div>
+  `;
+
+  modalBody.innerHTML = formHtml;
+  editModal.classList.add('show');
+
+  // Setup image upload
+  setupImageUpload();
+}
+
+function buildListField(label, id, items) {
+  const itemsHtml = items.map((item, i) => `
+    <div class="list-item-row">
+      <input type="text" class="${id}-item" value="${escapeHtml(item)}">
+      <button type="button" class="remove-item-btn" onclick="this.parentElement.remove()">✕</button>
+    </div>
+  `).join('');
+
+  return `
+    <div class="form-group">
+      <label>${label}</label>
+      <div class="list-items-container" id="${id}Container">
+        ${itemsHtml}
+        <button type="button" class="add-item-btn" onclick="addListItem('${id}')">+ Add Item</button>
+      </div>
+    </div>
+  `;
+}
+
+function buildVocabField(label, id, items) {
+  const itemsHtml = items.map((item, i) => `
+    <div class="vocab-row">
+      <input type="text" class="${id}-word" value="${escapeHtml(item.word || '')}" placeholder="Word">
+      <input type="text" class="${id}-meaning" value="${escapeHtml(item.meaning || '')}" placeholder="Meaning">
+      <button type="button" class="remove-item-btn" onclick="this.parentElement.remove()">✕</button>
+    </div>
+  `).join('');
+
+  return `
+    <div class="form-group">
+      <label>${label}</label>
+      <div class="list-items-container" id="${id}Container">
+        ${itemsHtml}
+        <button type="button" class="add-item-btn" onclick="addVocabItem('${id}')">+ Add Word</button>
+      </div>
+    </div>
+  `;
+}
+
+function addListItem(id) {
+  const container = document.getElementById(`${id}Container`);
+  const btn = container.querySelector('.add-item-btn');
+  const row = document.createElement('div');
+  row.className = 'list-item-row';
+  row.innerHTML = `
+    <input type="text" class="${id}-item" value="">
+    <button type="button" class="remove-item-btn" onclick="this.parentElement.remove()">✕</button>
+  `;
+  container.insertBefore(row, btn);
+  row.querySelector('input').focus();
+}
+
+function addVocabItem(id) {
+  const container = document.getElementById(`${id}Container`);
+  const btn = container.querySelector('.add-item-btn');
+  const row = document.createElement('div');
+  row.className = 'vocab-row';
+  row.innerHTML = `
+    <input type="text" class="${id}-word" value="" placeholder="Word">
+    <input type="text" class="${id}-meaning" value="" placeholder="Meaning">
+    <button type="button" class="remove-item-btn" onclick="this.parentElement.remove()">✕</button>
+  `;
+  container.insertBefore(row, btn);
+  row.querySelector('input').focus();
+}
+
+function setupImageUpload() {
+  const area = document.getElementById('imageUploadArea');
+  const input = document.getElementById('imageInput');
+  
+  if (!area || !input) return;
+
+  area.addEventListener('click', (e) => {
+    if (!e.target.closest('.remove-image-btn')) {
+      input.click();
+    }
+  });
+
+  input.addEventListener('change', handleImageSelect);
+
+  area.addEventListener('dragover', (e) => {
+    e.preventDefault();
+    area.style.borderColor = 'var(--primary)';
+  });
+
+  area.addEventListener('dragleave', () => {
+    area.style.borderColor = '';
+  });
+
+  area.addEventListener('drop', (e) => {
+    e.preventDefault();
+    area.style.borderColor = '';
+    const file = e.dataTransfer.files[0];
+    if (file && file.type.startsWith('image/')) {
+      handleImageFile(file);
+    }
+  });
+}
+
+function handleImageSelect(e) {
+  const file = e.target.files[0];
+  if (file) {
+    handleImageFile(file);
+  }
+}
+
+function handleImageFile(file) {
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    const area = document.getElementById('imageUploadArea');
+    const urlInput = document.getElementById('editImageUrl');
+    area.classList.add('has-image');
+    area.innerHTML = `
+      <img src="${e.target.result}" id="previewImage">
+      <button type="button" class="remove-image-btn" onclick="removeImage()">🗑️ Remove Image</button>
+    `;
+    urlInput.value = e.target.result;
+  };
+  reader.readAsDataURL(file);
+}
+
+function removeImage() {
+  const area = document.getElementById('imageUploadArea');
+  const urlInput = document.getElementById('editImageUrl');
+  area.classList.remove('has-image');
+  area.innerHTML = `
+    <div class="image-upload-icon">🖼️</div>
+    <div class="image-upload-text">Click to upload or drag image here</div>
+  `;
+  urlInput.value = '';
+  setupImageUpload();
+}
+
+// Save slide from modal
+function saveSlideFromModal() {
+  const slide = slides[editingSlideIndex];
+  const type = document.getElementById('editType').value;
+
+  slide.type = type;
+  slide.title = document.getElementById('editTitle').value;
+  slide.subtitle = document.getElementById('editSubtitle').value;
+  slide.content = document.getElementById('editContent').value;
+  slide.image_url = document.getElementById('editImageUrl').value;
+  slide.teacher_notes = document.getElementById('editTeacherNotes').value;
+
+  // Collect list items
+  const objectivesInputs = document.querySelectorAll('.editObjectives-item');
+  if (objectivesInputs.length) {
+    slide.objectives = Array.from(objectivesInputs).map(i => i.value).filter(v => v.trim());
+    slide.key_points = slide.objectives;
+  }
+
+  const examplesInputs = document.querySelectorAll('.editExamples-item');
+  if (examplesInputs.length) {
+    slide.examples = Array.from(examplesInputs).map(i => i.value).filter(v => v.trim());
+    slide.items = slide.examples;
+  }
+
+  const questionsInputs = document.querySelectorAll('.editQuestions-item');
+  if (questionsInputs.length) {
+    slide.questions = Array.from(questionsInputs).map(i => i.value).filter(v => v.trim());
+  }
+
+  // Collect vocabulary
+  const vocabWords = document.querySelectorAll('.editVocab-word');
+  const vocabMeanings = document.querySelectorAll('.editVocab-meaning');
+  if (vocabWords.length) {
+    slide.vocabulary = [];
+    slide.items = [];
+    for (let i = 0; i < vocabWords.length; i++) {
+      if (vocabWords[i].value.trim()) {
+        const entry = { word: vocabWords[i].value, meaning: vocabMeanings[i]?.value || '' };
+        slide.vocabulary.push(entry);
+        slide.items.push(entry);
+      }
+    }
+  }
+
+  editModal.classList.remove('show');
+  renderSlidesList();
+  selectSlide(editingSlideIndex);
+  showToast('Slide updated');
+}
+
+// Delete slide
+function deleteSlide(index) {
+  if (!confirm(`Delete slide ${index + 1}?`)) return;
+  
+  slides.splice(index, 1);
+  
+  if (currentSlideIndex >= slides.length) {
+    currentSlideIndex = slides.length - 1;
+  }
+  
+  renderSlidesList();
+  renderPreview();
+  showToast('Slide deleted');
+}
+
+// Add new slide
+function addNewSlide() {
+  const type = document.getElementById('newSlideType').value;
+  const newSlide = {
+    type: type,
+    title: `New ${getTypeLabel(type)}`,
+    subtitle: '',
+    content: ''
+  };
+
+  // Add type-specific fields
+  if (type === 'objectives') newSlide.objectives = [''];
+  if (type === 'vocabulary') newSlide.vocabulary = [{ word: '', meaning: '' }];
+  if (type === 'examples') newSlide.examples = [''];
+  if (type === 'exit_ticket') newSlide.questions = [''];
+
+  slides.push(newSlide);
+  addModal.classList.remove('show');
+  renderSlidesList();
+  selectSlide(slides.length - 1);
+  openEditModal(slides.length - 1);
+  showToast('New slide added');
+}
+
+// Save all slides to server
+async function saveAllSlides() {
+  const btn = document.getElementById('btnSave');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ Saving...';
+
+  try {
+    const res = await fetch(`/api/topic/${TOPIC_ID}/slides`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ slides: slides })
+    });
+
+    const data = await res.json();
+    
+    if (data.ok) {
+      showToast('✅ Slides saved successfully!');
+    } else {
+      showToast('❌ ' + (data.error || 'Save failed'), true);
+    }
+  } catch (err) {
+    showToast('❌ Error: ' + err.message, true);
+  } finally {
+    btn.disabled = false;
+    btn.innerHTML = '💾 Save Changes';
+  }
+}
+
+// Show toast notification
+function showToast(message, isError = false) {
+  const toastEl = document.getElementById('toast');
+  document.getElementById('toastIcon').textContent = isError ? '❌' : '✓';
+  document.getElementById('toastMessage').textContent = message;
+  toastEl.className = 'toast show' + (isError ? ' error' : '');
+  
+  setTimeout(() => {
+    toastEl.classList.remove('show');
+  }, 3000);
+}
+
+// Helper functions
+function getTypeLabel(type) {
+  const labels = {
+    hook: '🎣 Hook',
+    objectives: '🎯 Objectives',
+    vocabulary: '📚 Vocabulary',
+    concept: '💡 Concept',
+    examples: '📖 Examples',
+    guided_practice: '✍️ Practice',
+    dialogue: '💬 Dialogue',
+    review: '🔄 Review',
+    action: '🚀 Action',
+    exit_ticket: '🎫 Exit Ticket',
+    context: '📋 Context',
+    pronunciation: '🔊 Pronunciation',
+    production: '🎤 Production'
+  };
+  return labels[type] || '📄 Slide';
+}
+
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Event listeners
+document.getElementById('btnSave').addEventListener('click', saveAllSlides);
+document.getElementById('btnAddSlide').addEventListener('click', () => addModal.classList.add('show'));
+document.getElementById('modalClose').addEventListener('click', () => editModal.classList.remove('show'));
+document.getElementById('modalCancel').addEventListener('click', () => editModal.classList.remove('show'));
+document.getElementById('modalSave').addEventListener('click', saveSlideFromModal);
+document.getElementById('addModalClose').addEventListener('click', () => addModal.classList.remove('show'));
+document.getElementById('addModalCancel').addEventListener('click', () => addModal.classList.remove('show'));
+document.getElementById('addModalSave').addEventListener('click', addNewSlide);
+
+// Close modals on overlay click
+editModal.addEventListener('click', (e) => {
+  if (e.target === editModal) editModal.classList.remove('show');
+});
+addModal.addEventListener('click', (e) => {
+  if (e.target === addModal) addModal.classList.remove('show');
+});
+
+// Keyboard shortcuts
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'Escape') {
+    editModal.classList.remove('show');
+    addModal.classList.remove('show');
+  }
+  if (e.ctrlKey && e.key === 's') {
+    e.preventDefault();
+    saveAllSlides();
+  }
+});
+
+// Initial render
+renderSlidesList();
+if (slides.length > 0) {
+  selectSlide(0);
+}
+</script>
+{% endblock %}
