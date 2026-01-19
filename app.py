@@ -11,6 +11,9 @@ import secrets
 from io import BytesIO
 from functools import wraps
 
+import openai
+print("OPENAI_PY_VERSION =", openai.__version__)
+
 from flask import (
     Flask, render_template, request, redirect, url_for,
     session, flash, jsonify, send_from_directory, abort
