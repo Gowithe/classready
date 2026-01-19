@@ -104,7 +104,7 @@
   <p>{{ topic.description or 'No description' }}</p>
 
   <div class="topic-nav">
-    <a href="{{ url_for('view_slides', topic_id=topic.id) }}">📽️ Slides</a>
+    <a href="{{ url_for('view_slides', topic_id=topic.id) }}">🎬 Slides</a>
     <a href="{{ url_for('game', topic_id=topic.id) }}">🎮 Game</a>
     <a href="{{ url_for('practice', topic_id=topic.id) }}">📝 Practice</a>
   </div>
