@@ -2,8 +2,8 @@
 # Configuration for Gunicorn WSGI server
 
 # Timeout for worker processes (seconds)
-# OpenAI API calls can take 60-120 seconds for large content generation
-timeout = 120
+# OpenAI API calls can take a long time for PDF content generation
+timeout = 300  # 5 นาที
 
 # Number of worker processes
 workers = 1
@@ -17,7 +17,7 @@ errorlog = "-"
 loglevel = "info"
 
 # Graceful timeout
-graceful_timeout = 30
+graceful_timeout = 60
 
 # Keep alive
 keepalive = 5
