@@ -6,7 +6,7 @@
 # - practice: 20–30 MCQ (4 choices)
 #
 # IMPORTANT
-# - Uses OpenAI Responses API with json_object output
+# - Uses OpenAI Chat Completions API with json_object response format
 # - Normalizes/repairs output so the web app never breaks
 # ==============================================================================
 
@@ -202,7 +202,7 @@ def _ensure_slide_has_content(slide: Dict[str, Any]) -> Dict[str, Any]:
                     {"speaker": "A", "text": "Hello."},
                     {"speaker": "B", "text": "Hi."},
                     {"speaker": "A", "text": "How can I help you?"},
-                    {"speaker": "B", "text": "I’d like …"},
+                    {"speaker": "B", "text": "I'd like …"},
                     {"speaker": "A", "text": "Sure."},
                     {"speaker": "B", "text": "Thank you."},
                 ]
@@ -212,7 +212,7 @@ def _ensure_slide_has_content(slide: Dict[str, Any]) -> Dict[str, Any]:
         # Output task / speaking task
         if not slide.get("tasks"):
             slide["tasks"] = [
-                "Pair work: create 3 sentences using today’s pattern.",
+                "Pair work: create 3 sentences using today's pattern.",
                 "Role-play: use 6 lines in a short dialogue.",
             ]
 
@@ -382,7 +382,7 @@ def _fallback_bundle(title: str, level: str, language: str, style: str) -> Dict[
         },
         {
             "type": "objectives",
-            "title": "Today’s Goals",
+            "title": "Today's Goals",
             "objectives": [
                 "Learn key vocabulary",
                 "Use a key pattern",
@@ -502,8 +502,8 @@ def _fallback_bundle(title: str, level: str, language: str, style: str) -> Dict[
                 {"speaker": "A", "text": "Sure. Hot or iced?"},
                 {"speaker": "B", "text": "Iced, please."},
                 {"speaker": "A", "text": "Anything else?"},
-                {"speaker": "B", "text": "That’s all. How much is it?"},
-                {"speaker": "A", "text": "It’s 95 baht."},
+                {"speaker": "B", "text": "That's all. How much is it?"},
+                {"speaker": "A", "text": "It's 95 baht."},
                 {"speaker": "B", "text": "Here you go. Thank you!"},
             ],
             "teacher_notes": "Students read once, then role-play with their own items.",
@@ -547,10 +547,10 @@ def _fallback_bundle(title: str, level: str, language: str, style: str) -> Dict[
             "title": f"More Vocabulary {len(slides)-10}",
             "subtitle": "Extra practice",
             "items": [
-                {"word": "sweet", "meaning": "หวาน", "example_en": "It’s too sweet.", "example_th": "หวานไป"},
+                {"word": "sweet", "meaning": "หวาน", "example_en": "It's too sweet.", "example_th": "หวานไป"},
                 {"word": "bitter", "meaning": "ขม", "example_en": "It tastes bitter.", "example_th": "รสขม"},
-                {"word": "spicy", "meaning": "เผ็ด", "example_en": "It’s very spicy.", "example_th": "เผ็ดมาก"},
-                {"word": "sour", "meaning": "เปรี้ยว", "example_en": "It’s sour.", "example_th": "เปรี้ยว"},
+                {"word": "spicy", "meaning": "เผ็ด", "example_en": "It's very spicy.", "example_th": "เผ็ดมาก"},
+                {"word": "sour", "meaning": "เปรี้ยว", "example_en": "It's sour.", "example_th": "เปรี้ยว"},
             ],
             "teacher_notes": "Students describe their favorite food using 2 adjectives.",
         })
@@ -675,13 +675,25 @@ Return ONLY JSON.
 """.strip()
 
     try:
-        resp = client.responses.create(
+        # ✅ ใช้ Chat Completions API (เสถียรกว่า Responses API)
+        resp = client.chat.completions.create(
             model=text_model,
-            input=instruction,
-            text={"format": {"type": "json_object"}},
+            messages=[
+                {"role": "system", "content": "You are a JSON generator. Return only valid JSON, no markdown, no extra text."},
+                {"role": "user", "content": instruction}
+            ],
+            response_format={"type": "json_object"},
+            temperature=0.7,
+            max_tokens=8000,
         )
-        data = _safe_json_loads(resp.output_text)
+        
+        # ดึง content จาก response
+        content = resp.choices[0].message.content
+        data = _safe_json_loads(content)
         return _normalize_bundle(data)
+        
     except Exception as e:
-        print("[AI] Bundle generation error:", e)
+        print("[AI] Bundle generation error:", repr(e))
+        import traceback
+        traceback.print_exc()
         return _fallback_bundle(title, level, language, style)
