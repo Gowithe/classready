@@ -577,7 +577,7 @@ def generate_lesson_bundle(
     level: str = "Secondary",
     language: str = "EN",
     style: str = "Minimal",
-    text_model: str = "gpt-4.1-mini",
+    text_model: str = "gpt-4o-mini",
 ) -> Dict[str, Any]:
     """
     language:
