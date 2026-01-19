@@ -166,12 +166,25 @@
 <script>
   const topicId = {{ topic.id }};
   const hasPdf = {{ 1 if topic.pdf_file else 0 }};
-
   const statusbar = document.getElementById('statusbar');
 
   function setStatus(msg){
     statusbar.textContent = msg;
     statusbar.classList.add('show');
+  }
+
+  async function readJsonSafely(res){
+    const ct = (res.headers.get('content-type') || '').toLowerCase();
+
+    // ถ้า server ส่ง HTML กลับมา (เช่น error page) จะไม่พยายาม parse json
+    if(!ct.includes('application/json')){
+      const text = await res.text();
+      const preview = (text || '').slice(0, 200);
+      throw new Error(`Server returned non-JSON (status ${res.status}). Preview: ${preview}`);
+    }
+
+    const data = await res.json();
+    return data;
   }
 
   async function callGenerate(mode){
@@ -180,45 +193,49 @@
       return;
     }
 
-    // confirm overwrite
     const ok = confirm(`ยืนยัน Generate (${mode}) จาก PDF?\nระบบจะเขียนทับคำถามเดิม`);
     if(!ok) return;
 
-    const buttons = [document.getElementById('btnGenAll'), document.getElementById('btnGenGame'), document.getElementById('btnGenPractice')];
+    const buttons = [
+      document.getElementById('btnGenAll'),
+      document.getElementById('btnGenGame'),
+      document.getElementById('btnGenPractice')
+    ];
     buttons.forEach(b => { if(b) b.disabled = true; });
 
     try{
       setStatus('⏳ Generating... (กำลังสร้างคำถามจาก PDF)');
+
       const res = await fetch(`/api/topic/${topicId}/generate`, {
         method: 'POST',
-        headers: { 'Content-Type':'application/json' },
+        headers: { 'Content-Type':'application/json', 'Accept':'application/json' },
         body: JSON.stringify({ mode })
       });
-      const data = await res.json();
 
-      if(!res.ok){
-        alert(data.error || 'Generate failed');
-        setStatus('❌ Generate failed: ' + (data.error || 'unknown error'));
+      const data = await readJsonSafely(res);
+
+      if(!res.ok || data.ok === false){
+        const msg = (data && (data.error || data.message)) || 'Generate failed';
+        alert(msg);
+        setStatus('❌ Generate failed: ' + msg);
         return;
       }
 
       setStatus('✅ Generated successfully!');
 
-      // ไปหน้าเกม/แบบฝึกทันทีเพื่อดูผล
       if(mode === 'game'){
         window.location.href = `/topic/${topicId}/game`;
       }else if(mode === 'practice'){
         window.location.href = `/topic/${topicId}/practice`;
       }else{
-        // all
         window.location.href = `/topic/${topicId}`;
       }
 
     }catch(err){
-      alert('Error: ' + err);
-      setStatus('❌ Error: ' + err);
+      alert('Error: ' + (err && err.message ? err.message : err));
+      setStatus('❌ Error: ' + (err && err.message ? err.message : err));
+      console.error(err);
     }finally{
-      // ถ้าจะ redirect มันจะไม่ทันเห็น enable แต่ใส่ไว้กันกรณีไม่ redirect
       buttons.forEach(b => { if(b) b.disabled = false; });
     }
   }
