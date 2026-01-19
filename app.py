@@ -3,16 +3,15 @@
 # Teacher Platform MVP (Flask + SQLite)
 # UPDATED: My Topics (owner) CRUD + Upload PDF + Generate Game/Practice from PDF
 # + FIX: practice_scores endpoint + fixed practice_pdf return + fixed generate modes
+# + FIX: API always returns JSON (no more "<html> is not valid JSON")
 # ==============================================================================
 
 import os
 import json
 import secrets
+import traceback
 from io import BytesIO
 from functools import wraps
-
-import openai
-print("OPENAI_PY_VERSION =", openai.__version__)
 
 from flask import (
     Flask, render_template, request, redirect, url_for,
@@ -103,6 +102,22 @@ def _get_topic_or_404(topic_id: int) -> dict:
     if not _can_access_topic(topic):
         abort(403)
     return topic
+
+
+# ------------------------------------------------------------------------------
+# Helpers: API JSON error
+# ------------------------------------------------------------------------------
+def _wants_json_response() -> bool:
+    # ถ้าเป็น /api/ ให้คืน JSON เสมอ
+    if request.path.startswith("/api/"):
+        return True
+    accept = (request.headers.get("Accept") or "").lower()
+    if "application/json" in accept:
+        return True
+    return False
+
+def _json_error(message: str, status: int = 400):
+    return jsonify({"ok": False, "error": message}), status
 
 
 # ------------------------------------------------------------------------------
@@ -694,39 +709,50 @@ def api_generate_from_pdf(topic_id):
     topic = _get_topic_or_404(topic_id)
 
     if not topic.get("pdf_file"):
-        return jsonify({"error": "No PDF uploaded for this topic yet."}), 400
+        return _json_error("No PDF uploaded for this topic yet.", 400)
 
-    data = request.get_json() or {}
+    data = request.get_json(silent=True) or {}
     mode = (data.get("mode") or "all").strip().lower()  # game|practice|all
 
     pdf_path = os.path.join(app.config["UPLOAD_FOLDER"], topic["pdf_file"])
     if not os.path.exists(pdf_path):
-        return jsonify({"error": "PDF file not found on server."}), 404
+        return _json_error("PDF file not found on server.", 404)
 
     try:
         pdf_text = _extract_text_from_pdf(pdf_path)
     except Exception as e:
-        return jsonify({"error": str(e)}), 400
+        return _json_error(str(e), 400)
 
     context_title = f"{topic['name']}\n\n[PDF CONTEXT]\n{pdf_text[:8000]}"
 
-    bundle = generate_lesson_bundle(
-        title=context_title,
-        level="Secondary",
-        language="EN",
-        style="Minimal",
-        text_model="gpt-4.1-mini",
-    )
+    try:
+        bundle = generate_lesson_bundle(
+            title=context_title,
+            level="Secondary",
+            language="EN",
+            style="Minimal",
+            text_model="gpt-4.1-mini",
+        )
+    except Exception as e:
+        # สำคัญ: log ให้เห็นใน Render logs
+        print("[AI] Bundle generation error:", repr(e))
+        traceback.print_exc()
+        return _json_error(str(e), 500)
 
     game_data = bundle.get("game", {}) or {}
     practice_data = bundle.get("practice", []) or []
 
-    if mode == "game":
-        _save_game_only(topic_id, game_data)
-    elif mode == "practice":
-        _save_practice_only(topic_id, practice_data)
-    else:
-        _save_game_and_practice(topic_id, game_data, practice_data)
+    try:
+        if mode == "game":
+            _save_game_only(topic_id, game_data)
+        elif mode == "practice":
+            _save_practice_only(topic_id, practice_data)
+        else:
+            _save_game_and_practice(topic_id, game_data, practice_data)
+    except Exception as e:
+        print("[DB] Save game/practice error:", repr(e))
+        traceback.print_exc()
+        return _json_error(str(e), 500)
 
     return jsonify({"ok": True})
 
@@ -870,18 +896,24 @@ def admin_game_questions(topic_id):
 
 
 # ------------------------------------------------------------------------------
-# Errors
+# Errors (IMPORTANT: if /api -> JSON)
 # ------------------------------------------------------------------------------
 @app.errorhandler(403)
 def forbidden(e):
+    if _wants_json_response():
+        return jsonify({"ok": False, "error": "Forbidden"}), 403
     return render_template("error.html", error_code=403, error_msg="คุณไม่มีสิทธิ์เข้าถึงหน้านี้ (Forbidden)"), 403
 
 @app.errorhandler(404)
 def not_found(e):
+    if _wants_json_response():
+        return jsonify({"ok": False, "error": "Not found"}), 404
     return render_template("error.html", error_code=404, error_msg="หน้านี้ไม่พบ (Page not found)"), 404
 
 @app.errorhandler(500)
 def server_error(e):
+    if _wants_json_response():
+        return jsonify({"ok": False, "error": "Server error"}), 500
     return render_template("error.html", error_code=500, error_msg="เกิดข้อผิดพลาด (Server error)"), 500
 
 
