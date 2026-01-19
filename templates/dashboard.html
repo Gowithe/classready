@@ -1,159 +1,170 @@
 {% extends "base.html" %}
-{% block title %}Dashboard{% endblock %}
+
+{% block title %}Dashboard - Teacher Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+  .dashboard-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom: 2rem;
+    flex-wrap:wrap;
+    gap: 12px;
+  }
+  .dashboard-header h2{ font-size: 2rem; }
+  .cta-buttons{ display:flex; gap: 1rem; flex-wrap:wrap; }
+
+  .section{ margin-bottom: 3rem; }
+  .section h3{
+    font-size: 1.3rem;
+    margin-bottom: 1.0rem;
+    color: #667eea;
+    border-bottom: 2px solid #667eea;
+    padding-bottom: 0.5rem;
+  }
+
+  .topic-grid{
+    display:grid;
+    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+    gap: 1.2rem;
+  }
+  .topic-card{
+    background:white;
+    border-radius:10px;
+    padding: 1.25rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    transition: all .2s;
+  }
+  .topic-card:hover{
+    box-shadow: 0 10px 18px rgba(0,0,0,0.12);
+    transform: translateY(-3px);
+  }
+  .topic-card h4{
+    font-size: 1.05rem;
+    margin-bottom: .4rem;
+    color:#667eea;
+  }
+  .topic-card p{
+    font-size:.9rem;
+    color:#718096;
+    margin-bottom: .9rem;
+  }
+
+  .topic-actions{
+    display:flex;
+    gap: .5rem;
+    flex-wrap:wrap;
+    margin-top: .5rem;
+  }
+  .topic-actions a, .topic-actions button{
+    padding: .5rem .9rem;
+    font-size: .85rem;
+    background:#667eea;
+    color:white;
+    border-radius: 6px;
+    text-decoration:none;
+    border:none;
+    cursor:pointer;
+  }
+  .topic-actions a:hover, .topic-actions button:hover{ background:#764ba2; }
+  .danger{ background:#f56565 !important; }
+  .danger:hover{ background:#e53e3e !important; }
+
+  .recent-list{ list-style:none; padding:0; }
+  .recent-list li{
+    padding: 1rem;
+    background:white;
+    margin-bottom: .5rem;
+    border-radius: 8px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  }
+  .recent-list a{ color:#667eea; text-decoration:none; font-weight:700; }
+</style>
+{% endblock %}
 
 {% block content %}
-
-<div style="display:flex;justify-content:space-between;align-items:flex-start;gap:12px;flex-wrap:wrap;">
-  <div>
-    <h2 style="margin:0;">Dashboard</h2>
-    <div style="color:#64748b;margin-top:6px;">
-      {{ session.email }} •
-      <b>{{ (session.plan or 'free')|upper }}</b>
-      {% if (session.plan or 'free') == 'free' %}
-        <span style="margin-left:6px;color:#94a3b8;">(จำกัด 5 เนื้อหา)</span>
-      {% else %}
-        <span style="margin-left:6px;color:#94a3b8;">(ไม่จำกัด)</span>
-      {% endif %}
-    </div>
-  </div>
-
-  <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;justify-content:flex-end;">
-    <!-- ✅ ปุ่มสร้างหัวข้อ -->
-    <a class="btn" href="{{ url_for('my_create_topic') }}">➕ Create Topic</a>
-
-    <!-- ✅ ปุ่ม AI สร้างสไลด์ -->
-    <a class="btn" href="{{ url_for('ai_slides') }}">🤖 Generate Slides (AI)</a>
-
-    <!-- ✅ หน้าแพ็กเกจ -->
-    <a class="btn" href="{{ url_for('pricing') }}">💳 Pricing</a>
-
-    <!-- ✅ ปุ่ม Upgrade โชว์เฉพาะ Free -->
-    {% if (session.plan or 'free') == 'free' %}
-      <a class="btn" href="{{ url_for('billing') }}" style="background:#111827;">🔒 Upgrade (69฿)</a>
-    {% endif %}
-
-    <!-- ✅ Admin -->
+<div class="dashboard-header">
+  <h2>Dashboard</h2>
+  <div class="cta-buttons">
+    <a href="{{ url_for('my_create_topic') }}" class="btn">➕ Create My Topic</a>
+    <a href="{{ url_for('ai_slides') }}" class="btn">✨ Generate Slides with AI</a>
     {% if session.role == 'admin' %}
-      <a class="btn" href="{{ url_for('admin_dashboard') }}">🛠 Admin</a>
+      <a href="{{ url_for('admin_dashboard') }}" class="btn">⚙️ Admin</a>
     {% endif %}
   </div>
 </div>
 
-<hr style="margin:16px 0;">
+<div class="section">
+  <h3>Recent Topics</h3>
+  {% if recent %}
+    <ul class="recent-list">
+      {% for item in recent %}
+        <li>
+          <span>{{ item.name }}</span>
+          <a href="{{ url_for('topic_detail', topic_id=item.topic_id) }}">View</a>
+        </li>
+      {% endfor %}
+    </ul>
+  {% else %}
+    <p style="color:#718096;">No recent topics yet.</p>
+  {% endif %}
+</div>
 
-<!-- =========================
-     Recent Topics (ของผู้ใช้)
-========================= -->
-<h3 style="margin:0 0 8px;color:#4f46e5;">Recent Topics</h3>
-<div style="height:2px;background:#4f46e5;opacity:.25;margin:0 0 14px;"></div>
+<div class="section">
+  <h3>My Topics</h3>
+  {% if my_topics %}
+    <div class="topic-grid">
+      {% for topic in my_topics %}
+      <div class="topic-card">
+        <h4>📚 {{ topic.name }}</h4>
+        <p>{{ topic.description or 'No description' }}</p>
 
-{% if my_topics and my_topics|length > 0 %}
-  <div style="display:grid;gap:10px;">
-    {% for t in my_topics[:5] %}
-      {% set tid = t.id if t.id is defined else t.get('id') %}
-      {% set tname = t.name if t.name is defined else t.get('name') %}
-      <div class="card" style="padding:14px;display:flex;justify-content:space-between;align-items:center;gap:10px;">
-        <div style="font-weight:900;">{{ tname }}</div>
-        <a class="btn" href="{{ url_for('topic_detail', topic_id=tid) }}">View</a>
+        <div class="topic-actions">
+          <a href="{{ url_for('topic_detail', topic_id=topic.id) }}">Open</a>
+          <a href="{{ url_for('my_edit_topic', topic_id=topic.id) }}">Edit</a>
+          <form method="POST" action="{{ url_for('my_delete_topic', topic_id=topic.id) }}" style="display:inline;">
+            <button class="danger" onclick="return confirm('Delete this topic?');">Delete</button>
+          </form>
+        </div>
+
+        <div class="topic-actions" style="margin-top:.6rem;">
+          <a href="{{ url_for('view_slides', topic_id=topic.id) }}">Slides</a>
+          <a href="{{ url_for('game', topic_id=topic.id) }}">Game</a>
+          <a href="{{ url_for('practice', topic_id=topic.id) }}">Practice</a>
+        </div>
       </div>
-    {% endfor %}
-  </div>
-{% else %}
-  <div class="card" style="padding:14px;color:#64748b;">
-    ยังไม่มีหัวข้อของคุณ — กด <b>Create Topic</b> หรือ <b>Generate Slides (AI)</b> ได้เลยครับ
-  </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p style="color:#718096;">You have no topics yet. Click “Create My Topic”.</p>
+  {% endif %}
+</div>
+
+{% if session.role == 'admin' %}
+<div class="section">
+  <h3>All Topics (Admin)</h3>
+  {% if topics %}
+    <div class="topic-grid">
+      {% for topic in topics %}
+      <div class="topic-card">
+        <h4>📖 {{ topic.name }}</h4>
+        <p>{{ topic.description or 'No description' }}</p>
+        <div class="topic-actions">
+          <a href="{{ url_for('topic_detail', topic_id=topic.id) }}">Open</a>
+          <a href="{{ url_for('view_slides', topic_id=topic.id) }}">Slides</a>
+          <a href="{{ url_for('game', topic_id=topic.id) }}">Game</a>
+          <a href="{{ url_for('practice', topic_id=topic.id) }}">Practice</a>
+        </div>
+      </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <p style="color:#718096;">No topics available yet.</p>
+  {% endif %}
+</div>
 {% endif %}
-
-<hr style="margin:18px 0;">
-
-<!-- =========================
-     All Topics (admin เห็นทั้งหมด / teacher เห็นของตัวเอง)
-========================= -->
-<h3 style="margin:0 0 10px;">All Topics</h3>
-
-{% if topics and topics|length > 0 %}
-  <div style="overflow:auto;">
-    <table class="table" style="width:100%;border-collapse:collapse;">
-      <thead>
-        <tr>
-          <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;">ID</th>
-          <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;">Name</th>
-          <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;">Type</th>
-          <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;">Actions</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for topic in topics %}
-          {% set tid = topic.id if topic.id is defined else topic.get('id') %}
-          {% set tname = topic.name if topic.name is defined else topic.get('name') %}
-          {% set ttype = topic.topic_type if topic.topic_type is defined else topic.get('topic_type') %}
-          <tr>
-            <td style="padding:10px;border-bottom:1px solid #f1f5f9;">{{ tid }}</td>
-            <td style="padding:10px;border-bottom:1px solid #f1f5f9;">
-              <b>{{ tname }}</b>
-              <div style="color:#64748b;font-size:13px;margin-top:4px;">
-                {{ topic.description if topic.description is defined else topic.get('description') }}
-              </div>
-            </td>
-            <td style="padding:10px;border-bottom:1px solid #f1f5f9;">
-              {{ ttype }}
-            </td>
-            <td style="padding:10px;border-bottom:1px solid #f1f5f9;">
-              <a class="btn" href="{{ url_for('topic_detail', topic_id=tid) }}">📌 Open</a>
-              <a class="btn" href="{{ url_for('view_slides', topic_id=tid) }}">📽 Slides</a>
-              <a class="btn" href="{{ url_for('game', topic_id=tid) }}">🎮 Game</a>
-              <a class="btn" href="{{ url_for('practice', topic_id=tid) }}">📝 Practice</a>
-            </td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-{% else %}
-  <div class="card" style="padding:14px;color:#64748b;">
-    ไม่มีหัวข้อในระบบ
-  </div>
-{% endif %}
-
-<hr style="margin:18px 0;">
-
-<!-- =========================
-     Recent Scores / History (ถ้ามี)
-========================= -->
-<h3 style="margin:0 0 10px;">Recent Practice Attempts</h3>
-
-{% if recent and recent|length > 0 %}
-  <div style="overflow:auto;">
-    <table class="table" style="width:100%;border-collapse:collapse;">
-      <thead>
-        <tr>
-          <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;">When</th>
-          <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;">Topic</th>
-          <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;">Score</th>
-          <th style="text-align:left;padding:10px;border-bottom:1px solid #e5e7eb;">%</th>
-        </tr>
-      </thead>
-      <tbody>
-        {% for r in recent %}
-          {% set when = r.created_at if r.created_at is defined else r.get('created_at') %}
-          {% set tname = r.topic_name if r.topic_name is defined else r.get('topic_name') %}
-          {% set score = r.score if r.score is defined else r.get('score') %}
-          {% set total = r.total if r.total is defined else r.get('total') %}
-          {% set pct = r.percentage if r.percentage is defined else r.get('percentage') %}
-          <tr>
-            <td style="padding:10px;border-bottom:1px solid #f1f5f9;">{{ when }}</td>
-            <td style="padding:10px;border-bottom:1px solid #f1f5f9;">{{ tname }}</td>
-            <td style="padding:10px;border-bottom:1px solid #f1f5f9;">{{ score }}/{{ total }}</td>
-            <td style="padding:10px;border-bottom:1px solid #f1f5f9;">{{ "%.1f"|format(pct or 0) }}%</td>
-          </tr>
-        {% endfor %}
-      </tbody>
-    </table>
-  </div>
-{% else %}
-  <div class="card" style="padding:14px;color:#64748b;">
-    ยังไม่มีประวัติการทำแบบฝึกหัด
-  </div>
-{% endif %}
-
 {% endblock %}
