@@ -6,8 +6,7 @@
 # - practice: 20–30 MCQ (4 choices)
 #
 # IMPORTANT
-# - Uses OpenAI Responses API with json_object output (if available)
-# - Falls back to Chat Completions if SDK doesn't support responses
+# - Uses OpenAI Responses API with json_object output
 # - Normalizes/repairs output so the web app never breaks
 # ==============================================================================
 
@@ -676,26 +675,13 @@ Return ONLY JSON.
 """.strip()
 
     try:
-        # ✅ รองรับทั้ง OpenAI SDK ที่มี responses และไม่มี responses
-        if hasattr(client, "responses"):
-            resp = client.responses.create(
-                model=text_model,
-                input=instruction,
-                text={"format": {"type": "json_object"}},
-            )
-            out_text = resp.output_text
-        else:
-            # ✅ Fallback: ใช้ Chat Completions (รองรับ SDK เก่ากว่า/หลายเวอร์ชันบน Render)
-            resp = client.chat.completions.create(
-                model=text_model,
-                messages=[{"role": "user", "content": instruction}],
-                response_format={"type": "json_object"},
-            )
-            out_text = resp.choices[0].message.content
-
-        data = _safe_json_loads(out_text)
+        resp = client.responses.create(
+            model=text_model,
+            input=instruction,
+            text={"format": {"type": "json_object"}},
+        )
+        data = _safe_json_loads(resp.output_text)
         return _normalize_bundle(data)
-
     except Exception as e:
         print("[AI] Bundle generation error:", e)
         return _fallback_bundle(title, level, language, style)
