@@ -1,9 +1,8 @@
 # ==============================================================================
 # FILE: app.py
 # Teacher Platform MVP (Flask + SQLite)
-# UPDATED: My Topics (owner) CRUD + Upload PDF + Generate Game/Practice from PDF
-# + FIX: practice_scores endpoint + fixed practice_pdf return + fixed generate modes
-# + FIX: API always returns JSON (no more "<html> is not valid JSON")
+# UPDATED: My Topics CRUD + Upload PDF + Generate Game/Practice from PDF
+# + Slides Editor (Drag & Drop)
 # + FIX: has_game / has_practice check for topic_detail
 # ==============================================================================
 
@@ -11,6 +10,7 @@ import os
 import json
 import secrets
 import traceback
+import base64
 from io import BytesIO
 from functools import wraps
 
@@ -39,16 +39,20 @@ app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-prod")
 
 # ------------------------------------------------------------------------------
-# Uploads (PDF)
+# Uploads (PDF + Images)
 # ------------------------------------------------------------------------------
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
 app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024  # 25MB
 ALLOWED_EXTENSIONS = {"pdf"}
+ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 
 def allowed_file(filename: str) -> bool:
     return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
+
+def allowed_image(filename: str) -> bool:
+    return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
 
 
 # ------------------------------------------------------------------------------
@@ -109,7 +113,6 @@ def _get_topic_or_404(topic_id: int) -> dict:
 # Helpers: API JSON error
 # ------------------------------------------------------------------------------
 def _wants_json_response() -> bool:
-    # ถ้าเป็น /api/ ให้คืน JSON เสมอ
     if request.path.startswith("/api/"):
         return True
     accept = (request.headers.get("Accept") or "").lower()
@@ -179,7 +182,7 @@ def logout():
 
 
 # ------------------------------------------------------------------------------
-# Serve uploads (PDF) - login required
+# Serve uploads (PDF + Images) - login required
 # ------------------------------------------------------------------------------
 @app.route("/uploads/<path:filename>")
 @login_required
@@ -213,13 +216,24 @@ def topic_detail(topic_id):
     has_game = len(GameQuestion.get_by_topic_and_set(topic_id, 1) or []) > 0
     has_practice = len(PracticeQuestion.get_by_topic(topic_id) or []) > 0
     
+    # เช็คว่ามี slides หรือยัง
+    has_slides = False
+    if topic.get("slides_json"):
+        try:
+            obj = json.loads(topic["slides_json"])
+            slides = obj.get("slides", obj) if isinstance(obj, dict) else obj
+            has_slides = len(slides) > 0
+        except:
+            pass
+    
     return render_template(
         "topic_detail.html", 
         topic=topic, 
         is_owner=is_owner, 
         is_admin=_is_admin(),
         has_game=has_game,
-        has_practice=has_practice
+        has_practice=has_practice,
+        has_slides=has_slides
     )
 
 
@@ -300,7 +314,7 @@ def my_delete_topic(topic_id):
 
 
 # ------------------------------------------------------------------------------
-# Slides
+# Slides Viewer
 # ------------------------------------------------------------------------------
 @app.route("/topic/<int:topic_id>/slides")
 @login_required
@@ -320,6 +334,128 @@ def view_slides(topic_id):
             slides = []
 
     return render_template("slides_viewer.html", topic=topic, slides=slides)
+
+
+# ------------------------------------------------------------------------------
+# Slides Editor (NEW!)
+# ------------------------------------------------------------------------------
+@app.route("/topic/<int:topic_id>/slides/edit")
+@login_required
+def edit_slides(topic_id):
+    topic = _get_topic_or_404(topic_id)
+    
+    # เฉพาะ owner หรือ admin เท่านั้นที่แก้ไขได้
+    is_owner = int(topic.get("owner_id") or 0) == int(session["user_id"])
+    if not (is_owner or _is_admin()):
+        flash("You don't have permission to edit this topic.", "error")
+        return redirect(url_for("topic_detail", topic_id=topic_id))
+    
+    return render_template("slides_editor.html", topic=topic)
+
+
+@app.route("/api/topic/<int:topic_id>/slides", methods=["POST"])
+@login_required
+def api_save_slides(topic_id):
+    """API endpoint to save slides JSON"""
+    topic = _get_topic_or_404(topic_id)
+    
+    # เฉพาะ owner หรือ admin เท่านั้นที่แก้ไขได้
+    is_owner = int(topic.get("owner_id") or 0) == int(session["user_id"])
+    if not (is_owner or _is_admin()):
+        return _json_error("Permission denied", 403)
+    
+    data = request.get_json(silent=True) or {}
+    slides = data.get("slides", [])
+    
+    # Process slides - save base64 images to files
+    processed_slides = []
+    for i, slide in enumerate(slides):
+        processed_slide = dict(slide)
+        
+        # Check if image_url is base64
+        image_url = slide.get("image_url", "")
+        if image_url and image_url.startswith("data:image"):
+            try:
+                # Extract base64 data
+                header, b64_data = image_url.split(",", 1)
+                # Determine file extension
+                if "png" in header:
+                    ext = "png"
+                elif "gif" in header:
+                    ext = "gif"
+                elif "webp" in header:
+                    ext = "webp"
+                else:
+                    ext = "jpg"
+                
+                # Save to file
+                image_data = base64.b64decode(b64_data)
+                token = secrets.token_hex(6)
+                filename = f"slide_img_topic{topic_id}_{i}_{token}.{ext}"
+                filepath = os.path.join(app.config["UPLOAD_FOLDER"], filename)
+                
+                with open(filepath, "wb") as f:
+                    f.write(image_data)
+                
+                # Update URL to file path
+                processed_slide["image_url"] = url_for("uploaded_file", filename=filename)
+            except Exception as e:
+                print(f"Error saving image: {e}")
+                # Keep original if error
+                pass
+        
+        processed_slides.append(processed_slide)
+    
+    # Save to database
+    slides_json = json.dumps({"slides": processed_slides}, ensure_ascii=False)
+    
+    try:
+        Topic.update(
+            topic_id,
+            topic["name"],
+            topic["description"],
+            slides_json,
+            topic.get("pdf_file")
+        )
+        return jsonify({"ok": True, "message": "Slides saved successfully"})
+    except Exception as e:
+        print(f"Error saving slides: {e}")
+        traceback.print_exc()
+        return _json_error(str(e), 500)
+
+
+@app.route("/api/topic/<int:topic_id>/upload-image", methods=["POST"])
+@login_required
+def api_upload_slide_image(topic_id):
+    """API endpoint to upload an image for slides"""
+    topic = _get_topic_or_404(topic_id)
+    
+    # เฉพาะ owner หรือ admin เท่านั้น
+    is_owner = int(topic.get("owner_id") or 0) == int(session["user_id"])
+    if not (is_owner or _is_admin()):
+        return _json_error("Permission denied", 403)
+    
+    if "image" not in request.files:
+        return _json_error("No image file provided", 400)
+    
+    file = request.files["image"]
+    if not file or not file.filename:
+        return _json_error("No file selected", 400)
+    
+    if not allowed_image(file.filename):
+        return _json_error("Invalid image format. Allowed: png, jpg, jpeg, gif, webp", 400)
+    
+    safe_name = secure_filename(file.filename)
+    token = secrets.token_hex(6)
+    final_name = f"slide_img_topic{topic_id}_{token}_{safe_name}"
+    save_path = os.path.join(app.config["UPLOAD_FOLDER"], final_name)
+    
+    try:
+        file.save(save_path)
+        image_url = url_for("uploaded_file", filename=final_name)
+        return jsonify({"ok": True, "url": image_url})
+    except Exception as e:
+        return _json_error(str(e), 500)
 
 
 # ------------------------------------------------------------------------------
@@ -522,7 +658,6 @@ def practice_pdf(topic_id):
 def practice_scores(topic_id):
     topic = _get_topic_or_404(topic_id)
 
-    # owner or admin only
     is_owner = int(topic.get("owner_id") or 0) == int(session["user_id"])
     if not (is_owner or _is_admin()):
         abort(403)
@@ -612,7 +747,7 @@ def api_public_practice_submit(token):
 
 
 # ------------------------------------------------------------------------------
-# AI Lesson Bundle Generator: slides + game + practice
+# AI Lesson Bundle Generator
 # ------------------------------------------------------------------------------
 @app.route("/ai-slides", methods=["GET", "POST"])
 @login_required
@@ -632,7 +767,7 @@ def ai_slides():
             level=level,
             language=language,
             style=style,
-            text_model="gpt-4o-mini",  # ✅ แก้ไขจาก gpt-4.1-mini
+            text_model="gpt-4o-mini",
         )
 
         slides = bundle.get("slides", []) or []
@@ -662,10 +797,6 @@ def ai_slides():
 # Generate from PDF
 # ------------------------------------------------------------------------------
 def _extract_text_from_pdf(pdf_path: str) -> str:
-    """
-    Extract text from PDF using pypdf.
-    If pypdf is not installed, raise RuntimeError.
-    """
     try:
         from pypdf import PdfReader
     except Exception:
@@ -725,7 +856,7 @@ def api_generate_from_pdf(topic_id):
         return _json_error("No PDF uploaded for this topic yet.", 400)
 
     data = request.get_json(silent=True) or {}
-    mode = (data.get("mode") or "all").strip().lower()  # game|practice|all
+    mode = (data.get("mode") or "all").strip().lower()
 
     pdf_path = os.path.join(app.config["UPLOAD_FOLDER"], topic["pdf_file"])
     if not os.path.exists(pdf_path):
@@ -744,10 +875,9 @@ def api_generate_from_pdf(topic_id):
             level="Secondary",
             language="EN",
             style="Minimal",
-            text_model="gpt-4o-mini",  # ✅ แก้ไขจาก gpt-4.1-mini
+            text_model="gpt-4o-mini",
         )
     except Exception as e:
-        # สำคัญ: log ให้เห็นใน Render logs
         print("[AI] Bundle generation error:", repr(e))
         traceback.print_exc()
         return _json_error(str(e), 500)
@@ -779,17 +909,10 @@ def admin_dashboard():
     topics = Topic.get_all()
     return render_template("admin_dashboard.html", topics=topics)
 
-
 @app.route("/admin/seed", methods=["POST"])
 @admin_required
 def admin_seed():
-    """
-    Seed demo data (optional)
-    - ถ้าคุณไม่ต้องการปุ่มนี้ คุณลบ route นี้ได้
-    - แต่ตอนนี้ใส่ไว้เพื่อไม่ให้ admin_dashboard.html พัง
-    """
     try:
-        # ตัวอย่าง: ถ้าไม่มี topic เลย ให้สร้าง demo 1 อัน
         existing = Topic.get_all() or []
         if len(existing) == 0:
             Topic.create(
@@ -807,7 +930,6 @@ def admin_seed():
 
     return redirect(url_for("admin_dashboard"))
 
-
 @app.route("/admin/topics/create", methods=["GET", "POST"])
 @admin_required
 def admin_create_topic():
@@ -819,7 +941,7 @@ def admin_create_topic():
             return render_template("admin_create_topic.html")
 
         topic = Topic.create(
-            owner_id=session["user_id"],  # admin owns it by default
+            owner_id=session["user_id"],
             name=name,
             description=description,
             slides_json=json.dumps({"slides": []}, ensure_ascii=False),
@@ -830,7 +952,6 @@ def admin_create_topic():
         return redirect(url_for("admin_edit_topic", topic_id=topic["id"]))
 
     return render_template("admin_create_topic.html")
-
 
 @app.route("/admin/topics/<int:topic_id>/edit", methods=["GET", "POST"])
 @admin_required
@@ -875,14 +996,12 @@ def admin_edit_topic(topic_id):
 
     return render_template("admin_edit_topic.html", topic=topic)
 
-
 @app.route("/admin/topics/<int:topic_id>/delete", methods=["POST"])
 @admin_required
 def admin_delete_topic(topic_id):
     Topic.delete(topic_id)
     flash("Topic deleted.", "success")
     return redirect(url_for("admin_dashboard"))
-
 
 @app.route("/admin/topic/<int:topic_id>/game-questions")
 @admin_required
@@ -892,7 +1011,6 @@ def admin_game_questions(topic_id):
         flash("Topic not found", "error")
         return redirect(url_for("admin_dashboard"))
 
-    # ✅ ใช้เมธอดที่คุณมีอยู่จริง: get_by_topic_and_set
     questions_by_set = {}
     total = 0
     for set_no in (1, 2, 3):
@@ -909,7 +1027,7 @@ def admin_game_questions(topic_id):
 
 
 # ------------------------------------------------------------------------------
-# Errors (IMPORTANT: if /api -> JSON)
+# Errors
 # ------------------------------------------------------------------------------
 @app.errorhandler(403)
 def forbidden(e):
