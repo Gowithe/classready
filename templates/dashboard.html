@@ -90,6 +90,10 @@
 <div class="dashboard-header">
   <h2>Dashboard</h2>
   <div class="cta-buttons">
+    <!-- Classroom Button -->
+    <a href="{{ url_for('classrooms') }}" class="btn" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:12px 20px;border-radius:12px;font-weight:700;text-decoration:none;">
+      🏫 จัดการห้องเรียน
+    </a>
     <a href="{{ url_for('my_create_topic') }}" class="btn">➕ Create My Topic</a>
     <a href="{{ url_for('ai_slides') }}" class="btn">✨ Generate Slides with AI</a>
     {% if session.role == 'admin' %}
