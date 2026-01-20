@@ -188,6 +188,10 @@
   <div class="topic-nav">
     <a href="{{ url_for('view_slides', topic_id=topic.id) }}">🎬 Slides</a>
     
+    {% if has_slides %}
+    <a href="{{ url_for('download_slides_pdf', topic_id=topic.id) }}" style="background: #f59e0b;">📥 Download Slides</a>
+    {% endif %}
+    
     {% if is_owner or is_admin %}
     <a href="{{ url_for('edit_slides', topic_id=topic.id) }}" style="background: #10b981;">✏️ Edit Slides</a>
     {% endif %}
