@@ -1,0 +1,584 @@
+{% extends "base.html" %}
+{% block title %}{{ classroom.name }} | Classroom{% endblock %}
+
+{% block extra_css %}
+<style>
+  .wrap{max-width:1300px;margin:1.25rem auto;padding:0 1rem;}
+  
+  /* Header */
+  .page-header{
+    background:linear-gradient(135deg,#667eea,#764ba2);
+    color:#fff;
+    padding:24px 28px;
+    border-radius:20px;
+    margin-bottom:24px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    flex-wrap:wrap;
+    gap:16px;
+  }
+  .header-info h1{
+    margin:0 0 6px;
+    font-size:1.6rem;
+    font-weight:900;
+  }
+  .header-meta{
+    display:flex;
+    gap:16px;
+    flex-wrap:wrap;
+    opacity:.9;
+    font-size:.95rem;
+  }
+  .header-meta span{
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .header-actions{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+  }
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    gap:.5rem;
+    border:none;
+    border-radius:12px;
+    padding:.7rem 1.1rem;
+    font-weight:700;
+    text-decoration:none;
+    cursor:pointer;
+    transition:all .2s;
+    font-size:.9rem;
+  }
+  .btn-white{background:rgba(255,255,255,.95);color:#667eea;}
+  .btn-white:hover{background:#fff;}
+  .btn-ghost{background:rgba(255,255,255,.15);color:#fff;border:1px solid rgba(255,255,255,.3);}
+  .btn-ghost:hover{background:rgba(255,255,255,.25);}
+  .btn-primary{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;}
+  .btn-secondary{background:#f1f5f9;color:#475569;border:1px solid #e2e8f0;}
+  .btn-success{background:#22c55e;color:#fff;}
+  .btn-danger{background:#ef4444;color:#fff;}
+  
+  /* Tabs */
+  .tabs{
+    display:flex;
+    gap:8px;
+    margin-bottom:24px;
+    border-bottom:2px solid #e2e8f0;
+    padding-bottom:0;
+  }
+  .tab{
+    padding:12px 20px;
+    font-weight:700;
+    color:#64748b;
+    cursor:pointer;
+    border-bottom:3px solid transparent;
+    margin-bottom:-2px;
+    transition:all .2s;
+  }
+  .tab:hover{color:#667eea;}
+  .tab.active{
+    color:#667eea;
+    border-bottom-color:#667eea;
+  }
+  .tab-content{display:none;}
+  .tab-content.active{display:block;}
+  
+  /* Cards */
+  .card{
+    background:#fff;
+    border:1px solid rgba(0,0,0,.08);
+    border-radius:16px;
+    padding:20px;
+    margin-bottom:20px;
+    box-shadow:0 4px 12px rgba(0,0,0,.04);
+  }
+  .card-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    margin-bottom:16px;
+    padding-bottom:12px;
+    border-bottom:1px solid #f1f5f9;
+  }
+  .card-title{font-size:1.1rem;font-weight:800;color:#1e293b;}
+  
+  /* Student Table */
+  .student-table{width:100%;border-collapse:collapse;}
+  .student-table th,.student-table td{
+    padding:12px 16px;
+    text-align:left;
+    border-bottom:1px solid #f1f5f9;
+  }
+  .student-table th{
+    background:#f8fafc;
+    font-weight:700;
+    font-size:.85rem;
+    color:#64748b;
+    text-transform:uppercase;
+  }
+  .student-table tr:hover td{background:#fafbfc;}
+  .student-actions{
+    display:flex;
+    gap:6px;
+  }
+  .student-actions button{
+    padding:6px 10px;
+    border:none;
+    border-radius:6px;
+    cursor:pointer;
+    font-size:.8rem;
+  }
+  .btn-sm-edit{background:#dbeafe;color:#2563eb;}
+  .btn-sm-edit:hover{background:#2563eb;color:#fff;}
+  .btn-sm-del{background:#fee2e2;color:#dc2626;}
+  .btn-sm-del:hover{background:#dc2626;color:#fff;}
+  
+  /* Assignment Card */
+  .assignment-card{
+    background:#fff;
+    border:1px solid rgba(0,0,0,.08);
+    border-radius:14px;
+    padding:16px;
+    margin-bottom:12px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .assignment-info h4{
+    margin:0 0 4px;
+    font-size:1rem;
+    color:#1e293b;
+  }
+  .assignment-meta{
+    display:flex;
+    gap:16px;
+    font-size:.85rem;
+    color:#64748b;
+  }
+  .assignment-status{
+    display:flex;
+    align-items:center;
+    gap:8px;
+  }
+  .status-badge{
+    padding:4px 10px;
+    border-radius:20px;
+    font-size:.8rem;
+    font-weight:700;
+  }
+  .status-active{background:#dcfce7;color:#166534;}
+  .status-closed{background:#fee2e2;color:#991b1b;}
+  .status-pending{background:#fef3c7;color:#92400e;}
+  
+  /* Progress */
+  .progress-bar{
+    width:120px;
+    height:8px;
+    background:#e2e8f0;
+    border-radius:4px;
+    overflow:hidden;
+  }
+  .progress-fill{
+    height:100%;
+    background:linear-gradient(90deg,#667eea,#764ba2);
+    transition:width .3s;
+  }
+  
+  /* Import Area */
+  .import-area{
+    border:2px dashed #e2e8f0;
+    border-radius:12px;
+    padding:24px;
+    text-align:center;
+    cursor:pointer;
+    transition:all .2s;
+  }
+  .import-area:hover{
+    border-color:#667eea;
+    background:rgba(102,126,234,.04);
+  }
+  .import-icon{font-size:2.5rem;margin-bottom:8px;}
+  .import-text{color:#64748b;}
+  
+  /* Modal */
+  .modal-overlay{
+    display:none;
+    position:fixed;
+    inset:0;
+    background:rgba(15,23,42,.6);
+    z-index:1000;
+    align-items:center;
+    justify-content:center;
+    padding:16px;
+  }
+  .modal-overlay.show{display:flex;}
+  .modal-box{
+    background:#fff;
+    border-radius:20px;
+    width:100%;
+    max-width:600px;
+    max-height:90vh;
+    overflow:hidden;
+  }
+  .modal-header{
+    background:linear-gradient(135deg,#667eea,#764ba2);
+    color:#fff;
+    padding:20px 24px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+  }
+  .modal-header h3{margin:0;}
+  .modal-close{
+    background:rgba(255,255,255,.2);
+    border:none;
+    color:#fff;
+    width:32px;
+    height:32px;
+    border-radius:8px;
+    cursor:pointer;
+    font-size:1.1rem;
+  }
+  .modal-body{padding:24px;max-height:calc(90vh - 140px);overflow-y:auto;}
+  .modal-footer{
+    padding:16px 24px;
+    background:#f8fafc;
+    border-top:1px solid #e2e8f0;
+    display:flex;
+    justify-content:flex-end;
+    gap:10px;
+  }
+  
+  .form-group{margin-bottom:16px;}
+  .form-group label{display:block;font-weight:700;margin-bottom:6px;color:#334155;}
+  .form-group input,.form-group select,.form-group textarea{
+    width:100%;
+    padding:.75rem 1rem;
+    border:1px solid #e2e8f0;
+    border-radius:10px;
+    font-size:1rem;
+  }
+  .form-group input:focus,.form-group select:focus{
+    outline:none;
+    border-color:#667eea;
+  }
+  .form-row{display:grid;grid-template-columns:1fr 1fr;gap:12px;}
+  
+  /* Empty */
+  .empty{text-align:center;padding:40px;color:#64748b;}
+  .empty-icon{font-size:3rem;margin-bottom:12px;}
+  
+  /* Quick Input */
+  .quick-input{
+    display:flex;
+    gap:10px;
+    margin-bottom:16px;
+  }
+  .quick-input input{flex:1;}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrap">
+  <!-- Header -->
+  <div class="page-header">
+    <div class="header-info">
+      <h1>🏫 {{ classroom.name }}</h1>
+      <div class="header-meta">
+        <span>📚 {{ classroom.grade_level or 'ไม่ระบุชั้น' }}</span>
+        <span>📅 {{ classroom.academic_year or 'ไม่ระบุปี' }}</span>
+        <span>👨‍🎓 {{ students|length }} นักเรียน</span>
+        <span>📋 {{ assignments|length }} งาน</span>
+      </div>
+    </div>
+    <div class="header-actions">
+      <a href="{{ url_for('classrooms') }}" class="btn btn-ghost">← กลับ</a>
+      <button class="btn btn-white" onclick="openAssignModal()">📝 สั่งงานใหม่</button>
+    </div>
+  </div>
+
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('students')">👨‍🎓 รายชื่อนักเรียน</div>
+    <div class="tab" onclick="switchTab('assignments')">📋 งานที่มอบหมาย</div>
+  </div>
+
+  <!-- Tab: Students -->
+  <div class="tab-content active" id="tab-students">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📋 รายชื่อนักเรียน ({{ students|length }} คน)</div>
+        <div style="display:flex;gap:8px;">
+          <button class="btn btn-secondary" onclick="openImportModal()">📥 Import</button>
+          <button class="btn btn-primary" onclick="openAddStudentModal()">➕ เพิ่ม</button>
+        </div>
+      </div>
+
+      <!-- Quick Add -->
+      <form class="quick-input" action="{{ url_for('classroom_add_student', classroom_id=classroom.id) }}" method="POST">
+        <input type="text" name="student_no" placeholder="เลขที่" style="width:80px;">
+        <input type="text" name="student_name" placeholder="ชื่อ-สกุล" required>
+        <input type="text" name="nickname" placeholder="ชื่อเล่น" style="width:120px;">
+        <button type="submit" class="btn btn-success">➕</button>
+      </form>
+
+      {% if students %}
+      <table class="student-table">
+        <thead>
+          <tr>
+            <th style="width:60px">เลขที่</th>
+            <th>ชื่อ-สกุล</th>
+            <th style="width:100px">ชื่อเล่น</th>
+            <th style="width:100px"></th>
+          </tr>
+        </thead>
+        <tbody>
+          {% for s in students %}
+          <tr>
+            <td><strong>{{ s.student_no or '-' }}</strong></td>
+            <td>{{ s.student_name }}</td>
+            <td>{{ s.nickname or '-' }}</td>
+            <td class="student-actions">
+              <button class="btn-sm-edit" onclick="editStudent({{ s|tojson|e }})">✏️</button>
+              <button class="btn-sm-del" onclick="deleteStudent({{ s.id }}, '{{ s.student_name }}')">🗑️</button>
+            </td>
+          </tr>
+          {% endfor %}
+        </tbody>
+      </table>
+      {% else %}
+      <div class="empty">
+        <div class="empty-icon">👨‍🎓</div>
+        <p>ยังไม่มีรายชื่อนักเรียน</p>
+        <p style="font-size:.9rem;">เพิ่มทีละคน หรือ Import จาก Excel/CSV</p>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+
+  <!-- Tab: Assignments -->
+  <div class="tab-content" id="tab-assignments">
+    <div class="card">
+      <div class="card-header">
+        <div class="card-title">📝 งานที่มอบหมาย</div>
+        <button class="btn btn-primary" onclick="openAssignModal()">➕ สั่งงานใหม่</button>
+      </div>
+
+      {% if assignments %}
+        {% for a in assignments %}
+        <div class="assignment-card">
+          <div class="assignment-info">
+            <h4>{{ a.title }}</h4>
+            <div class="assignment-meta">
+              <span>📚 {{ a.topic_name }}</span>
+              {% if a.due_date %}
+              <span>⏰ กำหนดส่ง: {{ a.due_date[:10] }}</span>
+              {% endif %}
+            </div>
+          </div>
+          <div class="assignment-status">
+            {% set status = submission_stats.get(a.id, {}) %}
+            <div>
+              <div style="font-size:.85rem;color:#64748b;margin-bottom:4px;">
+                ส่งแล้ว {{ status.submitted|default(0) }}/{{ students|length }}
+              </div>
+              <div class="progress-bar">
+                {% set pct = (status.submitted|default(0) / students|length * 100) if students|length > 0 else 0 %}
+                <div class="progress-fill" style="width:{{ pct|int }}%"></div>
+              </div>
+            </div>
+            <a href="{{ url_for('assignment_detail', assignment_id=a.id) }}" class="btn btn-secondary" style="padding:.5rem .8rem;">📊 ดูผล</a>
+          </div>
+        </div>
+        {% endfor %}
+      {% else %}
+      <div class="empty">
+        <div class="empty-icon">📋</div>
+        <p>ยังไม่มีงานที่มอบหมาย</p>
+        <button class="btn btn-primary" onclick="openAssignModal()">➕ สั่งงานแรก</button>
+      </div>
+      {% endif %}
+    </div>
+  </div>
+</div>
+
+<!-- Add/Edit Student Modal -->
+<div class="modal-overlay" id="studentModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3 id="studentModalTitle">เพิ่มนักเรียน</h3>
+      <button class="modal-close" onclick="closeStudentModal()">✕</button>
+    </div>
+    <form id="studentForm" method="POST">
+      <div class="modal-body">
+        <input type="hidden" id="studentId" name="student_id">
+        <div class="form-row">
+          <div class="form-group">
+            <label>เลขที่</label>
+            <input type="text" id="studentNo" name="student_no" placeholder="เช่น 1, 2, 3">
+          </div>
+          <div class="form-group">
+            <label>ชื่อเล่น</label>
+            <input type="text" id="studentNickname" name="nickname" placeholder="ถ้ามี">
+          </div>
+        </div>
+        <div class="form-group">
+          <label>ชื่อ-สกุล <span style="color:#ef4444">*</span></label>
+          <input type="text" id="studentName" name="student_name" required placeholder="เช่น ด.ช. สมชาย ใจดี">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeStudentModal()">ยกเลิก</button>
+        <button type="submit" class="btn btn-primary">💾 บันทึก</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Import Modal -->
+<div class="modal-overlay" id="importModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>📥 Import รายชื่อนักเรียน</h3>
+      <button class="modal-close" onclick="closeImportModal()">✕</button>
+    </div>
+    <form action="{{ url_for('classroom_import_students', classroom_id=classroom.id) }}" method="POST">
+      <div class="modal-body">
+        <p style="margin-bottom:16px;color:#64748b;">วางรายชื่อจาก Excel (คัดลอกคอลัมน์ เลขที่ + ชื่อ-สกุล)</p>
+        <div class="form-group">
+          <label>รายชื่อ (บรรทัดละคน)</label>
+          <textarea name="student_list" rows="10" placeholder="1	สมชาย ใจดี
+2	สมหญิง รักเรียน
+3	สมศักดิ์ เก่งมาก
+
+หรือ
+
+สมชาย ใจดี
+สมหญิง รักเรียน"></textarea>
+        </div>
+        <p style="font-size:.85rem;color:#64748b;">
+          💡 รูปแบบ: <code>เลขที่[Tab]ชื่อ-สกุล</code> หรือ <code>ชื่อ-สกุล</code> อย่างเดียว
+        </p>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeImportModal()">ยกเลิก</button>
+        <button type="submit" class="btn btn-success">📥 Import</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- Assign Modal -->
+<div class="modal-overlay" id="assignModal">
+  <div class="modal-box">
+    <div class="modal-header">
+      <h3>📝 สั่งงานใหม่</h3>
+      <button class="modal-close" onclick="closeAssignModal()">✕</button>
+    </div>
+    <form action="{{ url_for('classroom_assign', classroom_id=classroom.id) }}" method="POST">
+      <div class="modal-body">
+        <div class="form-group">
+          <label>เลือก Topic <span style="color:#ef4444">*</span></label>
+          <select name="topic_id" required>
+            <option value="">-- เลือก Topic --</option>
+            {% for t in topics %}
+            <option value="{{ t.id }}">{{ t.name }}</option>
+            {% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>ชื่องาน</label>
+          <input type="text" name="title" placeholder="เช่น แบบฝึกหัดบทที่ 1">
+        </div>
+        <div class="form-group">
+          <label>คำอธิบาย</label>
+          <textarea name="description" rows="2" placeholder="รายละเอียดเพิ่มเติม (ถ้ามี)"></textarea>
+        </div>
+        <div class="form-group">
+          <label>กำหนดส่ง</label>
+          <input type="datetime-local" name="due_date">
+        </div>
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" onclick="closeAssignModal()">ยกเลิก</button>
+        <button type="submit" class="btn btn-primary">📝 สั่งงาน</button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<script>
+// Tab switching
+function switchTab(tabName) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+  
+  document.querySelector(`.tab[onclick="switchTab('${tabName}')"]`).classList.add('active');
+  document.getElementById(`tab-${tabName}`).classList.add('active');
+}
+
+// Student Modal
+const studentModal = document.getElementById('studentModal');
+const studentForm = document.getElementById('studentForm');
+
+function openAddStudentModal() {
+  document.getElementById('studentModalTitle').textContent = 'เพิ่มนักเรียน';
+  studentForm.action = "{{ url_for('classroom_add_student', classroom_id=classroom.id) }}";
+  studentForm.reset();
+  document.getElementById('studentId').value = '';
+  studentModal.classList.add('show');
+}
+
+function editStudent(s) {
+  document.getElementById('studentModalTitle').textContent = 'แก้ไขข้อมูลนักเรียน';
+  studentForm.action = `/classroom/student/${s.id}/edit`;
+  document.getElementById('studentId').value = s.id;
+  document.getElementById('studentNo').value = s.student_no || '';
+  document.getElementById('studentName').value = s.student_name || '';
+  document.getElementById('studentNickname').value = s.nickname || '';
+  studentModal.classList.add('show');
+}
+
+function closeStudentModal() {
+  studentModal.classList.remove('show');
+}
+
+function deleteStudent(id, name) {
+  if (!confirm(`ลบนักเรียน "${name}"?`)) return;
+  const form = document.createElement('form');
+  form.method = 'POST';
+  form.action = `/classroom/student/${id}/delete`;
+  document.body.appendChild(form);
+  form.submit();
+}
+
+// Import Modal
+const importModal = document.getElementById('importModal');
+function openImportModal() { importModal.classList.add('show'); }
+function closeImportModal() { importModal.classList.remove('show'); }
+
+// Assign Modal
+const assignModal = document.getElementById('assignModal');
+function openAssignModal() { assignModal.classList.add('show'); }
+function closeAssignModal() { assignModal.classList.remove('show'); }
+
+// Close modals on overlay click
+[studentModal, importModal, assignModal].forEach(m => {
+  m.addEventListener('click', e => { if (e.target === m) m.classList.remove('show'); });
+});
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'Escape') {
+    closeStudentModal();
+    closeImportModal();
+    closeAssignModal();
+  }
+});
+</script>
+{% endblock %}
