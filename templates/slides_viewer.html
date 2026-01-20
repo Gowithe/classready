@@ -1,1335 +1,1560 @@
 {% extends "base.html" %}
-{% block content %}
+{% block title %}{{ topic.name }} - Slides{% endblock %}
 
+{% block extra_css %}
 <style>
-  :root{
-    --bg0:#0b1020;
-    --bg1:#0a0f1a;
-    --glass: rgba(255,255,255,0.06);
-    --glass2: rgba(255,255,255,0.10);
-    --border: rgba(255,255,255,0.10);
-    --text:#e8eefc;
-    --muted:#9fb0d0;
+/* ============================================
+   SLIDES VIEWER - 4 THEMES: Minimal, Colorful, Corporate, Playful
+   ============================================ */
 
-    --p1:#7c3aed;   /* purple */
-    --p2:#06b6d4;   /* cyan */
-    --p3:#f59e0b;   /* amber */
-    --p4:#22c55e;   /* green */
-    --danger:#ef4444;
-    --shadow: 0 24px 70px rgba(0,0,0,0.55);
+@import url('https://fonts.googleapis.com/css2?family=Nunito:wght@400;600;700;800;900&family=Poppins:wght@400;500;600;700;800;900&display=swap');
 
-    --topbar-bg: rgba(10, 15, 26, 0.92);
-    --topbar-border: rgba(255,255,255,0.14);
-    --btn-bg: rgba(255,255,255,0.10);
-    --btn-border: rgba(255,255,255,0.16);
-    --btn-hover: rgba(255,255,255,0.16);
-
-    /* theme extras */
-    --pointer: rgba(239,68,68,0.95);
-    --pointer-glow: rgba(239,68,68,0.65);
-    --highlight: rgba(245,158,11,0.95);
-    --chalk: rgba(248,249,244,0.95);
-  }
-
-  .deck-wrap{ max-width: 1360px; margin: 18px auto; padding: 0 14px; }
-
-  /* Top bar */
-  .topbar{
-    display:flex; align-items:center; justify-content:space-between; gap:12px;
-    padding: 14px 16px;
-    border-radius: 18px;
-    background: var(--topbar-bg);
-    border:1px solid var(--topbar-border);
-    box-shadow: 0 10px 30px rgba(0,0,0,.35);
-    color: var(--text);
-    position: sticky; top: 10px; z-index: 20;
-    backdrop-filter: blur(12px);
-  }
-  .brand{ display:flex; align-items:center; gap:12px; }
-  .brand .logo{
-    width:38px; height:38px; border-radius: 14px;
-    background: radial-gradient(16px 16px at 30% 30%, rgba(255,255,255,0.65), rgba(255,255,255,0.08)),
-                linear-gradient(135deg, rgba(124,58,237,0.95), rgba(6,182,212,0.90));
-    border:1px solid rgba(255,255,255,0.18);
-    box-shadow: 0 10px 25px rgba(124,58,237,0.25);
-  }
-  .brand h2{ margin:0; font-size: 18px; letter-spacing:.2px; color: var(--text); }
-  .brand .hint{ color: rgba(232,238,252,0.75); font-size: 12px; margin-top:2px; }
-
-  .controls{ display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end; }
-
-  .btn{
-    background: var(--btn-bg);
-    border: 1px solid var(--btn-border);
-    color: var(--text);
-    padding: 10px 14px;
-    border-radius: 14px;
-    cursor:pointer;
-    font-weight: 900;
-    letter-spacing: .2px;
-    transition: transform .10s ease, background .12s ease, border-color .12s ease, box-shadow .12s ease;
-    user-select:none;
-    text-decoration:none;
-    display:inline-flex;
-    align-items:center;
-    gap:8px;
-    white-space:nowrap;
-  }
-  .btn:hover{
-    background: var(--btn-hover);
-    border-color: rgba(255,255,255,0.22);
-    box-shadow: 0 8px 18px rgba(0,0,0,0.25);
-  }
-  .btn:active{ transform: scale(0.985); }
-  .btn:disabled{
-    opacity:.35;
-    cursor:not-allowed;
-    background: rgba(255,255,255,0.06);
-  }
-
-  .btn-primary{
-    background: linear-gradient(135deg, rgba(124,58,237,0.70), rgba(6,182,212,0.55));
-    border-color: rgba(124,58,237,0.55);
-    box-shadow: 0 10px 24px rgba(124,58,237,0.18);
-  }
-  .btn-primary:hover{
-    background: linear-gradient(135deg, rgba(124,58,237,0.80), rgba(6,182,212,0.60));
-    border-color: rgba(255,255,255,0.18);
-  }
-
-  .btn-back{
-    background: linear-gradient(135deg, rgba(99,102,241,0.85), rgba(124,58,237,0.75));
-    border: 1px solid rgba(255,255,255,0.18);
-  }
-  .btn-back:hover{
-    background: linear-gradient(135deg, rgba(99,102,241,0.95), rgba(124,58,237,0.82));
-  }
-
-  .btn-toggle{
-    border: 1px solid rgba(255,255,255,0.16);
-    background: rgba(255,255,255,0.08);
-  }
-  .btn-toggle.active{
-    background: linear-gradient(135deg, rgba(124,58,237,0.38), rgba(6,182,212,0.18));
-    border-color: rgba(124,58,237,0.40);
-  }
-
-  .counter{
-    min-width: 96px;
-    text-align:center;
-    padding: 10px 14px;
-    border-radius: 14px;
-    background: rgba(255,255,255,0.10);
-    border: 1px solid rgba(255,255,255,0.18);
-    font-weight: 1000;
-    color: var(--text);
-  }
-
-  /* Layout: sidebar + stage */
-  .layout{
-    margin-top: 14px;
-    display: grid;
-    grid-template-columns: 300px 1fr;
-    gap: 14px;
-    align-items: start;
-  }
-
-  .sidebar{
-    border-radius: 18px;
-    background: rgba(10,15,26,0.82);
-    border: 1px solid rgba(255,255,255,0.14);
-    box-shadow: 0 16px 40px rgba(0,0,0,0.35);
-    overflow: hidden;
-    position: sticky;
-    top: 86px;
-    max-height: calc(100vh - 110px);
-    display:flex;
-    flex-direction: column;
-  }
-  .sidebar-head{
-    padding: 14px 14px 10px;
-    border-bottom: 1px solid rgba(255,255,255,0.10);
-    background: rgba(10,15,26,0.92);
-  }
-  .sidebar-title{
-    font-weight:1000;
-    color: rgba(255,255,255,0.95);
-    margin: 0 0 6px;
-  }
-  .sidebar-sub{
-    font-size: 12px;
-    color: rgba(255,255,255,0.80);
-  }
-  .outline{
-    padding: 10px;
-    overflow:auto;
-    scrollbar-color: rgba(255,255,255,0.28) rgba(255,255,255,0.06);
-  }
-  .outline-item{
-    padding: 10px 10px;
-    border-radius: 14px;
-    border: 1px solid rgba(255,255,255,0.14);
-    background: rgba(255,255,255,0.08);
-    color: var(--text);
-    margin-bottom: 8px;
-    cursor:pointer;
-    transition: transform .10s ease, background .12s ease, border-color .12s ease;
-  }
-  .outline-item:hover{
-    background: rgba(255,255,255,0.12);
-    border-color: rgba(255,255,255,0.20);
-    transform: translateY(-1px);
-  }
-  .outline-item.active{
-    background: linear-gradient(135deg, rgba(124,58,237,0.35), rgba(6,182,212,0.18));
-    border-color: rgba(124,58,237,0.35);
-  }
-  .outline-item .kicker{
-    font-size: 11px;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    color: rgba(255,255,255,0.78);
-    margin-bottom: 4px;
-    font-weight: 1000;
-  }
-  .outline-item .t{
-    font-weight: 1000;
-    font-size: 13px;
-    line-height: 1.25;
-    color: rgba(255,255,255,0.95);
-  }
-
-  /* Stage */
-  .stage{
-    border-radius: 26px;
-    border: 1px solid rgba(255,255,255,0.10);
-    overflow: hidden;
-    box-shadow: var(--shadow);
-    background:
-      radial-gradient(1200px 700px at 15% 10%, rgba(124,58,237,0.25), transparent 60%),
-      radial-gradient(900px 650px at 85% 12%, rgba(6,182,212,0.20), transparent 55%),
-      radial-gradient(1000px 700px at 50% 100%, rgba(245,158,11,0.10), transparent 55%),
-      linear-gradient(135deg, var(--bg0), var(--bg1));
-    color: var(--text);
-    position: relative;
-    min-height: 680px;
-    padding: 34px 34px 26px;
-  }
-
-  /* Decorative blobs */
-  .blob{
-    position:absolute;
-    opacity: .9;
-    border-radius: 999px;
-    pointer-events:none;
-    transform: translateZ(0);
-    animation: float 10s ease-in-out infinite;
-  }
-  .blob.b1{
-    width: 360px; height: 360px;
-    left: -120px; top: -120px;
-    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.18), rgba(124,58,237,0.35));
-    border: 1px solid rgba(255,255,255,0.08);
-  }
-  .blob.b2{
-    width: 320px; height: 320px;
-    right: -120px; top: -140px;
-    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.14), rgba(6,182,212,0.30));
-    border: 1px solid rgba(255,255,255,0.08);
-    animation-delay: -2s;
-  }
-  .blob.b3{
-    width: 520px; height: 520px;
-    left: 30%; bottom: -360px;
-    background: radial-gradient(circle at 30% 30%, rgba(255,255,255,0.10), rgba(99,102,241,0.20));
-    border: 1px solid rgba(255,255,255,0.06);
-    animation-delay: -4s;
-  }
-  @keyframes float{
-    0%,100%{ transform: translateY(0px) scale(1); }
-    50%{ transform: translateY(18px) scale(1.02); }
-  }
-
-  /* Progress */
-  .progress{
-    position:absolute; left: 18px; right: 18px; bottom: 14px;
-    height: 8px;
-    border-radius: 999px;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.10);
-    overflow:hidden;
-  }
-  .progress > div{
-    height: 100%;
-    width: 0%;
-    border-radius: 999px;
-    background: linear-gradient(90deg, rgba(124,58,237,0.95), rgba(6,182,212,0.9), rgba(245,158,11,0.85));
-    box-shadow: 0 0 18px rgba(6,182,212,0.35);
-    transition: width .25s ease;
-  }
-
-  /* Header */
-  .pill{
-    display:inline-flex; align-items:center; gap:10px;
-    padding: 8px 12px;
-    border-radius: 999px;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.12);
-    font-weight: 1000;
-    font-size: 12px;
-    letter-spacing: .12em;
-    text-transform: uppercase;
-    color: #d8e2ff;
-  }
-  .pill .dot{
-    width:8px; height:8px; border-radius: 99px;
-    background: linear-gradient(135deg, var(--p1), var(--p2));
-    box-shadow: 0 0 10px rgba(124,58,237,0.35);
-  }
-
-  .slide-title{
-    margin: 16px 0 6px;
-    font-size: 44px;
-    line-height: 1.04;
-    font-weight: 1000;
-    letter-spacing: -0.02em;
-  }
-  .slide-subtitle{
-    margin: 0 0 16px;
-    color: rgba(232,238,252,0.80);
-    font-size: 16px;
-    font-weight: 700;
-    line-height: 1.35;
-    max-width: 980px;
-  }
-
-  .content-scroll{
-    max-height: 470px;
-    overflow: auto;
-    padding-right: 6px;
-  }
-
-  .fade-in{
-    animation: fadeIn .18s ease-out;
-  }
-  @keyframes fadeIn{
-    from{ opacity:0; transform: translateY(6px); }
-    to{ opacity:1; transform: translateY(0); }
-  }
-
-  /* Cards & components */
-  .card{
-    background: rgba(255,255,255,0.07);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 18px;
-    padding: 16px;
-    margin-bottom: 14px;
-  }
-
-  .hero{
-    display:grid;
-    grid-template-columns: 1.1fr 0.9fr;
-    gap: 14px;
-    align-items: stretch;
-  }
-  .hero .bigq{
-    font-size: 34px;
-    font-weight: 1000;
-    line-height: 1.12;
-    letter-spacing: -0.02em;
-    margin: 0 0 10px;
-  }
-  .hero .prompt{
-    color: rgba(232,238,252,0.82);
-    font-size: 16px;
-    font-weight: 700;
-    line-height: 1.5;
-  }
-  .heroimg{
-    border-radius: 18px;
-    border: 1px solid rgba(255,255,255,0.12);
-    overflow:hidden;
-    background: rgba(255,255,255,0.06);
-    min-height: 210px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    position: relative;
-  }
-  .heroimg img{
-    width:100%;
-    height:100%;
-    object-fit: cover;
-    display:block;
-    filter: saturate(1.05) contrast(1.05);
-  }
-  .heroimg .ph{
-    padding: 18px;
-    text-align:center;
-    color: rgba(232,238,252,0.75);
-    font-weight: 900;
-  }
-
-  .chips{ display:flex; flex-wrap:wrap; gap:8px; margin-top: 10px; }
-  .chip{
-    padding: 7px 10px;
-    border-radius: 999px;
-    background: rgba(255,255,255,0.08);
-    border: 1px solid rgba(255,255,255,0.12);
-    font-weight: 900;
-    color: rgba(232,238,252,0.92);
-    font-size: 12px;
-  }
-
-  .bullets ul{ margin: 10px 0 0; padding-left: 20px; }
-  .bullets li{
-    margin: 10px 0;
-    font-size: 16px;
-    font-weight: 800;
-    line-height: 1.5;
-    color: rgba(232,238,252,0.92);
-  }
-
-  .concept{
-    display:grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 14px;
-  }
-  .pattern{
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 18px;
-    padding: 14px;
-    font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace;
-    white-space: pre-wrap;
-    font-size: 15px;
-    font-weight: 900;
-    line-height: 1.55;
-  }
-  .callouts .row{
-    display:flex;
-    gap:10px;
-    align-items:flex-start;
-    padding: 10px 12px;
-    border-radius: 16px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.10);
-    margin-bottom: 10px;
-  }
-  .callouts .badge{
-    padding: 6px 10px;
-    border-radius: 999px;
-    font-weight: 1000;
-    font-size: 12px;
-    border: 1px solid rgba(255,255,255,0.12);
-    background: linear-gradient(135deg, rgba(124,58,237,0.35), rgba(6,182,212,0.18));
-  }
-  .callouts .txt{
-    color: rgba(232,238,252,0.90);
-    font-weight: 800;
-    line-height: 1.45;
-  }
-  .mistakes{
-    margin-top: 10px;
-    color: rgba(232,238,252,0.80);
-    font-weight: 800;
-    line-height: 1.5;
-    font-size: 14px;
-  }
-  .mistakes b{ color: rgba(245,158,11,0.95); }
-
-  .exgrid{
-    display:grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
-  }
-  .excard{
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.12);
-    border-radius: 18px;
-    padding: 14px;
-  }
-  .excard .en{
-    font-weight: 1000;
-    font-size: 18px;
-    line-height: 1.35;
-    margin-bottom: 6px;
-  }
-  .excard .th{
-    color: rgba(232,238,252,0.78);
-    font-weight: 800;
-    font-size: 14px;
-    line-height: 1.45;
-  }
-
-  .qcard{
-    padding: 12px 12px;
-    border-radius: 16px;
-    background: rgba(255,255,255,0.06);
-    border: 1px solid rgba(255,255,255,0.10);
-    margin-bottom: 10px;
-  }
-  .qcard .q{
-    font-weight: 1000;
-    margin-bottom: 6px;
-    line-height: 1.35;
-  }
-  .qcard ul{ margin: 0; padding-left: 18px; }
-  .qcard li{ margin: 6px 0; font-weight: 800; color: rgba(232,238,252,0.90); }
-
-  /* Vocabulary table */
-  .vocab-wrap{ margin-top: 6px; }
-  .vocab-table{
-    width:100%;
-    border-collapse: separate;
-    border-spacing: 0;
-    overflow:hidden;
-    border-radius: 18px;
-    border: 1px solid rgba(255,255,255,0.12);
-    background: rgba(255,255,255,0.05);
-  }
-  .vocab-table thead th{
-    text-align:left;
-    padding: 12px 12px;
-    font-weight: 1000;
-    letter-spacing: .02em;
-    border-bottom: 1px solid rgba(255,255,255,0.14);
-    background: rgba(255,255,255,0.06);
-    position: sticky;
-    top: 0;
-    backdrop-filter: blur(8px);
-  }
-  .vocab-table td{
-    padding: 12px 12px;
-    border-bottom: 1px solid rgba(255,255,255,0.10);
-    vertical-align: top;
-    font-weight: 850;
-    line-height: 1.5;
-  }
-  .vocab-table tbody tr:hover td{ background: rgba(255,255,255,0.05); }
-  .vocab-word{ font-weight: 1100; font-size: 16px; }
-  .vocab-ipa{ font-weight: 900; font-size: 12px; opacity: .85; margin-top: 4px; }
-  .vocab-tip{ font-weight: 850; font-size: 12px; opacity: .80; margin-top: 6px; }
-  .vocab-th{ color: rgba(248,250,252,0.95); }
-  .vocab-td{ color: rgba(232,238,252,0.92); }
-  .vocab-pill{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    width: 24px;
-    height: 24px;
-    border-radius: 999px;
-    margin-right: 8px;
-    font-size: 12px;
-    font-weight: 1000;
-    background: rgba(255,255,255,0.10);
-    border: 1px solid rgba(255,255,255,0.16);
-  }
-  .vocab-sub{ opacity:.82; font-size: 13px; font-weight: 850; margin-top: 4px; }
-
-  .actions{
-    display:flex;
-    gap:10px;
-    flex-wrap:wrap;
-    margin-top: 8px;
-  }
-
-  .note{
-    margin-top: 12px;
-    border-radius: 18px;
-    padding: 14px;
-    background: rgba(34,197,94,0.12);
-    border: 1px solid rgba(34,197,94,0.22);
-    color: rgba(232,238,252,0.92);
-    font-weight: 800;
-    line-height: 1.5;
-  }
-
-  .pointer-dot{
-    position: absolute;
-    width: 16px; height: 16px;
-    border-radius: 999px;
-    background: var(--pointer);
-    box-shadow: 0 0 22px var(--pointer-glow);
-    transform: translate(-50%,-50%);
-    display: none;
-    z-index: 5;
-    pointer-events:none;
-  }
-
-  /* Fullscreen */
-  .stage:fullscreen{
-    padding: 54px 64px 42px !important;
-    min-height: 100vh !important;
-  }
-  .stage:fullscreen .content-scroll{
-    max-height: none !important;
-    height: calc(100vh - 240px) !important;
-  }
-  .stage:fullscreen .progress{
-    left: 18px !important;
-    right: 18px !important;
-    bottom: 14px !important;
-  }
-
-  @media (max-width: 1100px){
-    .layout{ grid-template-columns: 1fr; }
-    .sidebar{ position: relative; top: auto; max-height: none; }
-    .hero{ grid-template-columns: 1fr; }
-    .concept{ grid-template-columns: 1fr; }
-    .exgrid{ grid-template-columns: 1fr; }
-  }
-  @media (max-width: 920px){
-    .slide-title{ font-size: 34px; }
-    .stage:fullscreen{ padding: 44px 18px 36px !important; }
-    .stage:fullscreen .content-scroll{ height: calc(100vh - 220px) !important; }
-  }
-
-  /* =========================
-     BLACKBOARD THEME OVERRIDES
-  ========================= */
-  body[data-theme="blackboard"]{
-    --bg0:#071f1a;
-    --bg1:#062019;
-
-    --topbar-bg: rgba(6, 20, 17, 0.92);
-    --topbar-border: rgba(255,255,255,0.14);
-
-    --glass: rgba(255,255,255,0.06);
-    --glass2: rgba(255,255,255,0.10);
-    --border: rgba(255,255,255,0.14);
-
-    --text: #f8f9f4;
-    --muted: #cbd5d1;
-
-    --p1:#ffd166;
-    --p2:#7bdff2;
-    --p3:#a3e635;
-    --p4:#fca5a5;
-
-    --pointer: rgba(255,209,102,0.95);
-    --pointer-glow: rgba(255,209,102,0.55);
-    --highlight: rgba(123,223,242,0.95);
-    --chalk: rgba(248,249,244,0.95);
-  }
-
-  body[data-theme="blackboard"] .stage{
-    background:
-      radial-gradient(1200px 700px at 15% 10%, rgba(255,209,102,0.08), transparent 60%),
-      radial-gradient(900px 650px at 85% 12%, rgba(123,223,242,0.07), transparent 55%),
-      radial-gradient(1000px 700px at 50% 100%, rgba(163,230,53,0.06), transparent 55%),
-
-      radial-gradient(circle at 20% 20%, rgba(255,255,255,0.035), transparent 42%),
-      radial-gradient(circle at 70% 35%, rgba(255,255,255,0.030), transparent 45%),
-      radial-gradient(circle at 35% 80%, rgba(255,255,255,0.028), transparent 48%),
-
-      repeating-linear-gradient(0deg, rgba(255,255,255,0.010), rgba(255,255,255,0.010) 1px, transparent 1px, transparent 3px),
-      linear-gradient(135deg, var(--bg0), var(--bg1)) !important;
-  }
-
-  body[data-theme="blackboard"] .sidebar{
-    background: rgba(6, 20, 17, 0.84) !important;
-    border-color: rgba(255,255,255,0.18) !important;
-  }
-  body[data-theme="blackboard"] .sidebar-head{
-    background: rgba(6, 20, 17, 0.94) !important;
-    border-bottom-color: rgba(255,255,255,0.12) !important;
-  }
-  body[data-theme="blackboard"] .outline-item{
-    background: rgba(255,255,255,0.07) !important;
-    border-color: rgba(255,255,255,0.18) !important;
-  }
-  body[data-theme="blackboard"] .outline-item.active{
-    background: linear-gradient(135deg, rgba(255,209,102,0.18), rgba(123,223,242,0.12)) !important;
-    border-color: rgba(255,209,102,0.25) !important;
-  }
-
-  body[data-theme="blackboard"] .btn-toggle.active{
-    background: linear-gradient(135deg, rgba(255,209,102,0.26), rgba(123,223,242,0.16));
-    border-color: rgba(255,209,102,0.30);
-  }
-  /* Make blackboard clearly different */
-body[data-theme="blackboard"] .blob{ display:none !important; }
-body[data-theme="blackboard"] .pill{
-  background: rgba(255,255,255,0.06) !important;
-  border-color: rgba(255,255,255,0.18) !important;
+:root {
+  --slide-width: 960px;
+  --slide-height: 540px;
 }
 
+* { box-sizing: border-box; }
+
+body {
+  margin: 0;
+  font-family: 'Poppins', 'Noto Sans Thai', sans-serif;
+}
+
+.viewer-container {
+  min-height: 100vh;
+  padding: 20px;
+  transition: background 0.3s;
+}
+
+/* Top Bar */
+.top-bar {
+  max-width: 1200px;
+  margin: 0 auto 20px;
+  padding: 16px 24px;
+  background: rgba(255,255,255,0.95);
+  border-radius: 16px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 16px;
+}
+
+.top-bar h1 {
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #1e293b;
+}
+
+.top-controls {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+.theme-selector {
+  display: flex;
+  gap: 6px;
+}
+
+.theme-btn {
+  width: 32px;
+  height: 32px;
+  border-radius: 50%;
+  border: 3px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.theme-btn:hover { transform: scale(1.1); }
+.theme-btn.active { border-color: #1e293b; transform: scale(1.15); }
+.theme-btn.minimal { background: linear-gradient(135deg, #f8fafc, #e2e8f0); }
+.theme-btn.colorful { background: linear-gradient(135deg, #f472b6, #818cf8, #34d399); }
+.theme-btn.corporate { background: linear-gradient(135deg, #1e3a5f, #3b82f6); }
+.theme-btn.playful { background: linear-gradient(135deg, #fbbf24, #fb923c); }
+
+.btn {
+  padding: 10px 18px;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  text-decoration: none;
+  font-size: 0.9rem;
+}
+.btn-primary { background: linear-gradient(135deg, #667eea, #764ba2); color: #fff; }
+.btn-primary:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(102,126,234,0.4); }
+.btn-secondary { background: #f1f5f9; color: #475569; }
+.btn-secondary:hover { background: #e2e8f0; }
+
+/* Slide Container */
+.slide-wrapper {
+  max-width: var(--slide-width);
+  margin: 0 auto;
+}
+
+.slide-container {
+  width: 100%;
+  aspect-ratio: 16/9;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 20px 60px rgba(0,0,0,0.15);
+  position: relative;
+}
+
+/* Base slide - prevent overflow */
+.slide {
+  height: 100%;
+  overflow: hidden;
+  display: flex;
+  flex-direction: column;
+}
+
+.slide-content {
+  flex: 1;
+  overflow: hidden;
+  min-height: 0; /* Important for flex children */
+}
+
+.content-text {
+  height: 100%;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding-right: 8px;
+}
+
+/* Custom scrollbar */
+.content-text::-webkit-scrollbar {
+  width: 6px;
+}
+.content-text::-webkit-scrollbar-track {
+  background: rgba(0,0,0,0.05);
+  border-radius: 3px;
+}
+.content-text::-webkit-scrollbar-thumb {
+  background: rgba(0,0,0,0.15);
+  border-radius: 3px;
+}
+.content-text::-webkit-scrollbar-thumb:hover {
+  background: rgba(0,0,0,0.25);
+}
+
+/* Navigation */
+.nav-bar {
+  max-width: var(--slide-width);
+  margin: 20px auto 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 16px;
+}
+
+.nav-btn {
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  border: none;
+  background: #fff;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.1);
+  cursor: pointer;
+  font-size: 1.2rem;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.nav-btn:hover { transform: scale(1.1); box-shadow: 0 6px 20px rgba(0,0,0,0.15); }
+.nav-btn:disabled { opacity: 0.4; cursor: not-allowed; transform: none; }
+
+.slide-counter {
+  font-weight: 700;
+  color: #64748b;
+  min-width: 80px;
+  text-align: center;
+}
+
+/* Thumbnail Strip */
+.thumb-strip {
+  max-width: 1200px;
+  margin: 24px auto 0;
+  display: flex;
+  gap: 12px;
+  overflow-x: auto;
+  padding: 10px;
+  scroll-behavior: smooth;
+}
+.thumb-strip::-webkit-scrollbar { height: 6px; }
+.thumb-strip::-webkit-scrollbar-track { background: #f1f5f9; border-radius: 3px; }
+.thumb-strip::-webkit-scrollbar-thumb { background: #cbd5e1; border-radius: 3px; }
+
+.thumb {
+  flex-shrink: 0;
+  width: 120px;
+  height: 68px;
+  border-radius: 8px;
+  background: #fff;
+  border: 3px solid transparent;
+  cursor: pointer;
+  overflow: hidden;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #64748b;
+  text-align: center;
+  padding: 4px;
+}
+.thumb:hover { border-color: #94a3b8; transform: translateY(-2px); }
+.thumb.active { border-color: #667eea; box-shadow: 0 4px 12px rgba(102,126,234,0.3); }
+
+/* ============================================
+   THEME: MINIMAL (Clean & Simple)
+   ============================================ */
+.theme-minimal .viewer-container {
+  background: #f8fafc;
+}
+
+.theme-minimal .slide-container {
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+}
+
+.theme-minimal .slide {
+  padding: 40px 50px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+}
+
+.theme-minimal .slide-header {
+  margin-bottom: 20px;
+  flex-shrink: 0;
+}
+
+.theme-minimal .slide-subtitle {
+  font-size: 0.8rem;
+  color: #667eea;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 2px;
+  margin-bottom: 6px;
+}
+
+.theme-minimal .slide-title {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #1e293b;
+  margin: 0;
+  line-height: 1.2;
+}
+
+.theme-minimal .slide-content {
+  flex: 1;
+  display: flex;
+  gap: 30px;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.theme-minimal .content-text {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.theme-minimal .content-text p {
+  font-size: 0.95rem;
+  line-height: 1.7;
+  color: #475569;
+  margin: 0 0 12px;
+}
+
+.theme-minimal .content-text ul {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+}
+
+.theme-minimal .content-text li {
+  padding: 10px 0;
+  padding-left: 24px;
+  position: relative;
+  font-size: 0.9rem;
+  color: #334155;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.theme-minimal .content-text li::before {
+  content: '';
+  position: absolute;
+  left: 0;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 6px;
+  height: 6px;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  border-radius: 50%;
+}
+
+.theme-minimal .content-image {
+  width: 240px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 8px 24px rgba(0,0,0,0.1);
+}
+
+.theme-minimal .content-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.theme-minimal .slide-footer {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding-top: 12px;
+  border-top: 1px solid #f1f5f9;
+  margin-top: auto;
+  flex-shrink: 0;
+}
+
+.theme-minimal .slide-number {
+  font-weight: 700;
+  color: #94a3b8;
+  font-size: 0.85rem;
+}
+
+.theme-minimal .slide-type-badge {
+  background: #f1f5f9;
+  color: #64748b;
+  padding: 4px 10px;
+  border-radius: 20px;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+/* ============================================
+   THEME: COLORFUL (Vibrant & Fun)
+   ============================================ */
+.theme-colorful .viewer-container {
+  background: linear-gradient(135deg, #fdf2f8, #ede9fe, #ecfeff);
+}
+
+.theme-colorful .slide-container {
+  background: linear-gradient(135deg, #ffffff, #fefefe);
+  border: 4px solid transparent;
+  background-clip: padding-box;
+  position: relative;
+}
+
+.theme-colorful .slide-container::before {
+  content: '';
+  position: absolute;
+  inset: -4px;
+  background: linear-gradient(135deg, #f472b6, #818cf8, #34d399);
+  border-radius: 24px;
+  z-index: -1;
+}
+
+.theme-colorful .slide {
+  padding: 50px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+}
+
+/* Decorative elements */
+.theme-colorful .slide::before {
+  content: '✨';
+  position: absolute;
+  top: 20px;
+  right: 30px;
+  font-size: 2rem;
+  opacity: 0.6;
+}
+
+.theme-colorful .slide-header {
+  margin-bottom: 25px;
+}
+
+.theme-colorful .slide-subtitle {
+  display: inline-block;
+  background: linear-gradient(135deg, #f472b6, #818cf8);
+  color: #fff;
+  padding: 6px 16px;
+  border-radius: 20px;
+  font-size: 0.8rem;
+  font-weight: 700;
+  margin-bottom: 12px;
+}
+
+.theme-colorful .slide-title {
+  font-size: 2.4rem;
+  font-weight: 900;
+  background: linear-gradient(135deg, #7c3aed, #2563eb);
+  -webkit-background-clip: text;
+  -webkit-text-fill-color: transparent;
+  background-clip: text;
+  margin: 0;
+}
+
+.theme-colorful .slide-content {
+  flex: 1;
+  display: flex;
+  gap: 30px;
+}
+
+.theme-colorful .content-text {
+  flex: 1;
+}
+
+.theme-colorful .content-text p {
+  font-size: 1.1rem;
+  line-height: 1.8;
+  color: #4b5563;
+}
+
+.theme-colorful .content-text ul {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 12px;
+}
+
+.theme-colorful .content-text li {
+  background: linear-gradient(135deg, rgba(244,114,182,0.1), rgba(129,140,248,0.1));
+  padding: 16px 20px;
+  border-radius: 12px;
+  font-size: 1rem;
+  color: #374151;
+  border-left: 4px solid;
+  border-image: linear-gradient(135deg, #f472b6, #818cf8) 1;
+}
+
+.theme-colorful .content-image {
+  width: 260px;
+  flex-shrink: 0;
+  border-radius: 20px;
+  overflow: hidden;
+  box-shadow: 0 15px 40px rgba(129,140,248,0.3);
+  border: 4px solid #fff;
+}
+
+.theme-colorful .vocab-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 16px;
+}
+
+.theme-colorful .vocab-card {
+  background: linear-gradient(135deg, #fdf2f8, #ede9fe);
+  padding: 20px;
+  border-radius: 16px;
+  text-align: center;
+  border: 2px solid rgba(129,140,248,0.2);
+}
+
+.theme-colorful .vocab-card .word {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: #7c3aed;
+  margin-bottom: 4px;
+}
+
+.theme-colorful .vocab-card .meaning {
+  font-size: 0.9rem;
+  color: #6b7280;
+}
+
+/* ============================================
+   THEME: CORPORATE (Professional)
+   ============================================ */
+.theme-corporate .viewer-container {
+  background: #0f172a;
+}
+
+.theme-corporate .top-bar {
+  background: rgba(30,58,95,0.95);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.theme-corporate .top-bar h1 {
+  color: #fff;
+}
+
+.theme-corporate .slide-container {
+  background: linear-gradient(180deg, #1e3a5f, #0f172a);
+  border: 1px solid rgba(255,255,255,0.1);
+}
+
+.theme-corporate .slide {
+  padding: 50px 60px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  color: #fff;
+}
+
+.theme-corporate .slide-header {
+  margin-bottom: 30px;
+  padding-bottom: 20px;
+  border-bottom: 2px solid rgba(59,130,246,0.5);
+}
+
+.theme-corporate .slide-subtitle {
+  font-size: 0.85rem;
+  color: #60a5fa;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 3px;
+  margin-bottom: 8px;
+}
+
+.theme-corporate .slide-title {
+  font-size: 2rem;
+  font-weight: 800;
+  color: #fff;
+  margin: 0;
+}
+
+.theme-corporate .slide-content {
+  flex: 1;
+  display: flex;
+  gap: 40px;
+}
+
+.theme-corporate .content-text {
+  flex: 1;
+}
+
+.theme-corporate .content-text p {
+  font-size: 1.05rem;
+  line-height: 1.8;
+  color: #cbd5e1;
+}
+
+.theme-corporate .content-text ul {
+  list-style: none;
+  padding: 0;
+}
+
+.theme-corporate .content-text li {
+  padding: 14px 0;
+  padding-left: 24px;
+  position: relative;
+  font-size: 1rem;
+  color: #e2e8f0;
+  border-bottom: 1px solid rgba(255,255,255,0.1);
+}
+
+.theme-corporate .content-text li::before {
+  content: '▸';
+  position: absolute;
+  left: 0;
+  color: #3b82f6;
+  font-weight: bold;
+}
+
+.theme-corporate .content-image {
+  width: 280px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 2px solid rgba(59,130,246,0.3);
+}
+
+.theme-corporate .slide-footer {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 20px;
+  border-top: 1px solid rgba(255,255,255,0.1);
+  margin-top: auto;
+}
+
+.theme-corporate .slide-number {
+  color: #64748b;
+  font-weight: 600;
+}
+
+.theme-corporate .nav-btn {
+  background: #1e3a5f;
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.2);
+}
+
+.theme-corporate .slide-counter {
+  color: #94a3b8;
+}
+
+/* ============================================
+   THEME: PLAYFUL (Fun & Friendly - Like Canva)
+   ============================================ */
+.theme-playful .viewer-container {
+  background: 
+    linear-gradient(90deg, rgba(251,191,36,0.1) 1px, transparent 1px),
+    linear-gradient(rgba(251,191,36,0.1) 1px, transparent 1px),
+    #fbbf24;
+  background-size: 20px 20px;
+}
+
+.theme-playful .slide-container {
+  background: #fff;
+  border: 4px solid #1e293b;
+  border-radius: 24px;
+  box-shadow: 8px 8px 0 #1e293b;
+}
+
+.theme-playful .slide {
+  padding: 30px 40px;
+  height: 100%;
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  overflow: hidden;
+  font-family: 'Nunito', sans-serif;
+}
+
+/* Decorative stickers */
+.theme-playful .sticker {
+  position: absolute;
+  font-size: 2rem;
+  filter: drop-shadow(2px 2px 0 #1e293b);
+}
+.theme-playful .sticker-1 { top: 10px; left: 15px; }
+.theme-playful .sticker-2 { top: 10px; right: 15px; }
+.theme-playful .sticker-3 { bottom: 45px; left: 15px; }
+.theme-playful .sticker-4 { bottom: 45px; right: 15px; }
+
+.theme-playful .slide-header {
+  text-align: center;
+  margin-bottom: 16px;
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.theme-playful .slide-subtitle {
+  display: inline-block;
+  background: #fbbf24;
+  color: #1e293b;
+  padding: 4px 14px;
+  border-radius: 20px;
+  font-size: 0.75rem;
+  font-weight: 800;
+  margin-bottom: 8px;
+  border: 2px solid #1e293b;
+  box-shadow: 2px 2px 0 #1e293b;
+}
+
+.theme-playful .slide-title {
+  font-size: 1.8rem;
+  font-weight: 900;
+  color: #1e293b;
+  margin: 0;
+  text-shadow: 2px 2px 0 rgba(251,191,36,0.5);
+}
+
+.theme-playful .slide-content {
+  flex: 1;
+  display: flex;
+  gap: 24px;
+  position: relative;
+  z-index: 1;
+  min-height: 0;
+  overflow: hidden;
+}
+
+.theme-playful .content-text {
+  flex: 1;
+  overflow-y: auto;
+  padding-right: 8px;
+}
+
+.theme-playful .content-text p {
+  font-size: 0.95rem;
+  line-height: 1.6;
+  color: #374151;
+  margin: 0 0 10px;
+}
+
+.theme-playful .content-text ul {
+  list-style: none;
+  padding: 0;
+  display: grid;
+  gap: 8px;
+  margin: 0;
+}
+
+.theme-playful .content-text li {
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  padding: 10px 14px;
+  border-radius: 10px;
+  font-size: 0.85rem;
+  color: #1e293b;
+  font-weight: 600;
+  border: 2px solid #1e293b;
+  box-shadow: 2px 2px 0 #1e293b;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.theme-playful .content-text li::before {
+  content: '⭐';
+  font-size: 1rem;
+}
+
+.theme-playful .content-image {
+  width: 200px;
+  flex-shrink: 0;
+  border-radius: 12px;
+  overflow: hidden;
+  border: 3px solid #1e293b;
+  box-shadow: 4px 4px 0 #1e293b;
+}
+
+.theme-playful .vocab-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 10px;
+}
+
+.theme-playful .vocab-card {
+  background: #fff;
+  padding: 12px;
+  border-radius: 12px;
+  text-align: center;
+  border: 2px solid #1e293b;
+  box-shadow: 3px 3px 0 #1e293b;
+  transition: transform 0.2s;
+}
+
+.theme-playful .vocab-card:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 #1e293b;
+}
+
+.theme-playful .vocab-card .word {
+  font-size: 1rem;
+  font-weight: 900;
+  color: #7c3aed;
+}
+
+.theme-playful .vocab-card .meaning {
+  font-size: 0.75rem;
+  color: #6b7280;
+  margin-top: 2px;
+}
+
+.theme-playful .slide-footer {
+  display: flex;
+  justify-content: space-between;
+  padding-top: 10px;
+  margin-top: auto;
+  position: relative;
+  z-index: 1;
+  flex-shrink: 0;
+}
+
+.theme-playful .slide-number {
+  background: #1e293b;
+  color: #fff;
+  padding: 3px 10px;
+  border-radius: 20px;
+  font-weight: 800;
+  font-size: 0.75rem;
+}
+
+.theme-playful .nav-btn {
+  background: #fbbf24;
+  border: 3px solid #1e293b;
+  box-shadow: 3px 3px 0 #1e293b;
+  font-weight: 900;
+}
+
+.theme-playful .nav-btn:hover {
+  transform: translate(-2px, -2px);
+  box-shadow: 5px 5px 0 #1e293b;
+}
+
+/* ============================================
+   SLIDE TYPE SPECIFIC LAYOUTS
+   ============================================ */
+
+/* Hook Slide - Title Only */
+.slide-type-hook .slide-content {
+  justify-content: center;
+  align-items: center;
+  text-align: center;
+}
+
+.slide-type-hook .slide-title {
+  font-size: 3rem !important;
+}
+
+/* Vocabulary Grid */
+.slide-type-vocabulary .vocab-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 16px;
+}
+
+/* Examples - Timeline style */
+.slide-type-examples .example-list {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.slide-type-examples .example-item {
+  display: flex;
+  gap: 16px;
+  align-items: flex-start;
+}
+
+.slide-type-examples .example-item .en {
+  flex: 1;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.slide-type-examples .example-item .th {
+  flex: 1;
+  color: #6b7280;
+  font-size: 0.95rem;
+}
+
+/* Guided Practice - Compact Layout */
+.practice-questions {
+  display: flex;
+  flex-direction: column;
+  gap: 16px;
+}
+
+.practice-item {
+  background: rgba(102,126,234,0.05);
+  padding: 14px 16px;
+  border-radius: 12px;
+  border-left: 4px solid #667eea;
+}
+
+.practice-question {
+  font-size: 0.95rem;
+  margin: 0 0 10px;
+  color: #1e293b;
+}
+
+.practice-choices {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+
+.practice-choice {
+  background: #fff;
+  padding: 8px 12px;
+  border-radius: 8px;
+  font-size: 0.85rem;
+  color: #374151;
+  border: 1px solid #e2e8f0;
+}
+
+/* Theme specific practice styles */
+.theme-playful .practice-item {
+  background: #fef3c7;
+  border-left-color: #f59e0b;
+  border: 2px solid #1e293b;
+  box-shadow: 3px 3px 0 #1e293b;
+}
+
+.theme-playful .practice-choice {
+  border: 2px solid #1e293b;
+  box-shadow: 2px 2px 0 #1e293b;
+}
+
+.theme-corporate .practice-item {
+  background: rgba(59,130,246,0.1);
+  border-left-color: #3b82f6;
+}
+
+.theme-corporate .practice-choice {
+  background: rgba(255,255,255,0.1);
+  border-color: rgba(255,255,255,0.2);
+  color: #e2e8f0;
+}
+
+.theme-colorful .practice-item {
+  background: linear-gradient(135deg, rgba(244,114,182,0.1), rgba(129,140,248,0.1));
+  border-left: 4px solid;
+  border-image: linear-gradient(135deg, #f472b6, #818cf8) 1;
+}
+
+/* Vocabulary Grid - limit items */
+.vocab-grid {
+  display: grid;
+  grid-template-columns: repeat(2, 1fr);
+  gap: 12px;
+  max-height: 100%;
+  overflow: hidden;
+}
+
+.vocab-card {
+  padding: 12px 14px;
+}
+
+.vocab-card .word {
+  font-size: 1rem;
+}
+
+.vocab-card .meaning {
+  font-size: 0.8rem;
+}
+
+/* Dialogue Box */
+.dialogue-box {
+  background: rgba(102,126,234,0.05);
+  padding: 14px 18px;
+  border-radius: 12px;
+  margin-top: 8px;
+}
+
+.dialogue-line {
+  margin: 0 0 8px;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
+.dialogue-line:last-child {
+  margin-bottom: 0;
+}
+
+.theme-playful .dialogue-box {
+  background: #fef3c7;
+  border: 2px solid #1e293b;
+  box-shadow: 3px 3px 0 #1e293b;
+}
+
+.theme-corporate .dialogue-box {
+  background: rgba(59,130,246,0.1);
+  border-left: 4px solid #3b82f6;
+}
+
+/* ============================================
+   FULLSCREEN MODE
+   ============================================ */
+.fullscreen-mode .top-bar,
+.fullscreen-mode .thumb-strip {
+  display: none;
+}
+
+.fullscreen-mode .viewer-container {
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 100vh;
+}
+
+.fullscreen-mode .slide-wrapper {
+  max-width: 100%;
+  width: 100%;
+}
+
+.fullscreen-mode .slide-container {
+  max-width: 100vw;
+  max-height: 100vh;
+  width: 100vw;
+  height: 100vh;
+  border-radius: 0;
+}
+
+.fullscreen-mode .nav-bar {
+  position: fixed;
+  bottom: 30px;
+  left: 50%;
+  transform: translateX(-50%);
+  background: rgba(0,0,0,0.7);
+  padding: 12px 24px;
+  border-radius: 30px;
+  z-index: 100;
+}
+
+.fullscreen-mode .nav-btn {
+  background: rgba(255,255,255,0.9);
+}
+
+/* ============================================
+   RESPONSIVE
+   ============================================ */
+@media (max-width: 768px) {
+  .slide-container {
+    aspect-ratio: auto;
+    min-height: 70vh;
+  }
+  
+  .slide-content {
+    flex-direction: column !important;
+  }
+  
+  .content-image {
+    width: 100% !important;
+    height: 200px !important;
+  }
+  
+  .vocab-grid {
+    grid-template-columns: 1fr !important;
+  }
+  
+  .slide-title {
+    font-size: 1.5rem !important;
+  }
+}
 </style>
+{% endblock %}
 
-<div class="deck-wrap">
-  <div class="topbar">
-    <div class="brand">
-      <div class="logo"></div>
-      <div>
-        <h2>Slide Show</h2>
-        <div class="hint">← → / PageUp PageDown / Space • P Pointer • F Fullscreen • H Highlight</div>
+{% block content %}
+<div class="theme-playful" id="themeWrapper">
+  <div class="viewer-container">
+    <!-- Top Bar -->
+    <div class="top-bar">
+      <h1>📚 {{ topic.name }}</h1>
+      <div class="top-controls">
+        <div class="theme-selector">
+          <button class="theme-btn minimal" onclick="setTheme('minimal')" title="Minimal"></button>
+          <button class="theme-btn colorful" onclick="setTheme('colorful')" title="Colorful"></button>
+          <button class="theme-btn corporate" onclick="setTheme('corporate')" title="Corporate"></button>
+          <button class="theme-btn playful active" onclick="setTheme('playful')" title="Playful"></button>
+        </div>
+        <button class="btn btn-secondary" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+        <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="btn btn-secondary">← Back</a>
       </div>
     </div>
 
-    <div class="controls">
-      <button id="prevBtn" class="btn" type="button">← Prev</button>
-      <div id="counter" class="counter">1 / 1</div>
-      <button id="nextBtn" class="btn" type="button">Next →</button>
-
-      <!-- Theme toggle -->
-      <button id="themeModern" class="btn btn-toggle" type="button">✨ Modern</button>
-      <button id="themeBlackboard" class="btn btn-toggle" type="button">🧑‍🏫 Blackboard</button>
-
-      <a class="btn" href="{{ url_for('game', topic_id=topic.id) }}">🎮 Game</a>
-      <a class="btn" href="{{ url_for('practice', topic_id=topic.id) }}">📝 Practice</a>
-
-      <button id="pointerBtn" class="btn" type="button">
-        <span style="width:10px;height:10px;border-radius:999px;background:var(--pointer);display:inline-block;"></span>
-        Pointer
-      </button>
-
-      <button id="fsBtn" class="btn btn-primary" type="button">Fullscreen</button>
-
-      <a class="btn btn-back" href="{{ url_for('topic_detail', topic_id=topic.id) }}">Back</a>
-    </div>
-  </div>
-
-  <div class="layout">
-    <!-- Sidebar outline -->
-    <div class="sidebar">
-      <div class="sidebar-head">
-        <div class="sidebar-title">Outline</div>
-        <div class="sidebar-sub">คลิกเพื่อไปสไลด์นั้น</div>
-      </div>
-      <div class="outline" id="outline"></div>
-    </div>
-
-    <!-- Stage -->
-    <div class="stage" id="stage">
-      <div class="blob b1"></div>
-      <div class="blob b2"></div>
-      <div class="blob b3"></div>
-
-      <div class="pointer-dot" id="pointerDot"></div>
-
-      <div class="pill" id="typePill"><span class="dot"></span> SLIDE</div>
-      <div class="slide-title fade-in" id="slideTitle">Title</div>
-      <p class="slide-subtitle fade-in" id="slideSubtitle"></p>
-
-      <div class="content-scroll">
-        <div class="fade-in" id="slideContent"></div>
+    <!-- Slide Display -->
+    <div class="slide-wrapper">
+      <div class="slide-container" id="slideContainer">
+        <!-- Slide content will be rendered here -->
       </div>
 
-      <div class="progress"><div id="progressBar"></div></div>
+      <!-- Navigation -->
+      <div class="nav-bar">
+        <button class="nav-btn" id="prevBtn" onclick="prevSlide()">◀</button>
+        <span class="slide-counter"><span id="currentSlide">1</span> / <span id="totalSlides">1</span></span>
+        <button class="nav-btn" id="nextBtn" onclick="nextSlide()">▶</button>
+      </div>
+    </div>
+
+    <!-- Thumbnail Strip -->
+    <div class="thumb-strip" id="thumbStrip">
+      <!-- Thumbnails will be rendered here -->
     </div>
   </div>
 </div>
 
 <script>
-  let slidesRaw = {{ slides|tojson }};
-  const TOPIC_ID = {{ topic.id }};
+// Slide data from server
+const slides = {{ slides | tojson | safe }};
+const topicName = {{ topic.name | tojson | safe }};
+let currentIndex = 0;
+let currentTheme = 'playful';
 
-  function clone(obj){ return JSON.parse(JSON.stringify(obj)); }
-  function esc(s){
-    return String(s ?? "")
-      .replaceAll("&","&amp;")
-      .replaceAll("<","&lt;")
-      .replaceAll(">","&gt;")
-      .replaceAll('"',"&quot;")
-      .replaceAll("'","&#039;");
+// Sticker sets for playful theme
+const stickerSets = [
+  ['😊', '👀', '⭐', '🔍'],
+  ['🎯', '💡', '📝', '✨'],
+  ['🌟', '🎨', '📚', '🔥'],
+  ['🚀', '💪', '🎉', '👍'],
+  ['🌈', '🎵', '💎', '🌸'],
+];
+
+// Get random stickers
+function getStickers(slideIndex) {
+  const set = stickerSets[slideIndex % stickerSets.length];
+  return set;
+}
+
+// Get image URL from Unsplash based on keywords
+function getImageUrl(slide, index) {
+  // If slide has image_url, use it
+  if (slide.image_url && !slide.image_url.startsWith('data:')) {
+    return slide.image_url;
   }
-  function asArray(v){ return Array.isArray(v) ? v : []; }
-  function pickFirst(obj, keys){
-    for (const k of keys){
-      if (obj && obj[k] != null) return obj[k];
-    }
-    return null;
+  
+  // Generate image from keywords
+  const keywords = slide.keywords || [];
+  const title = slide.title || '';
+  
+  // Extract keywords from title and content
+  let searchTerms = [...keywords];
+  if (title) {
+    // Add simple words from title
+    const titleWords = title.toLowerCase()
+      .replace(/[^a-z\s]/g, '')
+      .split(' ')
+      .filter(w => w.length > 3);
+    searchTerms = [...searchTerms, ...titleWords];
   }
-  function splitItems(items, chunkSize){
-    const out = [];
-    for(let i=0;i<items.length;i+=chunkSize){
-      out.push(items.slice(i, i+chunkSize));
-    }
-    return out;
+  
+  if (searchTerms.length === 0) {
+    searchTerms = ['education', 'learning', 'school'];
   }
+  
+  const query = searchTerms.slice(0, 2).join(',');
+  return `https://source.unsplash.com/600x400/?${encodeURIComponent(query)}&sig=${index}`;
+}
 
-  function preprocessSlides(inputSlides){
-    const output = [];
-    for(const s0 of (inputSlides || [])){
-      const s = s0 || {};
-      const t = (s.type || "").toLowerCase();
-      const items = asArray(pickFirst(s, ["items", "questions", "quiz_items", "practice_items"])) || [];
-
-      // keep old behavior for practice/quiz splitting
-      if (t === "practice" && items.length > 6){
-        const chunks = splitItems(items, 6);
-        chunks.forEach((chunk, i) => {
-          const ns = clone(s);
-          ns.items = chunk;
-          ns.subtitle = (ns.subtitle || "") + ` (Part ${i+1}/${chunks.length})`;
-          output.push(ns);
-        });
-        continue;
-      }
-      if (t === "quick_quiz" && items.length > 4){
-        const chunks = splitItems(items, 4);
-        chunks.forEach((chunk, i) => {
-          const ns = clone(s);
-          ns.items = chunk;
-          ns.subtitle = (ns.subtitle || "") + ` (Part ${i+1}/${chunks.length})`;
-          output.push(ns);
-        });
-        continue;
-      }
-
-      output.push(s);
-    }
-    return output;
+// Render slide based on current theme
+function renderSlide(index) {
+  const slide = slides[index];
+  const slideType = slide.type || 'context';
+  const stickers = getStickers(index);
+  const imageUrl = getImageUrl(slide, index);
+  
+  let html = '';
+  
+  if (currentTheme === 'playful') {
+    html = renderPlayfulSlide(slide, slideType, stickers, imageUrl, index);
+  } else if (currentTheme === 'minimal') {
+    html = renderMinimalSlide(slide, slideType, imageUrl, index);
+  } else if (currentTheme === 'colorful') {
+    html = renderColorfulSlide(slide, slideType, imageUrl, index);
+  } else if (currentTheme === 'corporate') {
+    html = renderCorporateSlide(slide, slideType, imageUrl, index);
   }
-
-  const slides = preprocessSlides(slidesRaw || []);
-  let idx = 0;
-
-  const stage = document.getElementById("stage");
-  const elType = document.getElementById("typePill");
-  const elTitle = document.getElementById("slideTitle");
-  const elSub = document.getElementById("slideSubtitle");
-  const elContent = document.getElementById("slideContent");
-  const elCounter = document.getElementById("counter");
-  const prevBtn = document.getElementById("prevBtn");
-  const nextBtn = document.getElementById("nextBtn");
-  const fsBtn = document.getElementById("fsBtn");
-  const pointerBtn = document.getElementById("pointerBtn");
-  const pointerDot = document.getElementById("pointerDot");
-  const progressBar = document.getElementById("progressBar");
-  const scroller = stage.querySelector(".content-scroll");
-  const outlineEl = document.getElementById("outline");
-
-  // theme buttons
-  const themeModernBtn = document.getElementById("themeModern");
-  const themeBlackBtn = document.getElementById("themeBlackboard");
-
-  let pointerOn = false;
-
-  function setTheme(theme){
-    if(theme === "blackboard"){
-      document.body.setAttribute("data-theme", "blackboard");
-      themeBlackBtn?.classList.add("active");
-      themeModernBtn?.classList.remove("active");
-    }else{
-      document.body.removeAttribute("data-theme");
-      themeModernBtn?.classList.add("active");
-      themeBlackBtn?.classList.remove("active");
-    }
-    localStorage.setItem("slides_theme", theme);
-  }
-
-  // load saved theme
-  const savedTheme = localStorage.getItem("slides_theme") || "modern";
-  setTheme(savedTheme);
-
-  themeModernBtn?.addEventListener("click", ()=> setTheme("modern"));
-  themeBlackBtn?.addEventListener("click", ()=> setTheme("blackboard"));
-
-  function typeLabel(t){
-    const x = String(t || "slide").toLowerCase();
-    if (x === "hook") return "HOOK";
-    if (x === "objectives") return "OBJECTIVES";
-    if (x === "context") return "CONTEXT";
-    if (x === "vocabulary") return "VOCAB";
-    if (x === "concept") return "CONCEPT";
-    if (x === "pronunciation") return "PRONUNCIATION";
-    if (x === "examples") return "EXAMPLES";
-    if (x === "guided_practice") return "PRACTICE";
-    if (x === "dialogue") return "DIALOGUE";
-    if (x === "production") return "PRODUCTION";
-    if (x === "review") return "REVIEW";
-    if (x === "action") return "ACTION";
-    if (x === "exit_ticket") return "EXIT";
-    // legacy
-    return x.toUpperCase();
-  }
-
-  function animateIn(){
-    [elTitle, elSub, elContent].forEach(el=>{
-      el.classList.remove("fade-in");
-      void el.offsetWidth;
-      el.classList.add("fade-in");
-    });
-  }
-
-  function renderList(items){
-    items = asArray(items);
-    if(items.length===0) return "";
-    return `<div class="bullets"><ul>${items.map(x => `<li>${esc(x)}</li>`).join("")}</ul></div>`;
-  }
-
-  function renderTable(headers, rows){
-    const th = headers.map(h => `<th style="text-align:left;padding:10px;border-bottom:1px solid rgba(255,255,255,0.14);">${esc(h)}</th>`).join("");
-    const tr = rows.map(r => `<tr>${r.map(c => `<td style="padding:10px;border-bottom:1px solid rgba(255,255,255,0.10);vertical-align:top;">${c}</td>`).join("")}</tr>`).join("");
-    return `<table style="width:100%;border-collapse:collapse;">
-      <thead><tr>${th}</tr></thead>
-      <tbody>${tr}</tbody>
-    </table>`;
-  }
-
-  function getQuizItems(slide){
-    return asArray(pickFirst(slide, ["items","questions","quiz_items","practice_items"])) || [];
-  }
-
-  function renderQuizTwoCol(items){
-    items = asArray(items);
-    const mid = Math.ceil(items.length / 2);
-    const left = items.slice(0, mid);
-    const right = items.slice(mid);
-
-    function qCard(q, number){
-      const qq = q.q || q.question || "";
-      const choices = asArray(pickFirst(q, ["choices","options"])) || [];
-      return `
-        <div class="qcard">
-          <div class="q">${number}. ${esc(qq)}</div>
-          ${choices.length ? `<ul>${choices.map(c=>`<li>${esc(c)}</li>`).join("")}</ul>` : ""}
-        </div>
-      `;
-    }
-
-    const leftHtml = left.map((q, i) => qCard(q, i+1)).join("");
-    const rightHtml = right.map((q, i) => qCard(q, i+1+left.length)).join("");
-    return `<div class="exgrid"><div>${leftHtml}</div><div>${rightHtml}</div></div>`;
-  }
-
-  /* ===== New pattern renderers ===== */
-  function renderHook(slide){
-    const prompt = slide.prompt || slide.content || "";
-    const keywords = asArray(slide.keywords || []);
-    const img = slide.hero_image || slide.image_url || "";
-
-    return `
-      <div class="card hero">
-        <div>
-          <div class="bigq">${esc(prompt || "Warm-up question")}</div>
-          <div class="prompt">${esc(slide.sub_prompt || "Answer with your partner.")}</div>
-          ${keywords.length ? `<div class="chips">${keywords.map(k=>`<span class="chip">${esc(k)}</span>`).join("")}</div>` : ""}
-        </div>
-        <div class="heroimg">
-          ${img ? `<img src="${esc(img)}" alt="hero">` : `<div class="ph">Optional: add <b>hero_image</b></div>`}
-        </div>
-      </div>
-    `;
-  }
-
-  function renderObjectives(slide){
-    const objs = asArray(slide.objectives || []);
-    return `
-      <div class="card">
-        <h3 style="margin:0 0 8px;font-weight:1000;">What you will learn</h3>
-        ${objs.length ? renderList(objs) : `<div style="color:rgba(232,238,252,0.78);font-weight:800;">No objectives</div>`}
-      </div>
-    `;
-  }
-
-  function renderContext(slide){
-    const c = slide.content;
-    let lines = [];
-    if (Array.isArray(c)) lines = c;
-    else if (typeof c === "string") lines = c.split("\n").map(x=>x.trim()).filter(Boolean);
-    lines = lines.slice(0, 6);
-    return `
-      <div class="card">
-        <h3 style="margin:0 0 8px;font-weight:1000;">Real-life Context</h3>
-        ${lines.length ? `<div class="bullets"><ul>${lines.map(x=>`<li>${esc(x)}</li>`).join("")}</ul></div>` : `<div style="color:rgba(232,238,252,0.78);font-weight:800;">No context</div>`}
-      </div>
-    `;
-  }
-
-  function _pickVocabItems(slide){
-    // preferred field: vocabulary; fallback: items
-    const v = asArray(slide.vocabulary || []);
-    if (v.length) return v;
-    const items = asArray(slide.items || []);
-    return items;
-  }
-
-  function renderVocabulary(slide){
-    const items = _pickVocabItems(slide).filter(Boolean);
-    if(!items.length){
-      return `<div class="card"><div style="color:rgba(232,238,252,0.78);font-weight:800;">No vocabulary items</div></div>`;
-    }
-
-    const rows = items.map((it, i) => {
-      const word = esc(it.word || it.term || "");
-      const meaning = esc(it.meaning || it.definition || "");
-      // Support both new key `example` and older keys.
-      const ex = it.example || it.example_en || it.example_sentence || "";
-      const exTh = it.example_th || "";
-      const exampleHtml = `
-        <div style="font-weight:900;line-height:1.45;">${esc(ex)}</div>
-        ${exTh ? `<div class="vocab-sub">${esc(exTh)}</div>` : ""}
-        ${it.ipa ? `<div class="vocab-sub">/${esc(it.ipa)}/</div>` : ""}
-        ${it.pronunciation_tip ? `<div class="vocab-sub">Tip: ${esc(it.pronunciation_tip)}</div>` : ""}
-      `;
-      return [
-        `<div class="vocab-cell"><span class="vocab-pill">${i+1}</span> ${word}</div>`,
-        `<div class="vocab-cell">${meaning}</div>`,
-        `<div class="vocab-cell">${exampleHtml}</div>`
-      ];
-    });
-
-    return `
-      <div class="card vocab-wrap">
-        <h3 style="margin:0 0 10px;font-weight:1000;">Vocabulary</h3>
-        <table class="vocab-table">
-          <thead>
-            <tr>
-              <th class="vocab-th" style="width:22%;">Word</th>
-              <th class="vocab-th" style="width:28%;">Meaning</th>
-              <th class="vocab-th">Example</th>
-            </tr>
-          </thead>
-          <tbody>
-            ${rows.map(r => `<tr>${r.map(c => `<td class="vocab-td">${c}</td>`).join("")}</tr>`).join("")}
-          </tbody>
-        </table>
-      </div>
-    `;
-  }
-
-  function renderPronunciation(slide){
-    const bullets = (() => {
-      const c = slide.content;
-      if (Array.isArray(c)) return c;
-      if (typeof c === "string") return c.split("\n").map(x=>x.trim()).filter(Boolean);
-      return [];
-    })();
-    const examples = asArray(slide.examples || []);
-    return `
-      <div class="card">
-        ${bullets.length ? `<h3 style="margin:0 0 8px;font-weight:1000;">Pronunciation Tips</h3>${renderList(bullets)}` : ""}
-        ${examples.length ? `<h3 style="margin:14px 0 8px;font-weight:1000;">Examples</h3>${renderExamples({examples})}` : ""}
-        ${(!bullets.length && !examples.length) ? `<div style="color:rgba(232,238,252,0.78);font-weight:800;">No pronunciation content</div>` : ""}
-      </div>
-    `;
-  }
-
-  function renderProduction(slide){
-    // speaking/writing output tasks
-    const tasks = asArray(slide.tasks || slide.activities || slide.items || []);
-    const model = slide.model_answer || slide.example || "";
-    return `
-      <div class="card">
-        <h3 style="margin:0 0 10px;font-weight:1000;">Production Task</h3>
-        ${tasks.length ? renderList(tasks) : `<div style="color:rgba(232,238,252,0.78);font-weight:800;">No tasks</div>`}
-        ${model ? `<div class="note" style="margin-top:12px;"><b>Model:</b> ${esc(model)}</div>` : ""}
-      </div>
-    `;
-  }
-
-  function renderReview(slide){
-    const summary = asArray(slide.summary || slide.key_points || slide.points || []);
-    const checks = asArray(slide.check_questions || slide.questions || []);
-    return `
-      <div class="card">
-        <h3 style="margin:0 0 10px;font-weight:1000;">Review</h3>
-        ${summary.length ? `<div style="margin-bottom:10px;">${renderList(summary)}</div>` : ""}
-        ${checks.length ? `<h3 style="margin:14px 0 8px;font-weight:1000;">Quick Check</h3>${renderList(checks)}` : ""}
-        ${(!summary.length && !checks.length) ? `<div style="color:rgba(232,238,252,0.78);font-weight:800;">No review content</div>` : ""}
-      </div>
-    `;
-  }
-
-  function renderConcept(slide){
-    const pattern = slide.pattern || slide.structure || slide.content || "";
-    const highlights = asArray(slide.highlights || []);
-    const mistakes = asArray(slide.common_mistakes || []);
-
-    const callouts = highlights.map(h => `
-      <div class="row">
-        <div class="badge">${esc(h.label || "")}</div>
-        <div class="txt">${esc(h.note || "")}</div>
-      </div>
-    `).join("");
-
-    return `
-      <div class="card concept">
-        <div>
-          <h3 style="margin:0 0 10px;font-weight:1000;">Pattern</h3>
-          <div class="pattern">${esc(pattern)}</div>
-          ${mistakes.length ? `<div class="mistakes"><b>Common mistakes:</b><br>${mistakes.map(m=>`• ${esc(m)}`).join("<br>")}</div>` : ""}
-        </div>
-        <div class="callouts">
-          <h3 style="margin:0 0 10px;font-weight:1000;">Tips</h3>
-          ${callouts || `<div class="row"><div class="badge">Tip</div><div class="txt">Add highlights: [{label,note}]</div></div>`}
-        </div>
-      </div>
-    `;
-  }
-
-  function renderExamples(slide){
-    const examples = asArray(slide.examples || slide.items || []);
-    if(!examples.length){
-      return `<div class="card"><div style="color:rgba(232,238,252,0.78);font-weight:800;">No examples</div></div>`;
-    }
-    const cards = examples.map(ex => `
-      <div class="excard">
-        <div class="en">${esc(ex.en || ex.text || "")}</div>
-        ${ex.th ? `<div class="th">${esc(ex.th)}</div>` : ""}
-      </div>
-    `).join("");
-    return `<div class="card"><div class="exgrid">${cards}</div></div>`;
-  }
-
-  function renderGuidedPractice(slide){
-    const items = asArray(slide.items || []);
-    if(!items.length){
-      return `<div class="card"><div style="color:rgba(232,238,252,0.78);font-weight:800;">No practice items</div></div>`;
-    }
-    const qhtml = items.map((it, i) => {
-      const q = it.q || it.question || "";
-      const choices = asArray(it.choices || it.options || []);
-      return `
-        <div class="qcard">
-          <div class="q">${i+1}. ${esc(q)}</div>
-          ${choices.length ? `<ul>${choices.map(c=>`<li>${esc(c)}</li>`).join("")}</ul>` : ""}
-        </div>
-      `;
-    }).join("");
-    return `<div class="card"><h3 style="margin:0 0 10px;font-weight:1000;">Guided Practice</h3>${qhtml}</div>`;
-  }
-
-  function renderDialogue(slide){
-    const scenario = slide.scenario || "";
-    const lines = asArray(slide.lines || []);
-    return `
-      <div class="card">
-        ${scenario ? `<h3 style="margin:0 0 8px;font-weight:1000;">Scenario</h3><div style="font-weight:800;opacity:.9;margin-bottom:10px;">${esc(scenario)}</div>` : ""}
-        ${lines.length ? lines.map(l => `
-          <div class="qcard">
-            <div class="q"><b>${esc(l.speaker || "")}:</b> ${esc(l.text || "")}</div>
-          </div>
-        `).join("") : `<div style="color:rgba(232,238,252,0.78);font-weight:800;">No dialogue lines</div>`}
-      </div>
-    `;
-  }
-
-  function renderAction(slide){
-    const summary = asArray(slide.summary || []);
-    const buttons = asArray(slide.buttons || []);
-    const btns = buttons.map(b=>{
-      const target = (b.target || "").toLowerCase();
-      const label = b.label || (target === "game" ? "🎮 Go to Game" : target === "practice" ? "📝 Do Practice" : "Open");
-      const href =
-        target === "game" ? `/topic/${TOPIC_ID}/game` :
-        target === "practice" ? `/topic/${TOPIC_ID}/practice` :
-        (b.href || "#");
-      return `<a class="btn btn-primary" href="${esc(href)}">${esc(label)}</a>`;
-    }).join("");
-
-    return `
-      <div class="card">
-        <h3 style="margin:0 0 10px;font-weight:1000;">Next</h3>
-        ${summary.length ? renderList(summary) : ""}
-        <div class="actions">
-          ${btns || `
-            <a class="btn btn-primary" href="/topic/${TOPIC_ID}/game">🎮 Go to Game</a>
-            <a class="btn" href="/topic/${TOPIC_ID}/practice">📝 Do Practice</a>
-          `}
-        </div>
-      </div>
-    `;
-  }
-
-  function renderExit(slide){
-    const qs = asArray(slide.questions || []);
-    return `
-      <div class="card">
-        <h3 style="margin:0 0 10px;font-weight:1000;">Exit Ticket</h3>
-        ${qs.length ? renderList(qs) : `<div style="color:rgba(232,238,252,0.78);font-weight:800;">No exit questions</div>`}
-      </div>
-    `;
-  }
-
-  /* Legacy fallback renderer */
-  function renderLegacy(slide){
-    const t = (slide.type || "").toLowerCase();
-    let html = "";
-
-    if (t === "practice" || t === "quick_quiz" || t === "practice_slide"){
-      const items = getQuizItems(slide);
-      html += `<div class="card"><h3 style="margin:0 0 10px;font-weight:1000;">${esc(slide.title || "Practice")}</h3>`;
-      if (items.length) html += renderQuizTwoCol(items);
-      else if (slide.content) html += `<p style="font-weight:800;line-height:1.6;color:rgba(232,238,252,0.9);">${esc(slide.content)}</p>`;
-      else html += `<p style="color:var(--muted);font-weight:800;">No items found.</p>`;
-      html += `</div>`;
-      return html;
-    }
-
-    html += `<div class="card">`;
-    if (slide.content) html += `<p style="font-weight:800;line-height:1.65;color:rgba(232,238,252,0.92);font-size:16px;">${esc(slide.content)}</p>`;
-    // If AI returned a vocabulary table on a generic slide, render it.
-    if (slide.vocabulary || slide.items){
-      const v = _pickVocabItems(slide);
-      if (v && v.length && (v[0]?.word || v[0]?.meaning)){
-        html += `<div style="margin-top:12px;">${renderVocabulary(slide)}</div>`;
-      }
-    }
-    if (slide.objectives?.length) html += `<h3 style="margin:12px 0 8px;font-weight:1000;">Objectives</h3>${renderList(slide.objectives)}`;
-    if (slide.key_points?.length) html += `<h3 style="margin:12px 0 8px;font-weight:1000;">Key points</h3>${renderList(slide.key_points)}`;
-    if (slide.questions?.length) html += `<h3 style="margin:12px 0 8px;font-weight:1000;">Questions</h3>${renderList(slide.questions)}`;
-    html += `</div>`;
-    return html;
-  }
-
-  function renderSlide(slide){
-    slide = slide || {};
-    const t = (slide.type || "slide").toLowerCase();
-
-    elType.innerHTML = `<span class="dot"></span> ${esc(typeLabel(t))}`;
-    elTitle.textContent = slide.title || "";
-    elSub.textContent = slide.subtitle || "";
-
-    let html = "";
-
-    if (t === "hook") html = renderHook(slide);
-    else if (t === "objectives") html = renderObjectives(slide);
-    else if (t === "context") html = renderContext(slide);
-    else if (t === "vocabulary") html = renderVocabulary(slide);
-    else if (t === "concept") html = renderConcept(slide);
-    else if (t === "pronunciation") html = renderPronunciation(slide);
-    else if (t === "examples") html = renderExamples(slide);
-    else if (t === "guided_practice") html = renderGuidedPractice(slide);
-    else if (t === "dialogue") html = renderDialogue(slide);
-    else if (t === "production") html = renderProduction(slide);
-    else if (t === "review") html = renderReview(slide);
-    else if (t === "action") html = renderAction(slide);
-    else if (t === "exit_ticket") html = renderExit(slide);
-    else html = renderLegacy(slide);
-
-    if (slide.teacher_notes && String(slide.teacher_notes).trim() !== "") {
-      html += `<div class="note"><b>Teacher notes:</b> ${esc(slide.teacher_notes)}</div>`;
-    }
-
-    elContent.innerHTML = html || `<div class="card"><p style="color:var(--muted);font-weight:800;">No content.</p></div>`;
-
-    const total = slides.length || 1;
-    const pct = ((idx+1) / total) * 100;
-    progressBar.style.width = pct.toFixed(2) + "%";
-
-    if (scroller) scroller.scrollTop = 0;
-    animateIn();
-  }
-
-  function updateNav(){
-    const total = slides.length || 1;
-    elCounter.textContent = `${Math.min(idx+1, total)} / ${total}`;
-    prevBtn.disabled = (idx <= 0);
-    nextBtn.disabled = (idx >= total - 1);
-
-    const nodes = outlineEl.querySelectorAll(".outline-item");
-    nodes.forEach((n, i)=> n.classList.toggle("active", i === idx));
-  }
-
-  function go(n){
-    if (!slides.length) return;
-    idx = Math.max(0, Math.min(n, slides.length - 1));
-    renderSlide(slides[idx]);
-    updateNav();
-  }
-
-  function buildOutline(){
-    if(!outlineEl) return;
-    outlineEl.innerHTML = slides.map((s, i)=>{
-      const t = typeLabel((s.type||"slide"));
-      const title = s.title || `Slide ${i+1}`;
-      return `
-        <div class="outline-item" data-i="${i}">
-          <div class="kicker">${esc(t)}</div>
-          <div class="t">${esc(title)}</div>
-        </div>
-      `;
-    }).join("");
-
-    outlineEl.querySelectorAll(".outline-item").forEach(el=>{
-      el.addEventListener("click", ()=>{
-        const i = parseInt(el.getAttribute("data-i") || "0", 10);
-        go(i);
-      });
-    });
-  }
-
-  prevBtn.addEventListener("click", () => go(idx - 1));
-  nextBtn.addEventListener("click", () => go(idx + 1));
-
-  function setPointer(on){
-    pointerOn = on;
-    pointerDot.style.display = pointerOn ? "block" : "none";
-    pointerBtn.classList.toggle("btn-primary", pointerOn);
-  }
-  pointerBtn.addEventListener("click", () => setPointer(!pointerOn));
-
-  stage.addEventListener("mousemove", (e) => {
-    if(!pointerOn) return;
-    const rect = stage.getBoundingClientRect();
-    pointerDot.style.left = (e.clientX - rect.left) + "px";
-    pointerDot.style.top = (e.clientY - rect.top) + "px";
+  
+  document.getElementById('slideContainer').innerHTML = html;
+  document.getElementById('currentSlide').textContent = index + 1;
+  
+  // Update navigation buttons
+  document.getElementById('prevBtn').disabled = index === 0;
+  document.getElementById('nextBtn').disabled = index === slides.length - 1;
+  
+  // Update thumbnails
+  document.querySelectorAll('.thumb').forEach((t, i) => {
+    t.classList.toggle('active', i === index);
   });
-
-  function toggleFullscreen(){
-    const el = stage;
-    if (!document.fullscreenElement) el.requestFullscreen?.();
-    else document.exitFullscreen?.();
+  
+  // Scroll thumbnail into view
+  const activeThumb = document.querySelector('.thumb.active');
+  if (activeThumb) {
+    activeThumb.scrollIntoView({ behavior: 'smooth', inline: 'center', block: 'nearest' });
   }
-  fsBtn.addEventListener("click", toggleFullscreen);
+}
 
-  document.addEventListener("fullscreenchange", () => {
-    fsBtn.textContent = document.fullscreenElement ? "Exit Fullscreen" : "Fullscreen";
-    if (!document.fullscreenElement && pointerOn){
-      pointerDot.style.display = "none";
-      setTimeout(()=>{ pointerDot.style.display = "block"; }, 50);
-    }
-  });
+// Render Playful Theme Slide
+function renderPlayfulSlide(slide, type, stickers, imageUrl, index) {
+  const title = slide.title || `Slide ${index + 1}`;
+  const subtitle = getSubtitle(type);
+  const content = extractContent(slide, type);
+  
+  return `
+    <div class="slide slide-type-${type}">
+      <span class="sticker sticker-1">${stickers[0]}</span>
+      <span class="sticker sticker-2">${stickers[1]}</span>
+      <span class="sticker sticker-3">${stickers[2]}</span>
+      <span class="sticker sticker-4">${stickers[3]}</span>
+      
+      <div class="slide-header">
+        <div class="slide-subtitle">${subtitle}</div>
+        <h1 class="slide-title">${escapeHtml(title)}</h1>
+      </div>
+      
+      <div class="slide-content">
+        <div class="content-text">
+          ${content}
+        </div>
+        ${type !== 'hook' && type !== 'objectives' ? `
+        <div class="content-image">
+          <img src="${imageUrl}" alt="${title}" loading="lazy" onerror="this.style.display='none'">
+        </div>
+        ` : ''}
+      </div>
+      
+      <div class="slide-footer">
+        <span class="slide-number">${index + 1} / ${slides.length}</span>
+        <span>${topicName}</span>
+      </div>
+    </div>
+  `;
+}
 
-  document.addEventListener("keydown", (e) => {
-    if (e.key === "p" || e.key === "P") { setPointer(!pointerOn); return; }
-    if (e.key === "f" || e.key === "F") { toggleFullscreen(); return; }
+// Render Minimal Theme Slide
+function renderMinimalSlide(slide, type, imageUrl, index) {
+  const title = slide.title || `Slide ${index + 1}`;
+  const subtitle = getSubtitle(type);
+  const content = extractContent(slide, type);
+  
+  return `
+    <div class="slide slide-type-${type}">
+      <div class="slide-header">
+        <div class="slide-subtitle">${subtitle}</div>
+        <h1 class="slide-title">${escapeHtml(title)}</h1>
+      </div>
+      
+      <div class="slide-content">
+        <div class="content-text">
+          ${content}
+        </div>
+        ${type !== 'hook' && type !== 'objectives' ? `
+        <div class="content-image">
+          <img src="${imageUrl}" alt="${title}" loading="lazy" onerror="this.style.display='none'">
+        </div>
+        ` : ''}
+      </div>
+      
+      <div class="slide-footer">
+        <span class="slide-number">${index + 1} / ${slides.length}</span>
+        <span class="slide-type-badge">${type}</span>
+      </div>
+    </div>
+  `;
+}
 
-    // H = highlight selection like chalk
-    if (e.key === "h" || e.key === "H") {
-      const sel = window.getSelection();
-      if (sel && sel.rangeCount > 0 && sel.toString().trim() !== "") {
-        try {
-          const range = sel.getRangeAt(0);
-          const mark = document.createElement("mark");
-          const isBlackboard = document.body.getAttribute("data-theme") === "blackboard";
-          mark.style.background = isBlackboard ? "rgba(255, 209, 102, 0.26)" : "rgba(245, 158, 11, 0.22)";
-          mark.style.color = "inherit";
-          mark.style.padding = "0 .18em";
-          mark.style.borderRadius = "0.35em";
-          mark.style.border = isBlackboard ? "1px solid rgba(255, 209, 102, 0.22)" : "1px solid rgba(245, 158, 11, 0.20)";
-          range.surroundContents(mark);
-          sel.removeAllRanges();
-        } catch (err) {
-          // ignore if selection spans complex nodes
+// Render Colorful Theme Slide
+function renderColorfulSlide(slide, type, imageUrl, index) {
+  const title = slide.title || `Slide ${index + 1}`;
+  const subtitle = getSubtitle(type);
+  const content = extractContent(slide, type);
+  
+  return `
+    <div class="slide slide-type-${type}">
+      <div class="slide-header">
+        <div class="slide-subtitle">${subtitle}</div>
+        <h1 class="slide-title">${escapeHtml(title)}</h1>
+      </div>
+      
+      <div class="slide-content">
+        <div class="content-text">
+          ${content}
+        </div>
+        ${type !== 'hook' && type !== 'objectives' ? `
+        <div class="content-image">
+          <img src="${imageUrl}" alt="${title}" loading="lazy" onerror="this.style.display='none'">
+        </div>
+        ` : ''}
+      </div>
+      
+      <div class="slide-footer">
+        <span class="slide-number">${index + 1} / ${slides.length}</span>
+      </div>
+    </div>
+  `;
+}
+
+// Render Corporate Theme Slide
+function renderCorporateSlide(slide, type, imageUrl, index) {
+  const title = slide.title || `Slide ${index + 1}`;
+  const subtitle = getSubtitle(type);
+  const content = extractContent(slide, type);
+  
+  return `
+    <div class="slide slide-type-${type}">
+      <div class="slide-header">
+        <div class="slide-subtitle">${subtitle}</div>
+        <h1 class="slide-title">${escapeHtml(title)}</h1>
+      </div>
+      
+      <div class="slide-content">
+        <div class="content-text">
+          ${content}
+        </div>
+        ${type !== 'hook' && type !== 'objectives' ? `
+        <div class="content-image">
+          <img src="${imageUrl}" alt="${title}" loading="lazy" onerror="this.style.display='none'">
+        </div>
+        ` : ''}
+      </div>
+      
+      <div class="slide-footer">
+        <span class="slide-number">${index + 1} / ${slides.length}</span>
+      </div>
+    </div>
+  `;
+}
+
+// Get subtitle based on slide type
+function getSubtitle(type) {
+  const subtitles = {
+    'hook': '🎯 Let\'s Start!',
+    'objectives': '📋 Objectives',
+    'context': '📖 Overview',
+    'vocabulary': '📚 Vocabulary',
+    'concept': '💡 Key Concept',
+    'pronunciation': '🗣️ Pronunciation',
+    'examples': '✏️ Examples',
+    'guided_practice': '🎯 Practice',
+    'dialogue': '💬 Dialogue',
+    'production': '🎨 Create',
+    'review': '🔄 Review',
+    'exit_ticket': '🎫 Exit Ticket'
+  };
+  return subtitles[type] || '📝 Content';
+}
+
+// Extract and format content from slide data
+function extractContent(slide, type) {
+  let html = '';
+  
+  // Content (string or array)
+  if (slide.content) {
+    if (typeof slide.content === 'string') {
+      html += `<p>${escapeHtml(slide.content)}</p>`;
+    } else if (Array.isArray(slide.content)) {
+      slide.content.forEach(c => {
+        if (typeof c === 'string') {
+          html += `<p>${escapeHtml(c)}</p>`;
+        } else if (c.en) {
+          html += `<p>${escapeHtml(c.en)}${c.th ? ` <span style="color:#6b7280">(${escapeHtml(c.th)})</span>` : ''}</p>`;
         }
-      }
-      return;
+      });
     }
-
-    if (e.key === "ArrowRight" || e.key === "PageDown" || e.key === " ") {
-      e.preventDefault(); go(idx + 1);
-    }
-    if (e.key === "ArrowLeft" || e.key === "PageUp") {
-      e.preventDefault(); go(idx - 1);
-    }
-  });
-
-  buildOutline();
-
-  if (slides.length) go(0);
-  else {
-    elType.innerHTML = `<span class="dot"></span> EMPTY`;
-    elTitle.textContent = "No slides";
-    elSub.textContent = "";
-    elContent.innerHTML = "<div class='card'><p style='font-weight:800;color:rgba(232,238,252,0.85);'>No slide data found.</p></div>";
-    progressBar.style.width = "0%";
-    updateNav();
   }
-</script>
+  
+  // Objectives
+  if (slide.objectives && Array.isArray(slide.objectives)) {
+    html += '<ul>';
+    slide.objectives.forEach(obj => {
+      html += `<li>${escapeHtml(obj)}</li>`;
+    });
+    html += '</ul>';
+  }
+  
+  // Vocabulary - limit to 4 items
+  if (slide.vocabulary && Array.isArray(slide.vocabulary)) {
+    const vocabToShow = slide.vocabulary.slice(0, 4);
+    if (currentTheme === 'playful' || currentTheme === 'colorful') {
+      html += '<div class="vocab-grid">';
+      vocabToShow.forEach(v => {
+        html += `
+          <div class="vocab-card">
+            <div class="word">${escapeHtml(v.word || '')}</div>
+            <div class="meaning">${escapeHtml(v.meaning || v.th || '')}</div>
+          </div>
+        `;
+      });
+      html += '</div>';
+      if (slide.vocabulary.length > 4) {
+        html += `<p style="color:#6b7280;font-size:0.8rem;margin-top:8px;text-align:center;">+ ${slide.vocabulary.length - 4} more words</p>`;
+      }
+    } else {
+      html += '<ul>';
+      vocabToShow.forEach(v => {
+        html += `<li><strong>${escapeHtml(v.word || '')}</strong> - ${escapeHtml(v.meaning || v.th || '')}${v.example ? `<br><em style="color:#6b7280;font-size:0.85rem">Ex: ${escapeHtml(v.example)}</em>` : ''}</li>`;
+      });
+      html += '</ul>';
+      if (slide.vocabulary.length > 4) {
+        html += `<p style="color:#6b7280;font-size:0.85rem;">+ ${slide.vocabulary.length - 4} more words</p>`;
+      }
+    }
+  }
+  
+  // Examples - limit to 4 items
+  if (slide.examples && Array.isArray(slide.examples)) {
+    const examplesToShow = slide.examples.slice(0, 4);
+    html += '<ul>';
+    examplesToShow.forEach(ex => {
+      if (typeof ex === 'string') {
+        html += `<li>${escapeHtml(ex)}</li>`;
+      } else if (ex.en) {
+        html += `<li>${escapeHtml(ex.en)}${ex.th ? ` <span style="color:#6b7280;font-size:0.9rem">(${escapeHtml(ex.th)})</span>` : ''}</li>`;
+      }
+    });
+    html += '</ul>';
+    if (slide.examples.length > 4) {
+      html += `<p style="color:#6b7280;font-size:0.85rem;">+ ${slide.examples.length - 4} more examples</p>`;
+    }
+  }
+  
+  // Highlights
+  if (slide.highlights && Array.isArray(slide.highlights)) {
+    html += '<ul>';
+    slide.highlights.forEach(h => {
+      html += `<li><strong>${escapeHtml(h.label || '')}</strong>: ${escapeHtml(h.note || '')}</li>`;
+    });
+    html += '</ul>';
+  }
+  
+  // Pattern
+  if (slide.pattern) {
+    html += `<p style="font-size:1.2rem;font-weight:700;background:rgba(102,126,234,0.1);padding:16px;border-radius:12px;text-align:center;">📝 ${escapeHtml(slide.pattern)}</p>`;
+  }
+  
+  // Prompt (for hook)
+  if (slide.prompt) {
+    html += `<p style="font-size:1.3rem;text-align:center;font-weight:600;">${escapeHtml(slide.prompt)}</p>`;
+  }
+  
+  // Keywords
+  if (slide.keywords && Array.isArray(slide.keywords) && slide.keywords.length > 0) {
+    html += `<p style="margin-top:16px;"><strong>Keywords:</strong> ${slide.keywords.map(k => `<span style="background:#f1f5f9;padding:4px 10px;border-radius:20px;margin-right:6px;font-size:0.9rem;">${escapeHtml(k)}</span>`).join('')}</p>`;
+  }
+  
+  // Dialogue lines - limit to 6
+  if (slide.lines && Array.isArray(slide.lines)) {
+    const linesToShow = slide.lines.slice(0, 6);
+    html += '<div class="dialogue-box">';
+    linesToShow.forEach(line => {
+      if (typeof line === 'string') {
+        html += `<p class="dialogue-line">${escapeHtml(line)}</p>`;
+      } else if (line.speaker) {
+        const text = line.en || line.text || '';
+        html += `<p class="dialogue-line"><strong>${escapeHtml(line.speaker)}:</strong> ${escapeHtml(text)}</p>`;
+      }
+    });
+    html += '</div>';
+    if (slide.lines.length > 6) {
+      html += `<p style="color:#6b7280;font-size:0.85rem;">+ ${slide.lines.length - 6} more lines...</p>`;
+    }
+  }
+  
+  // Guided practice items - limit to 2 per slide and smaller font
+  if (slide.items && Array.isArray(slide.items) && type === 'guided_practice') {
+    const itemsToShow = slide.items.slice(0, 2); // Show max 2 questions
+    html += '<div class="practice-questions">';
+    itemsToShow.forEach((item, i) => {
+      const q = item.q || item.question || '';
+      html += `<div class="practice-item">
+        <p class="practice-question"><strong>Q${i+1}:</strong> ${escapeHtml(q)}</p>
+        ${item.choices && Array.isArray(item.choices) ? `
+        <div class="practice-choices">
+          ${item.choices.map((choice, ci) => {
+            const labels = ['A', 'B', 'C', 'D'];
+            return `<div class="practice-choice"><strong>${labels[ci]})</strong> ${escapeHtml(choice)}</div>`;
+          }).join('')}
+        </div>` : ''}
+      </div>`;
+    });
+    if (slide.items.length > 2) {
+      html += `<p style="color:#6b7280;font-size:0.85rem;margin-top:8px;">+ ${slide.items.length - 2} more questions...</p>`;
+    }
+    html += '</div>';
+  }
+  
+  // Common mistakes
+  if (slide.common_mistakes && Array.isArray(slide.common_mistakes)) {
+    html += '<div style="margin-top:16px;padding:12px;background:rgba(239,68,68,0.1);border-radius:10px;border-left:4px solid #ef4444;"><strong>⚠️ Common Mistakes:</strong><ul style="margin:8px 0 0;padding-left:20px;">';
+    slide.common_mistakes.forEach(m => {
+      html += `<li>${escapeHtml(m)}</li>`;
+    });
+    html += '</ul></div>';
+  }
+  
+  // Scenario
+  if (slide.scenario) {
+    html += `<p style="font-style:italic;color:#6b7280;margin-bottom:12px;">🎭 ${escapeHtml(slide.scenario)}</p>`;
+  }
+  
+  // Bullets (generic)
+  if (slide.bullets && Array.isArray(slide.bullets)) {
+    html += '<ul>';
+    slide.bullets.forEach(b => {
+      html += `<li>${escapeHtml(b)}</li>`;
+    });
+    html += '</ul>';
+  }
+  
+  return html || '<p style="color:#6b7280;text-align:center;">Content coming soon...</p>';
+}
 
+// Escape HTML
+function escapeHtml(text) {
+  if (!text) return '';
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Create thumbnails
+function createThumbnails() {
+  const strip = document.getElementById('thumbStrip');
+  strip.innerHTML = slides.map((slide, i) => `
+    <div class="thumb ${i === 0 ? 'active' : ''}" onclick="goToSlide(${i})">
+      ${slide.title ? slide.title.substring(0, 30) : `Slide ${i + 1}`}
+    </div>
+  `).join('');
+}
+
+// Navigation functions
+function nextSlide() {
+  if (currentIndex < slides.length - 1) {
+    currentIndex++;
+    renderSlide(currentIndex);
+  }
+}
+
+function prevSlide() {
+  if (currentIndex > 0) {
+    currentIndex--;
+    renderSlide(currentIndex);
+  }
+}
+
+function goToSlide(index) {
+  currentIndex = index;
+  renderSlide(currentIndex);
+}
+
+// Theme switching
+function setTheme(theme) {
+  currentTheme = theme;
+  const wrapper = document.getElementById('themeWrapper');
+  wrapper.className = `theme-${theme}`;
+  
+  // Update theme buttons
+  document.querySelectorAll('.theme-btn').forEach(btn => {
+    btn.classList.remove('active');
+  });
+  document.querySelector(`.theme-btn.${theme}`).classList.add('active');
+  
+  // Re-render current slide
+  renderSlide(currentIndex);
+}
+
+// Fullscreen toggle
+function toggleFullscreen() {
+  document.body.classList.toggle('fullscreen-mode');
+  
+  if (document.fullscreenElement) {
+    document.exitFullscreen();
+  } else {
+    document.documentElement.requestFullscreen();
+  }
+}
+
+// Keyboard navigation
+document.addEventListener('keydown', (e) => {
+  if (e.key === 'ArrowRight' || e.key === ' ') {
+    e.preventDefault();
+    nextSlide();
+  } else if (e.key === 'ArrowLeft') {
+    e.preventDefault();
+    prevSlide();
+  } else if (e.key === 'Escape') {
+    if (document.body.classList.contains('fullscreen-mode')) {
+      document.body.classList.remove('fullscreen-mode');
+    }
+  } else if (e.key === 'f' || e.key === 'F') {
+    toggleFullscreen();
+  }
+});
+
+// Initialize
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('totalSlides').textContent = slides.length;
+  createThumbnails();
+  renderSlide(0);
+});
+</script>
 {% endblock %}
