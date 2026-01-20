@@ -266,6 +266,427 @@ def api_save_slides(topic_id):
 
 
 # ==============================================================================
+# Download Slides as PDF
+# ==============================================================================
+@app.route("/topic/<int:topic_id>/slides/download")
+@login_required
+def download_slides_pdf(topic_id):
+    topic = _get_topic_or_404(topic_id)
+    
+    # Parse slides
+    slides = []
+    if topic.get("slides_json"):
+        try:
+            obj = json.loads(topic["slides_json"])
+            slides = obj.get("slides", obj) if isinstance(obj, dict) else obj
+        except: pass
+    
+    if not slides:
+        flash("ไม่มีสไลด์", "error")
+        return redirect(url_for("topic_detail", topic_id=topic_id))
+    
+    # Generate PDF
+    pdf_bytes = _generate_slides_pdf(topic["name"], slides)
+    
+    # Clean filename
+    safe_name = "".join(c for c in topic["name"] if c.isalnum() or c in " -_").strip()[:50] or "slides"
+    
+    return Response(
+        pdf_bytes,
+        mimetype="application/pdf",
+        headers={"Content-Disposition": f"attachment; filename={safe_name}_slides.pdf"}
+    )
+
+
+def _generate_slides_pdf(title, slides):
+    """Generate a PDF from slides data - supports all slide types + Thai language"""
+    from reportlab.lib.pagesizes import A4, landscape
+    from reportlab.pdfgen import canvas
+    from reportlab.lib.units import cm
+    from reportlab.lib.colors import HexColor
+    from reportlab.pdfbase import pdfmetrics
+    from reportlab.pdfbase.ttfonts import TTFont
+    import textwrap
+    import urllib.request
+    import tempfile
+    
+    buf = BytesIO()
+    page_size = landscape(A4)
+    c = canvas.Canvas(buf, pagesize=page_size)
+    w, h = page_size
+    
+    # Register Thai font
+    thai_font = "Helvetica"
+    thai_font_bold = "Helvetica-Bold"
+    thai_font_italic = "Helvetica-Oblique"
+    
+    # Try to find and register a Thai-compatible font
+    font_paths = [
+        # Windows fonts
+        "C:/Windows/Fonts/THSarabunNew.ttf",
+        "C:/Windows/Fonts/thsarabunnew.ttf",
+        "C:/Windows/Fonts/Tahoma.ttf",
+        "C:/Windows/Fonts/tahoma.ttf",
+        "C:/Windows/Fonts/cordia.ttf",
+        "C:/Windows/Fonts/CordiaNew.ttf",
+        "C:/Windows/Fonts/angsana.ttf",
+        # Linux fonts
+        "/usr/share/fonts/truetype/thai/TH Sarabun New.ttf",
+        "/usr/share/fonts/truetype/tlwg/TlwgTypo.ttf",
+        "/usr/share/fonts/truetype/noto/NotoSansThai-Regular.ttf",
+        # Mac fonts
+        "/Library/Fonts/Thonburi.ttf",
+        "/System/Library/Fonts/Thonburi.ttc",
+    ]
+    
+    font_bold_paths = [
+        "C:/Windows/Fonts/THSarabunNew Bold.ttf",
+        "C:/Windows/Fonts/thsarabunnew-bold.ttf",
+        "C:/Windows/Fonts/tahomabd.ttf",
+        "C:/Windows/Fonts/cordiab.ttf",
+    ]
+    
+    for fp in font_paths:
+        if os.path.exists(fp):
+            try:
+                pdfmetrics.registerFont(TTFont("ThaiFont", fp))
+                thai_font = "ThaiFont"
+                thai_font_italic = "ThaiFont"
+                print(f"Registered Thai font: {fp}")
+                break
+            except Exception as e:
+                print(f"Failed to register font {fp}: {e}")
+    
+    for fp in font_bold_paths:
+        if os.path.exists(fp):
+            try:
+                pdfmetrics.registerFont(TTFont("ThaiFontBold", fp))
+                thai_font_bold = "ThaiFontBold"
+                break
+            except:
+                pass
+    
+    # If no Thai font found, try to use THSarabun from uploads folder
+    custom_font_path = os.path.join(app.config["UPLOAD_FOLDER"], "THSarabunNew.ttf")
+    if thai_font == "Helvetica" and os.path.exists(custom_font_path):
+        try:
+            pdfmetrics.registerFont(TTFont("ThaiFont", custom_font_path))
+            thai_font = "ThaiFont"
+            thai_font_italic = "ThaiFont"
+        except:
+            pass
+    
+    # Colors
+    primary_color = HexColor("#667eea")
+    dark_color = HexColor("#1e293b")
+    muted_color = HexColor("#64748b")
+    bg_color = HexColor("#f8fafc")
+    accent_color = HexColor("#10b981")
+    
+    # Adjust font size for Thai fonts (they're usually larger)
+    base_size = 14 if thai_font != "Helvetica" else 12
+    title_size = 24 if thai_font != "Helvetica" else 22
+    
+    def draw_bullet(x, y, text, max_width, font_size=None):
+        """Draw a bullet point and return new y position"""
+        if font_size is None:
+            font_size = base_size
+        if y < 2*cm:
+            return y
+        c.setFillColor(primary_color)
+        c.circle(x, y + 0.12*cm, 0.1*cm, fill=1, stroke=0)
+        c.setFillColor(dark_color)
+        c.setFont(thai_font, font_size)
+        wrapped = textwrap.wrap(str(text), width=int(max_width / 6))
+        for line in wrapped[:3]:
+            c.drawString(x + 0.5*cm, y, line)
+            y -= 0.55*cm
+        return y - 0.15*cm
+    
+    def extract_content_from_slide(slide):
+        """Extract displayable content from any slide type"""
+        slide_type = slide.get("type", "")
+        items = []
+        
+        # Get content from various possible keys
+        content = slide.get("content", [])
+        if isinstance(content, str):
+            items.append(content)
+        elif isinstance(content, list):
+            for ct in content:
+                if isinstance(ct, str):
+                    items.append(ct)
+                elif isinstance(ct, dict):
+                    en = ct.get("en") or ct.get("text") or ""
+                    th = ct.get("th") or ct.get("meaning") or ""
+                    if en:
+                        items.append(f"{en}" + (f" ({th})" if th else ""))
+        
+        # Objectives
+        objectives = slide.get("objectives", [])
+        if isinstance(objectives, list):
+            for obj in objectives:
+                if isinstance(obj, str):
+                    items.append(f"• {obj}")
+        
+        # Vocabulary
+        vocabulary = slide.get("vocabulary", []) or slide.get("items", [])
+        if isinstance(vocabulary, list) and slide_type in ["vocabulary", ""]:
+            for v in vocabulary[:8]:
+                if isinstance(v, dict):
+                    word = v.get("word", "")
+                    meaning = v.get("meaning", "") or v.get("th", "")
+                    example = v.get("example", "") or v.get("example_en", "")
+                    if word:
+                        line = f"• {word}"
+                        if meaning:
+                            line += f" - {meaning}"
+                        items.append(line)
+                        if example:
+                            items.append(f"  Ex: {example}")
+        
+        # Examples (en/th format)
+        examples = slide.get("examples", [])
+        if isinstance(examples, list):
+            for ex in examples[:6]:
+                if isinstance(ex, dict):
+                    en = ex.get("en", "")
+                    th = ex.get("th", "")
+                    if en:
+                        items.append(f"• {en}" + (f" ({th})" if th else ""))
+                elif isinstance(ex, str):
+                    items.append(f"• {ex}")
+        
+        # Highlights (for concept slides)
+        highlights = slide.get("highlights", [])
+        if isinstance(highlights, list):
+            for hl in highlights[:5]:
+                if isinstance(hl, dict):
+                    label = hl.get("label", "")
+                    note = hl.get("note", "")
+                    if label:
+                        items.append(f"• {label}: {note}" if note else f"• {label}")
+        
+        # Pattern/Structure (for concept slides)
+        pattern = slide.get("pattern") or slide.get("structure", "")
+        if pattern and isinstance(pattern, str):
+            items.insert(0, f"📝 {pattern}")
+        
+        # Prompt (for hook slides)
+        prompt = slide.get("prompt", "")
+        if prompt and isinstance(prompt, str):
+            items.insert(0, prompt)
+        
+        # Keywords
+        keywords = slide.get("keywords", [])
+        if isinstance(keywords, list) and keywords:
+            items.append(f"Keywords: {', '.join(str(k) for k in keywords)}")
+        
+        # Dialogue lines
+        lines = slide.get("lines", [])
+        if isinstance(lines, list):
+            for line in lines[:8]:
+                if isinstance(line, dict):
+                    speaker = line.get("speaker", "")
+                    text = line.get("en") or line.get("text", "")
+                    if speaker and text:
+                        items.append(f"{speaker}: {text}")
+                elif isinstance(line, str):
+                    items.append(line)
+        
+        # Scenario
+        scenario = slide.get("scenario", "")
+        if scenario and isinstance(scenario, str):
+            items.insert(0, f"🎭 {scenario}")
+        
+        # Guided practice items
+        practice_items = slide.get("items", [])
+        if isinstance(practice_items, list) and slide_type == "guided_practice":
+            for pi in practice_items[:4]:
+                if isinstance(pi, dict):
+                    q = pi.get("q") or pi.get("question", "")
+                    if q:
+                        items.append(f"Q: {q}")
+                    choices = pi.get("choices", [])
+                    if choices:
+                        items.append(f"   A) {choices[0] if len(choices) > 0 else ''}")
+                        items.append(f"   B) {choices[1] if len(choices) > 1 else ''}")
+                        items.append(f"   C) {choices[2] if len(choices) > 2 else ''}")
+                        items.append(f"   D) {choices[3] if len(choices) > 3 else ''}")
+        
+        # Common mistakes
+        mistakes = slide.get("common_mistakes", [])
+        if isinstance(mistakes, list) and mistakes:
+            items.append("")
+            items.append("⚠️ Common mistakes:")
+            for m in mistakes[:3]:
+                items.append(f"  • {m}")
+        
+        # Bullets (generic)
+        bullets = slide.get("bullets", [])
+        if isinstance(bullets, list):
+            for b in bullets:
+                if isinstance(b, str):
+                    items.append(f"• {b}")
+        
+        return items
+    
+    for i, slide in enumerate(slides):
+        slide_title = slide.get("title", f"Slide {i+1}")
+        slide_type = slide.get("type", "")
+        image_url = slide.get("image_url", "")
+        
+        # Background
+        c.setFillColor(bg_color)
+        c.rect(0, 0, w, h, fill=1, stroke=0)
+        
+        # Header bar
+        c.setFillColor(primary_color)
+        c.rect(0, h - 2.5*cm, w, 2.5*cm, fill=1, stroke=0)
+        
+        # Slide number
+        c.setFillColor(HexColor("#ffffff"))
+        c.setFont("Helvetica", 10)
+        c.drawRightString(w - 1*cm, h - 1.5*cm, f"{i+1} / {len(slides)}")
+        
+        # Slide type badge
+        if slide_type:
+            c.setFont("Helvetica", 8)
+            c.drawRightString(w - 1*cm, h - 2*cm, f"[{slide_type}]")
+        
+        # Title
+        c.setFillColor(HexColor("#ffffff"))
+        c.setFont(thai_font_bold, title_size)
+        display_title = slide_title[:55] + "..." if len(slide_title) > 55 else slide_title
+        c.drawString(1.5*cm, h - 1.7*cm, display_title)
+        
+        y = h - 4*cm
+        content_width = w - 3*cm
+        
+        # Check if there's an image
+        img_x = None
+        if image_url and not image_url.startswith("data:"):
+            content_width = w * 0.55
+            img_x = w * 0.58
+        
+        # Extract and draw content
+        content_items = extract_content_from_slide(slide)
+        
+        c.setFillColor(dark_color)
+        c.setFont(thai_font, base_size)
+        
+        for item in content_items:
+            if y < 2*cm:
+                break
+            
+            item_str = str(item).strip()
+            if not item_str:
+                y -= 0.3*cm
+                continue
+            
+            # Check for special formatting
+            if item_str.startswith("•"):
+                y = draw_bullet(1.5*cm, y, item_str[1:].strip(), content_width, base_size)
+            elif item_str.startswith("  •"):
+                y = draw_bullet(2.2*cm, y, item_str[3:].strip(), content_width - 0.7*cm, base_size - 1)
+            elif item_str.startswith("📝") or item_str.startswith("🎭") or item_str.startswith("⚠️"):
+                c.setFont(thai_font_bold, base_size + 1)
+                c.setFillColor(accent_color)
+                wrapped = textwrap.wrap(item_str, width=int(content_width / 7))
+                for line in wrapped[:2]:
+                    c.drawString(1.5*cm, y, line)
+                    y -= 0.6*cm
+                c.setFillColor(dark_color)
+                c.setFont(thai_font, base_size)
+                y -= 0.2*cm
+            elif item_str.startswith("Q:"):
+                c.setFont(thai_font_bold, base_size)
+                wrapped = textwrap.wrap(item_str, width=int(content_width / 7))
+                for line in wrapped[:2]:
+                    c.drawString(1.5*cm, y, line)
+                    y -= 0.55*cm
+                c.setFont(thai_font, base_size)
+            elif item_str.startswith("   "):
+                c.setFont(thai_font, base_size - 1)
+                c.drawString(2*cm, y, item_str.strip())
+                y -= 0.5*cm
+                c.setFont(thai_font, base_size)
+            elif item_str.startswith("Ex:") or item_str.startswith("  Ex:"):
+                c.setFont(thai_font_italic, base_size - 1)
+                c.setFillColor(muted_color)
+                wrapped = textwrap.wrap(item_str, width=int(content_width / 6.5))
+                for line in wrapped[:2]:
+                    c.drawString(2*cm, y, line)
+                    y -= 0.5*cm
+                c.setFillColor(dark_color)
+                c.setFont(thai_font, base_size)
+            elif ":" in item_str and not item_str.startswith("Keywords"):
+                parts = item_str.split(":", 1)
+                c.setFont(thai_font_bold, base_size - 1)
+                c.drawString(1.5*cm, y, parts[0] + ":")
+                c.setFont(thai_font, base_size - 1)
+                if len(parts) > 1:
+                    wrapped = textwrap.wrap(parts[1].strip(), width=int(content_width / 7))
+                    first = True
+                    for line in wrapped[:2]:
+                        if first:
+                            c.drawString(1.5*cm + c.stringWidth(parts[0] + ": ", thai_font_bold, base_size - 1), y, line)
+                            first = False
+                        else:
+                            c.drawString(2*cm, y, line)
+                        y -= 0.55*cm
+                else:
+                    y -= 0.55*cm
+                c.setFont(thai_font, base_size)
+            else:
+                wrapped = textwrap.wrap(item_str, width=int(content_width / 7))
+                for line in wrapped[:3]:
+                    c.drawString(1.5*cm, y, line)
+                    y -= 0.55*cm
+                y -= 0.1*cm
+        
+        # Image
+        if image_url and img_x:
+            try:
+                img_path = None
+                
+                if image_url.startswith("/uploads/"):
+                    img_path = os.path.join(app.config["UPLOAD_FOLDER"], image_url.split("/uploads/")[-1])
+                elif image_url.startswith("http"):
+                    with tempfile.NamedTemporaryFile(delete=False, suffix=".jpg") as tmp:
+                        urllib.request.urlretrieve(image_url, tmp.name)
+                        img_path = tmp.name
+                
+                if img_path and os.path.exists(img_path):
+                    img_max_w = w * 0.38
+                    img_max_h = h - 5*cm
+                    
+                    from reportlab.lib.utils import ImageReader
+                    img = ImageReader(img_path)
+                    iw, ih = img.getSize()
+                    
+                    scale = min(img_max_w / iw, img_max_h / ih)
+                    draw_w = iw * scale
+                    draw_h = ih * scale
+                    
+                    img_y = (h - 2.5*cm - draw_h) / 2
+                    
+                    c.drawImage(img_path, img_x, img_y, width=draw_w, height=draw_h, preserveAspectRatio=True)
+            except Exception as e:
+                print(f"Error loading image: {e}")
+        
+        # Footer
+        c.setFillColor(muted_color)
+        c.setFont(thai_font, 10)
+        c.drawString(1.5*cm, 0.8*cm, title)
+        
+        c.showPage()
+    
+    c.save()
+    return buf.getvalue()
+
+
+# ==============================================================================
 # Game
 # ==============================================================================
 @app.route("/topic/<int:topic_id>/game")
@@ -537,12 +958,51 @@ def classroom_detail(classroom_id):
     students = ClassroomStudent.get_by_classroom(classroom_id)
     assignments = Assignment.get_by_classroom(classroom_id)
     topics = Topic.get_by_owner(session["user_id"])
-    # Get submission stats for each assignment
+    
+    # Get submission stats and scores for each assignment
     submission_stats = {}
+    assignment_stats = {}
+    scores_by_student = {s["id"]: {"assignments": {}, "total_score": 0, "total_possible": 0} for s in students}
+    
     for a in assignments:
         status = Assignment.get_submissions_status(a["id"])
         submission_stats[a["id"]] = {"submitted": len(status["submitted"]), "not_submitted": len(status["not_submitted"])}
-    return render_template("classroom_detail.html", classroom=cls, students=students, assignments=assignments, topics=topics, submission_stats=submission_stats)
+        
+        # Calculate assignment average
+        submissions = status.get("submissions") or []
+        if submissions:
+            avg = sum(s.get("percentage") or 0 for s in submissions) / len(submissions)
+            assignment_stats[a["id"]] = {"avg": avg, "count": len(submissions)}
+        else:
+            assignment_stats[a["id"]] = {"avg": 0, "count": 0}
+        
+        # Map submissions to students
+        for student in students:
+            student_id = student["id"]
+            student_name_lower = (student.get("student_name") or "").strip().lower()
+            student_no = (student.get("student_no") or "").strip()
+            
+            # Find matching submission
+            for sub in submissions:
+                sub_name = (sub.get("student_name") or "").strip().lower()
+                sub_no = (sub.get("student_no") or "").strip()
+                if sub_name == student_name_lower or (sub_no and sub_no == student_no):
+                    scores_by_student[student_id]["assignments"][a["id"]] = {
+                        "score": sub.get("score", 0),
+                        "total": sub.get("total", 0),
+                        "percentage": sub.get("percentage", 0)
+                    }
+                    scores_by_student[student_id]["total_score"] += sub.get("score", 0)
+                    scores_by_student[student_id]["total_possible"] += sub.get("total", 0)
+                    break
+    
+    # Calculate class average
+    class_avg = 0
+    students_with_scores = [s for s in scores_by_student.values() if s["total_possible"] > 0]
+    if students_with_scores:
+        class_avg = sum((s["total_score"] / s["total_possible"] * 100) for s in students_with_scores) / len(students_with_scores)
+    
+    return render_template("classroom_detail.html", classroom=cls, students=students, assignments=assignments, topics=topics, submission_stats=submission_stats, scores_by_student=scores_by_student, assignment_stats=assignment_stats, class_avg=class_avg)
 
 @app.route("/classroom/<int:classroom_id>/edit", methods=["POST"])
 @login_required
