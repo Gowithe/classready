@@ -117,10 +117,19 @@ body {
   flex-direction: column;
 }
 
+.slide-header {
+  flex-shrink: 0 !important;
+  min-height: auto !important;
+}
+
 .slide-content {
   flex: 1;
   overflow: hidden;
   min-height: 0; /* Important for flex children */
+}
+
+.slide-footer {
+  flex-shrink: 0 !important;
 }
 
 .content-text {
@@ -922,6 +931,17 @@ body {
   font-size: 0.8rem;
 }
 
+.content-image {
+  opacity: 0;
+  transition: opacity 0.3s ease;
+}
+
+.content-image img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
 /* Dialogue Box */
 .dialogue-box {
   background: rgba(102,126,234,0.05);
@@ -956,28 +976,69 @@ body {
    ============================================ */
 .fullscreen-mode .top-bar,
 .fullscreen-mode .thumb-strip {
-  display: none;
+  display: none !important;
+}
+
+/* Hide base.html navbar when fullscreen */
+body.fullscreen-mode header,
+body.fullscreen-mode nav,
+body.fullscreen-mode .navbar,
+body.fullscreen-mode > nav,
+body.fullscreen-mode > header,
+body.fullscreen-mode .nav,
+body.fullscreen-mode [class*="navbar"],
+body.fullscreen-mode [class*="header"] {
+  display: none !important;
 }
 
 .fullscreen-mode .viewer-container {
-  padding: 0;
+  padding: 0 !important;
+  margin: 0 !important;
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  width: 100vw !important;
+  height: 100vh !important;
+  z-index: 9999 !important;
   display: flex;
   align-items: center;
   justify-content: center;
-  min-height: 100vh;
 }
 
 .fullscreen-mode .slide-wrapper {
   max-width: 100%;
   width: 100%;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  margin: 0;
 }
 
 .fullscreen-mode .slide-container {
-  max-width: 100vw;
-  max-height: 100vh;
   width: 100vw;
   height: 100vh;
-  border-radius: 0;
+  max-width: 100vw;
+  max-height: 100vh;
+  border-radius: 0 !important;
+  box-shadow: none !important;
+  border: none !important;
+  aspect-ratio: auto;
+  overflow: hidden !important;
+}
+
+/* Fullscreen slide - ensure header is visible */
+#themeWrapper.fullscreen-mode .slide,
+#themeWrapper.theme-playful.fullscreen-mode .slide,
+#themeWrapper.theme-minimal.fullscreen-mode .slide,
+#themeWrapper.theme-colorful.fullscreen-mode .slide,
+#themeWrapper.theme-corporate.fullscreen-mode .slide {
+  height: 100% !important;
+  overflow-y: auto !important;
+  overflow-x: hidden !important;
 }
 
 .fullscreen-mode .nav-bar {
@@ -985,14 +1046,237 @@ body {
   bottom: 30px;
   left: 50%;
   transform: translateX(-50%);
-  background: rgba(0,0,0,0.7);
+  background: rgba(30, 41, 59, 0.9);
   padding: 12px 24px;
   border-radius: 30px;
-  z-index: 100;
+  z-index: 10001;
+  backdrop-filter: blur(10px);
+  box-shadow: 0 4px 20px rgba(0,0,0,0.3);
 }
 
 .fullscreen-mode .nav-btn {
-  background: rgba(255,255,255,0.9);
+  background: rgba(255,255,255,0.95);
+  width: 44px;
+  height: 44px;
+}
+
+.fullscreen-mode .slide-counter {
+  color: #fff;
+}
+
+/* Theme specific fullscreen adjustments */
+.fullscreen-mode.theme-playful .slide-container {
+  box-shadow: none !important;
+  border: none !important;
+}
+
+.fullscreen-mode.theme-playful .viewer-container {
+  background: #fbbf24 !important;
+}
+
+.fullscreen-mode.theme-corporate .viewer-container {
+  background: #0f172a !important;
+}
+
+.fullscreen-mode.theme-minimal .viewer-container {
+  background: #f8fafc !important;
+}
+
+.fullscreen-mode.theme-colorful .viewer-container {
+  background: linear-gradient(135deg, #fdf2f8, #ede9fe, #ecfeff) !important;
+}
+
+.fullscreen-mode.theme-corporate .nav-bar {
+  background: rgba(15, 23, 42, 0.95);
+}
+
+.fullscreen-mode.theme-colorful .nav-bar {
+  background: linear-gradient(135deg, rgba(244,114,182,0.9), rgba(129,140,248,0.9));
+}
+
+/* Fullscreen slide padding adjustments - use more specific selectors */
+/* Must override theme-specific styles */
+#themeWrapper.theme-playful.fullscreen-mode .slide,
+#themeWrapper.theme-minimal.fullscreen-mode .slide,
+#themeWrapper.theme-colorful.fullscreen-mode .slide,
+#themeWrapper.theme-corporate.fullscreen-mode .slide {
+  padding: 80px 60px 60px !important;
+  overflow: auto !important;
+}
+
+#themeWrapper.fullscreen-mode .slide,
+.fullscreen-mode.theme-playful .slide,
+.fullscreen-mode.theme-minimal .slide,
+.fullscreen-mode.theme-colorful .slide,
+.fullscreen-mode.theme-corporate .slide,
+.fullscreen-mode .slide-container .slide {
+  padding: 80px 60px 60px !important;
+  overflow: auto !important;
+}
+
+#themeWrapper.theme-playful.fullscreen-mode .slide-header,
+#themeWrapper.theme-minimal.fullscreen-mode .slide-header,
+#themeWrapper.theme-colorful.fullscreen-mode .slide-header,
+#themeWrapper.theme-corporate.fullscreen-mode .slide-header {
+  margin-bottom: 24px !important;
+  padding-top: 0 !important;
+}
+
+#themeWrapper.fullscreen-mode .slide-header,
+.fullscreen-mode.theme-playful .slide-header,
+.fullscreen-mode.theme-minimal .slide-header,
+.fullscreen-mode.theme-colorful .slide-header,
+.fullscreen-mode.theme-corporate .slide-header,
+.fullscreen-mode .slide-container .slide-header {
+  margin-bottom: 24px !important;
+  padding-top: 0 !important;
+}
+
+#themeWrapper.theme-playful.fullscreen-mode .slide-subtitle,
+#themeWrapper.theme-minimal.fullscreen-mode .slide-subtitle,
+#themeWrapper.theme-colorful.fullscreen-mode .slide-subtitle,
+#themeWrapper.theme-corporate.fullscreen-mode .slide-subtitle {
+  font-size: 1rem !important;
+  padding: 8px 20px !important;
+}
+
+#themeWrapper.fullscreen-mode .slide-subtitle,
+.fullscreen-mode.theme-playful .slide-subtitle,
+.fullscreen-mode.theme-minimal .slide-subtitle,
+.fullscreen-mode.theme-colorful .slide-subtitle,
+.fullscreen-mode.theme-corporate .slide-subtitle,
+.fullscreen-mode .slide-container .slide-subtitle {
+  font-size: 1rem !important;
+  padding: 8px 20px !important;
+}
+
+#themeWrapper.theme-playful.fullscreen-mode .slide-title,
+#themeWrapper.theme-minimal.fullscreen-mode .slide-title,
+#themeWrapper.theme-colorful.fullscreen-mode .slide-title,
+#themeWrapper.theme-corporate.fullscreen-mode .slide-title {
+  font-size: 2.5rem !important;
+  margin-top: 8px !important;
+}
+
+#themeWrapper.fullscreen-mode .slide-title,
+.fullscreen-mode.theme-playful .slide-title,
+.fullscreen-mode.theme-minimal .slide-title,
+.fullscreen-mode.theme-colorful .slide-title,
+.fullscreen-mode.theme-corporate .slide-title,
+.fullscreen-mode .slide-container .slide-title {
+  font-size: 2.5rem !important;
+  margin-top: 8px !important;
+}
+
+.fullscreen-mode .content-text {
+  font-size: 1.2rem;
+}
+
+.fullscreen-mode .content-text p {
+  font-size: 1.2rem !important;
+}
+
+.fullscreen-mode.theme-playful .content-text li,
+.fullscreen-mode.theme-minimal .content-text li,
+.fullscreen-mode.theme-colorful .content-text li,
+.fullscreen-mode.theme-corporate .content-text li {
+  font-size: 1.1rem !important;
+  padding: 16px 20px !important;
+}
+
+.fullscreen-mode .content-image {
+  width: 320px !important;
+}
+
+.fullscreen-mode.theme-playful .sticker,
+.fullscreen-mode .sticker {
+  font-size: 3rem !important;
+}
+
+.fullscreen-mode.theme-playful .sticker-1,
+.fullscreen-mode .sticker-1 { top: 30px !important; left: 30px !important; }
+.fullscreen-mode.theme-playful .sticker-2,
+.fullscreen-mode .sticker-2 { top: 30px !important; right: 30px !important; }
+.fullscreen-mode.theme-playful .sticker-3,
+.fullscreen-mode .sticker-3 { bottom: 100px !important; left: 30px !important; }
+.fullscreen-mode.theme-playful .sticker-4,
+.fullscreen-mode .sticker-4 { bottom: 100px !important; right: 30px !important; }
+
+.fullscreen-mode.theme-playful .slide-footer,
+.fullscreen-mode.theme-minimal .slide-footer,
+.fullscreen-mode.theme-colorful .slide-footer,
+.fullscreen-mode.theme-corporate .slide-footer,
+.fullscreen-mode .slide-container .slide-footer {
+  padding-bottom: 20px !important;
+  padding-top: 20px !important;
+}
+
+.fullscreen-mode .slide-number {
+  font-size: 1rem !important;
+  padding: 6px 16px !important;
+}
+
+/* Vocab grid in fullscreen - 4 columns */
+.fullscreen-mode.theme-playful .vocab-grid,
+.fullscreen-mode.theme-colorful .vocab-grid,
+.fullscreen-mode .vocab-grid {
+  grid-template-columns: repeat(4, 1fr) !important;
+  gap: 16px !important;
+}
+
+.fullscreen-mode.theme-playful .vocab-card,
+.fullscreen-mode .vocab-card {
+  padding: 20px 16px !important;
+}
+
+.fullscreen-mode.theme-playful .vocab-card .word,
+.fullscreen-mode .vocab-card .word {
+  font-size: 1.2rem !important;
+}
+
+.fullscreen-mode.theme-playful .vocab-card .meaning,
+.fullscreen-mode .vocab-card .meaning {
+  font-size: 0.9rem !important;
+}
+
+/* Hook slide centering in fullscreen */
+.fullscreen-mode.theme-playful .slide-type-hook .slide-header,
+.fullscreen-mode .slide-type-hook .slide-header {
+  margin-top: 80px !important;
+}
+
+.fullscreen-mode.theme-playful .slide-type-hook .slide-title,
+.fullscreen-mode .slide-type-hook .slide-title {
+  font-size: 3.5rem !important;
+}
+
+/* Exit fullscreen button */
+.fullscreen-exit-btn {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 10002;
+  background: rgba(30, 41, 59, 0.9);
+  color: #fff;
+  border: none;
+  padding: 10px 16px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-weight: 700;
+  font-size: 0.9rem;
+  backdrop-filter: blur(10px);
+  transition: all 0.2s;
+  display: none;
+}
+
+.fullscreen-mode .fullscreen-exit-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+}
+
+.fullscreen-exit-btn:hover {
+  background: rgba(239, 68, 68, 0.9);
 }
 
 /* ============================================
@@ -1020,6 +1304,78 @@ body {
   .slide-title {
     font-size: 1.5rem !important;
   }
+}
+
+/* ============================================
+   FULLSCREEN OVERRIDES - MUST BE LAST
+   ============================================ */
+body.fullscreen-mode .slide-container {
+  overflow: visible !important;
+}
+
+body.fullscreen-mode .slide {
+  padding: 60px 50px 60px !important;
+  box-sizing: border-box !important;
+  overflow: auto !important;
+  height: 100vh !important;
+  display: flex !important;
+  flex-direction: column !important;
+}
+
+body.fullscreen-mode .slide-header {
+  flex-shrink: 0 !important;
+  min-height: 100px !important;
+  margin-bottom: 20px !important;
+  position: relative !important;
+  z-index: 100 !important;
+  display: block !important;
+  visibility: visible !important;
+  opacity: 1 !important;
+  /* Debug - remove after testing */
+  background: rgba(255,0,0,0.1) !important;
+}
+
+body.fullscreen-mode .slide-title {
+  font-size: 2.5rem !important;
+  margin-top: 8px !important;
+  display: block !important;
+  visibility: visible !important;
+}
+
+body.fullscreen-mode .slide-subtitle {
+  font-size: 1rem !important;
+  padding: 8px 18px !important;
+  display: inline-block !important;
+  visibility: visible !important;
+}
+
+body.fullscreen-mode .sticker {
+  z-index: 5 !important;
+}
+
+body.fullscreen-mode .sticker-1,
+body.fullscreen-mode .sticker-2 {
+  top: 25px !important;
+}
+
+body.fullscreen-mode .sticker-3,
+body.fullscreen-mode .sticker-4 {
+  bottom: 100px !important;
+}
+
+body.fullscreen-mode .slide-content {
+  flex: 1 !important;
+  overflow: auto !important;
+  min-height: 0 !important;
+}
+
+body.fullscreen-mode .content-text {
+  overflow: visible !important;
+}
+
+body.fullscreen-mode .slide-footer {
+  flex-shrink: 0 !important;
+  padding-top: 15px !important;
 }
 </style>
 {% endblock %}
@@ -1055,6 +1411,9 @@ body {
         <button class="nav-btn" id="nextBtn" onclick="nextSlide()">▶</button>
       </div>
     </div>
+
+    <!-- Exit Fullscreen Button -->
+    <button class="fullscreen-exit-btn" onclick="exitFullscreen()">✕ Exit</button>
 
     <!-- Thumbnail Strip -->
     <div class="thumb-strip" id="thumbStrip">
@@ -1095,24 +1454,41 @@ function getImageUrl(slide, index) {
   // Generate image from keywords
   const keywords = slide.keywords || [];
   const title = slide.title || '';
+  const slideType = slide.type || '';
+  
+  // Skip images for certain slide types
+  if (['hook', 'objectives', 'guided_practice', 'exit_ticket', 'review'].includes(slideType)) {
+    return null;
+  }
   
   // Extract keywords from title and content
   let searchTerms = [...keywords];
   if (title) {
-    // Add simple words from title
     const titleWords = title.toLowerCase()
       .replace(/[^a-z\s]/g, '')
       .split(' ')
-      .filter(w => w.length > 3);
+      .filter(w => w.length > 3 && !['what', 'this', 'that', 'with', 'from', 'about', 'your'].includes(w));
     searchTerms = [...searchTerms, ...titleWords];
   }
   
   if (searchTerms.length === 0) {
-    searchTerms = ['education', 'learning', 'school'];
+    searchTerms = ['education', 'learning'];
   }
   
   const query = searchTerms.slice(0, 2).join(',');
-  return `https://source.unsplash.com/600x400/?${encodeURIComponent(query)}&sig=${index}`;
+  return `https://source.unsplash.com/400x300/?${encodeURIComponent(query)}&sig=${index}`;
+}
+
+// Render image HTML with fallback
+function renderImageHtml(imageUrl, title) {
+  if (!imageUrl) return '';
+  return `
+    <div class="content-image">
+      <img src="${imageUrl}" alt="${escapeHtml(title)}" loading="lazy" 
+           onerror="this.parentElement.style.display='none'"
+           onload="this.parentElement.style.opacity='1'">
+    </div>
+  `;
 }
 
 // Render slide based on current theme
@@ -1121,17 +1497,18 @@ function renderSlide(index) {
   const slideType = slide.type || 'context';
   const stickers = getStickers(index);
   const imageUrl = getImageUrl(slide, index);
+  const isFullscreen = document.body.classList.contains('fullscreen-mode');
   
   let html = '';
   
   if (currentTheme === 'playful') {
-    html = renderPlayfulSlide(slide, slideType, stickers, imageUrl, index);
+    html = renderPlayfulSlide(slide, slideType, stickers, imageUrl, index, isFullscreen);
   } else if (currentTheme === 'minimal') {
-    html = renderMinimalSlide(slide, slideType, imageUrl, index);
+    html = renderMinimalSlide(slide, slideType, imageUrl, index, isFullscreen);
   } else if (currentTheme === 'colorful') {
-    html = renderColorfulSlide(slide, slideType, imageUrl, index);
+    html = renderColorfulSlide(slide, slideType, imageUrl, index, isFullscreen);
   } else if (currentTheme === 'corporate') {
-    html = renderCorporateSlide(slide, slideType, imageUrl, index);
+    html = renderCorporateSlide(slide, slideType, imageUrl, index, isFullscreen);
   }
   
   document.getElementById('slideContainer').innerHTML = html;
@@ -1154,11 +1531,45 @@ function renderSlide(index) {
 }
 
 // Render Playful Theme Slide
-function renderPlayfulSlide(slide, type, stickers, imageUrl, index) {
+function renderPlayfulSlide(slide, type, stickers, imageUrl, index, isFullscreen) {
   const title = slide.title || `Slide ${index + 1}`;
   const subtitle = getSubtitle(type);
   const content = extractContent(slide, type);
+  const showImage = imageUrl && !['hook', 'objectives', 'guided_practice', 'exit_ticket'].includes(type);
   
+  // Debug log
+  console.log('Fullscreen:', isFullscreen, 'Title:', title, 'Subtitle:', subtitle);
+  
+  if (isFullscreen) {
+    // Fullscreen layout - completely different structure
+    return `
+      <div class="slide slide-type-${type}" style="padding: 50px; height: 100vh; display: flex; flex-direction: column; overflow: hidden; box-sizing: border-box;">
+        <span class="sticker sticker-1" style="position: absolute; top: 15px; left: 20px; font-size: 2.5rem;">${stickers[0]}</span>
+        <span class="sticker sticker-2" style="position: absolute; top: 15px; right: 20px; font-size: 2.5rem;">${stickers[1]}</span>
+        <span class="sticker sticker-3" style="position: absolute; bottom: 80px; left: 20px; font-size: 2.5rem;">${stickers[2]}</span>
+        <span class="sticker sticker-4" style="position: absolute; bottom: 80px; right: 20px; font-size: 2.5rem;">${stickers[3]}</span>
+        
+        <div class="slide-header" style="flex-shrink: 0; text-align: center; margin-bottom: 20px; min-height: 80px;">
+          <div class="slide-subtitle" style="display: inline-block; background: #fbbf24; color: #1e293b; padding: 8px 18px; border-radius: 20px; font-size: 0.9rem; font-weight: 800; margin-bottom: 8px; border: 2px solid #1e293b;">${subtitle}</div>
+          <h1 class="slide-title" style="font-size: 2.2rem; font-weight: 900; color: #1e293b; margin: 8px 0 0 0;">${escapeHtml(title)}</h1>
+        </div>
+        
+        <div class="slide-content" style="flex: 1; display: flex; gap: 24px; overflow: auto; min-height: 0;">
+          <div class="content-text" style="flex: 1;">
+            ${content}
+          </div>
+          ${showImage ? renderImageHtml(imageUrl, title) : ''}
+        </div>
+        
+        <div class="slide-footer" style="flex-shrink: 0; display: flex; justify-content: space-between; padding-top: 15px;">
+          <span class="slide-number" style="background: #1e293b; color: #fff; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.8rem;">${index + 1} / ${slides.length}</span>
+          <span>${topicName}</span>
+        </div>
+      </div>
+    `;
+  }
+  
+  // Normal layout
   return `
     <div class="slide slide-type-${type}">
       <span class="sticker sticker-1">${stickers[0]}</span>
@@ -1175,11 +1586,7 @@ function renderPlayfulSlide(slide, type, stickers, imageUrl, index) {
         <div class="content-text">
           ${content}
         </div>
-        ${type !== 'hook' && type !== 'objectives' ? `
-        <div class="content-image">
-          <img src="${imageUrl}" alt="${title}" loading="lazy" onerror="this.style.display='none'">
-        </div>
-        ` : ''}
+        ${showImage ? renderImageHtml(imageUrl, title) : ''}
       </div>
       
       <div class="slide-footer">
@@ -1191,27 +1598,27 @@ function renderPlayfulSlide(slide, type, stickers, imageUrl, index) {
 }
 
 // Render Minimal Theme Slide
-function renderMinimalSlide(slide, type, imageUrl, index) {
+function renderMinimalSlide(slide, type, imageUrl, index, isFullscreen) {
   const title = slide.title || `Slide ${index + 1}`;
   const subtitle = getSubtitle(type);
   const content = extractContent(slide, type);
+  const showImage = imageUrl && !['hook', 'objectives', 'guided_practice', 'exit_ticket'].includes(type);
+  
+  const slideStyle = isFullscreen ? 'padding: 80px 60px 60px !important;' : '';
+  const titleStyle = isFullscreen ? 'font-size: 2.5rem;' : '';
   
   return `
-    <div class="slide slide-type-${type}">
+    <div class="slide slide-type-${type}" style="${slideStyle}">
       <div class="slide-header">
         <div class="slide-subtitle">${subtitle}</div>
-        <h1 class="slide-title">${escapeHtml(title)}</h1>
+        <h1 class="slide-title" style="${titleStyle}">${escapeHtml(title)}</h1>
       </div>
       
       <div class="slide-content">
         <div class="content-text">
           ${content}
         </div>
-        ${type !== 'hook' && type !== 'objectives' ? `
-        <div class="content-image">
-          <img src="${imageUrl}" alt="${title}" loading="lazy" onerror="this.style.display='none'">
-        </div>
-        ` : ''}
+        ${showImage ? renderImageHtml(imageUrl, title) : ''}
       </div>
       
       <div class="slide-footer">
@@ -1223,27 +1630,27 @@ function renderMinimalSlide(slide, type, imageUrl, index) {
 }
 
 // Render Colorful Theme Slide
-function renderColorfulSlide(slide, type, imageUrl, index) {
+function renderColorfulSlide(slide, type, imageUrl, index, isFullscreen) {
   const title = slide.title || `Slide ${index + 1}`;
   const subtitle = getSubtitle(type);
   const content = extractContent(slide, type);
+  const showImage = imageUrl && !['hook', 'objectives', 'guided_practice', 'exit_ticket'].includes(type);
+  
+  const slideStyle = isFullscreen ? 'padding: 80px 60px 60px !important;' : '';
+  const titleStyle = isFullscreen ? 'font-size: 2.5rem;' : '';
   
   return `
-    <div class="slide slide-type-${type}">
+    <div class="slide slide-type-${type}" style="${slideStyle}">
       <div class="slide-header">
         <div class="slide-subtitle">${subtitle}</div>
-        <h1 class="slide-title">${escapeHtml(title)}</h1>
+        <h1 class="slide-title" style="${titleStyle}">${escapeHtml(title)}</h1>
       </div>
       
       <div class="slide-content">
         <div class="content-text">
           ${content}
         </div>
-        ${type !== 'hook' && type !== 'objectives' ? `
-        <div class="content-image">
-          <img src="${imageUrl}" alt="${title}" loading="lazy" onerror="this.style.display='none'">
-        </div>
-        ` : ''}
+        ${showImage ? renderImageHtml(imageUrl, title) : ''}
       </div>
       
       <div class="slide-footer">
@@ -1254,27 +1661,27 @@ function renderColorfulSlide(slide, type, imageUrl, index) {
 }
 
 // Render Corporate Theme Slide
-function renderCorporateSlide(slide, type, imageUrl, index) {
+function renderCorporateSlide(slide, type, imageUrl, index, isFullscreen) {
   const title = slide.title || `Slide ${index + 1}`;
   const subtitle = getSubtitle(type);
   const content = extractContent(slide, type);
+  const showImage = imageUrl && !['hook', 'objectives', 'guided_practice', 'exit_ticket'].includes(type);
+  
+  const slideStyle = isFullscreen ? 'padding: 80px 60px 60px !important;' : '';
+  const titleStyle = isFullscreen ? 'font-size: 2.5rem;' : '';
   
   return `
-    <div class="slide slide-type-${type}">
+    <div class="slide slide-type-${type}" style="${slideStyle}">
       <div class="slide-header">
         <div class="slide-subtitle">${subtitle}</div>
-        <h1 class="slide-title">${escapeHtml(title)}</h1>
+        <h1 class="slide-title" style="${titleStyle}">${escapeHtml(title)}</h1>
       </div>
       
       <div class="slide-content">
         <div class="content-text">
           ${content}
         </div>
-        ${type !== 'hook' && type !== 'objectives' ? `
-        <div class="content-image">
-          <img src="${imageUrl}" alt="${title}" loading="lazy" onerror="this.style.display='none'">
-        </div>
-        ` : ''}
+        ${showImage ? renderImageHtml(imageUrl, title) : ''}
       </div>
       
       <div class="slide-footer">
@@ -1510,7 +1917,13 @@ function goToSlide(index) {
 function setTheme(theme) {
   currentTheme = theme;
   const wrapper = document.getElementById('themeWrapper');
+  const isFullscreen = wrapper.classList.contains('fullscreen-mode');
+  
+  // Set theme class while preserving fullscreen-mode
   wrapper.className = `theme-${theme}`;
+  if (isFullscreen) {
+    wrapper.classList.add('fullscreen-mode');
+  }
   
   // Update theme buttons
   document.querySelectorAll('.theme-btn').forEach(btn => {
@@ -1524,14 +1937,102 @@ function setTheme(theme) {
 
 // Fullscreen toggle
 function toggleFullscreen() {
-  document.body.classList.toggle('fullscreen-mode');
+  const wrapper = document.getElementById('themeWrapper');
+  
+  if (!document.fullscreenElement) {
+    // Enter fullscreen
+    document.documentElement.requestFullscreen().then(() => {
+      document.body.classList.add('fullscreen-mode');
+      wrapper.classList.add('fullscreen-mode');
+      applyFullscreenStyles();
+      renderSlide(currentIndex);
+    }).catch(err => {
+      // If fullscreen API fails, just toggle the class
+      document.body.classList.add('fullscreen-mode');
+      wrapper.classList.add('fullscreen-mode');
+      applyFullscreenStyles();
+      renderSlide(currentIndex);
+    });
+  } else {
+    exitFullscreen();
+  }
+}
+
+function applyFullscreenStyles() {
+  // Inject fullscreen styles directly
+  let styleEl = document.getElementById('fullscreen-styles');
+  if (!styleEl) {
+    styleEl = document.createElement('style');
+    styleEl.id = 'fullscreen-styles';
+    document.head.appendChild(styleEl);
+  }
+  styleEl.textContent = `
+    body.fullscreen-mode .slide-container {
+      overflow: visible !important;
+    }
+    body.fullscreen-mode .slide {
+      padding: 80px 60px 80px !important;
+      overflow: visible !important;
+      height: auto !important;
+      min-height: 100% !important;
+    }
+    body.fullscreen-mode .slide-header {
+      position: relative !important;
+      z-index: 100 !important;
+      margin-bottom: 20px !important;
+    }
+    body.fullscreen-mode .slide-title {
+      font-size: 2.5rem !important;
+    }
+    body.fullscreen-mode .slide-subtitle {
+      font-size: 1rem !important;
+    }
+    body.fullscreen-mode .sticker-1,
+    body.fullscreen-mode .sticker-2 {
+      top: 25px !important;
+    }
+    body.fullscreen-mode .sticker-3,
+    body.fullscreen-mode .sticker-4 {
+      bottom: 100px !important;
+    }
+    body.fullscreen-mode .slide-content,
+    body.fullscreen-mode .content-text {
+      overflow: visible !important;
+    }
+  `;
+}
+
+function removeFullscreenStyles() {
+  const styleEl = document.getElementById('fullscreen-styles');
+  if (styleEl) {
+    styleEl.remove();
+  }
+}
+
+function exitFullscreen() {
+  const wrapper = document.getElementById('themeWrapper');
+  document.body.classList.remove('fullscreen-mode');
+  wrapper.classList.remove('fullscreen-mode');
+  removeFullscreenStyles();
   
   if (document.fullscreenElement) {
     document.exitFullscreen();
-  } else {
-    document.documentElement.requestFullscreen();
   }
+  
+  // Re-render slide without fullscreen styles
+  renderSlide(currentIndex);
 }
+
+// Listen for fullscreen change events
+document.addEventListener('fullscreenchange', () => {
+  const wrapper = document.getElementById('themeWrapper');
+  if (!document.fullscreenElement) {
+    document.body.classList.remove('fullscreen-mode');
+    wrapper.classList.remove('fullscreen-mode');
+    // Re-render slide without fullscreen styles
+    renderSlide(currentIndex);
+  }
+});
 
 // Keyboard navigation
 document.addEventListener('keydown', (e) => {
@@ -1542,11 +2043,12 @@ document.addEventListener('keydown', (e) => {
     e.preventDefault();
     prevSlide();
   } else if (e.key === 'Escape') {
-    if (document.body.classList.contains('fullscreen-mode')) {
-      document.body.classList.remove('fullscreen-mode');
-    }
+    exitFullscreen();
   } else if (e.key === 'f' || e.key === 'F') {
-    toggleFullscreen();
+    if (!e.ctrlKey && !e.metaKey) {
+      e.preventDefault();
+      toggleFullscreen();
+    }
   }
 });
 
