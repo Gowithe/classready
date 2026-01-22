@@ -46,6 +46,88 @@
     pointer-events: none;
   }
 
+  /* =========================
+     Dropdown Menu (FIXED)
+     - เปลี่ยนจาก hover -> click
+     ========================= */
+  .dropdown {
+    position: relative;
+    display: inline-block;
+  }
+  .dropdown-btn {
+    padding: 0.75rem 1.5rem;
+    background: white;
+    color: #667eea;
+    border-radius: 6px;
+    text-decoration: none;
+    font-weight: 700;
+    cursor: pointer;
+    border: none;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+    user-select: none;
+  }
+  .dropdown-btn:hover {
+    background: #f0f4ff;
+  }
+  .dropdown-btn.slides { background: #667eea; color: white; }
+  .dropdown-btn.games { background: #ec4899; color: white; }
+  .dropdown-btn.activities { background: #06b6d4; color: white; }
+
+  .dropdown-btn.disabled,
+  .dropdown-btn:disabled {
+    background: #e2e8f0 !important;
+    color: #94a3b8 !important;
+    cursor: not-allowed !important;
+  }
+
+  .dropdown-content {
+    display: none;
+    position: absolute;
+    top: 100%;
+    left: 0;
+    background: white;
+    min-width: 200px;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    border-radius: 8px;
+    z-index: 100;
+    margin-top: 6px;
+    overflow: hidden;
+  }
+
+  /* ✅ เปิดเมื่อมี class open */
+  .dropdown.open .dropdown-content {
+    display: block;
+  }
+
+  .dropdown-content a {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 0.75rem 1rem;
+    color: #334155;
+    text-decoration: none;
+    font-weight: 600;
+    transition: background 0.15s;
+    border-radius: 0;
+    background: white;
+    white-space: nowrap;
+  }
+  .dropdown-content a:hover {
+    background: #f1f5f9;
+  }
+  .dropdown-content a.disabled {
+    color: #94a3b8;
+    pointer-events: none;
+  }
+  .dropdown-divider {
+    height: 1px;
+    background: #e2e8f0;
+    margin: 0.25rem 0;
+  }
+
   .panel {
     background: white;
     padding: 1.25rem;
@@ -186,31 +268,59 @@
   <p>{{ topic.description or 'No description' }}</p>
 
   <div class="topic-nav">
-    <a href="{{ url_for('view_slides', topic_id=topic.id) }}">🎬 Slides</a>
-    
-    {% if has_slides %}
-    <a href="{{ url_for('download_slides_pdf', topic_id=topic.id) }}" style="background: #f59e0b;">📥 Download Slides</a>
-    {% endif %}
-    
-    {% if is_owner or is_admin %}
-    <a href="{{ url_for('edit_slides', topic_id=topic.id) }}" style="background: #10b981;">✏️ Edit Slides</a>
-    {% endif %}
-    
-    {% if has_game %}
-      <a href="{{ url_for('game', topic_id=topic.id) }}">🎯 Bamboozle</a>
-      <a href="{{ url_for('game_memory', topic_id=topic.id) }}" style="background: #ec4899;">🃏 Memory</a>
-    {% else %}
-      <a class="disabled" href="javascript:void(0)" title="กรุณา Generate Game ก่อน">🎯 Bamboozle <span class="nav-badge">ยังไม่มี</span></a>
-    {% endif %}
-    
-    {% if has_practice %}
-      <a href="{{ url_for('practice', topic_id=topic.id) }}">📝 MCQ</a>
-      <a href="{{ url_for('game_millionaire', topic_id=topic.id) }}" style="background: #8b5cf6;">🏆 Millionaire</a>
-      <a href="{{ url_for('practice_fill_blanks', topic_id=topic.id) }}" style="background: #06b6d4;">✍️ Fill Blanks</a>
-      <a href="{{ url_for('practice_unscramble', topic_id=topic.id) }}" style="background: #f97316;">🔀 Unscramble</a>
-    {% else %}
-      <a class="disabled" href="javascript:void(0)" title="กรุณา Generate Practice ก่อน">📝 Practice <span class="nav-badge">ยังไม่มี</span></a>
-    {% endif %}
+    <!-- Slides Dropdown -->
+    <div class="dropdown">
+      <button class="dropdown-btn slides" type="button">🎬 Slides ▼</button>
+      <div class="dropdown-content">
+        <a href="{{ url_for('view_slides', topic_id=topic.id) }}">👁️ View Slides</a>
+        {% if is_owner or is_admin %}
+        <a href="{{ url_for('edit_slides', topic_id=topic.id) }}">✏️ Edit Slides</a>
+        {% endif %}
+        {% if has_slides %}
+        <div class="dropdown-divider"></div>
+        <a href="{{ url_for('download_slides_pdf', topic_id=topic.id) }}">📥 Download PDF</a>
+        {% endif %}
+        {% if topic.pdf_file %}
+        <a href="{{ url_for('uploaded_file', filename=topic.pdf_file) }}" target="_blank">📄 View Original PDF</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Games Dropdown -->
+    <div class="dropdown">
+      <button class="dropdown-btn games {% if not has_game %}disabled{% endif %}" type="button" {% if not has_game %}disabled{% endif %}>
+        🎮 Games ▼
+      </button>
+      <div class="dropdown-content">
+        {% if has_game %}
+        <a href="{{ url_for('game', topic_id=topic.id) }}">🎯 Bamboozle</a>
+        <a href="{{ url_for('game_memory', topic_id=topic.id) }}">🃏 Memory Match</a>
+        {% if has_practice %}
+        <a href="{{ url_for('game_millionaire', topic_id=topic.id) }}">🏆 Millionaire</a>
+        {% endif %}
+        {% else %}
+        <a class="disabled">กรุณา Generate Game ก่อน</a>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Activities Dropdown -->
+    <div class="dropdown">
+      <button class="dropdown-btn activities {% if not has_practice %}disabled{% endif %}" type="button" {% if not has_practice %}disabled{% endif %}>
+        📝 Activities ▼
+      </button>
+      <div class="dropdown-content">
+        {% if has_practice %}
+        <a href="{{ url_for('practice', topic_id=topic.id) }}">📝 Multiple Choice (MCQ)</a>
+        <a href="{{ url_for('practice_fill_blanks', topic_id=topic.id) }}">✍️ Fill in the Blanks</a>
+        <a href="{{ url_for('practice_unscramble', topic_id=topic.id) }}">🔀 Sentence Unscramble</a>
+        <div class="dropdown-divider"></div>
+        <a href="{{ url_for('practice_scores', topic_id=topic.id) }}">📊 View All Scores</a>
+        {% else %}
+        <a class="disabled">กรุณา Generate Practice ก่อน</a>
+        {% endif %}
+      </div>
+    </div>
   </div>
 </div>
 
@@ -285,6 +395,7 @@
   const modalMessage = document.getElementById('modalMessage');
 
   function setStatus(msg){
+    if(!statusbar) return;
     statusbar.textContent = msg;
     statusbar.classList.add('show');
   }
@@ -296,25 +407,22 @@
     } else if (mode === 'practice') {
       message = 'Generating Practice from PDF...';
     }
-    modalMessage.textContent = message;
-    modal.classList.add('show');
+    if(modalMessage) modalMessage.textContent = message;
+    if(modal) modal.classList.add('show');
   }
 
   function hideModal() {
-    modal.classList.remove('show');
+    if(modal) modal.classList.remove('show');
   }
 
   async function readJsonSafely(res){
     const ct = (res.headers.get('content-type') || '').toLowerCase();
-
     if(!ct.includes('application/json')){
       const text = await res.text();
       const preview = (text || '').slice(0, 200);
       throw new Error(`Server returned non-JSON (status ${res.status}). Preview: ${preview}`);
     }
-
-    const data = await res.json();
-    return data;
+    return await res.json();
   }
 
   async function callGenerate(mode){
@@ -333,7 +441,6 @@
     ];
     buttons.forEach(b => { if(b) b.disabled = true; });
 
-    // Show modal popup
     showModal(mode);
 
     try{
@@ -363,7 +470,6 @@
       }else if(mode === 'practice'){
         window.location.href = `/topic/${topicId}/practice`;
       }else{
-        // Reload หน้าเพื่ออัปเดตสถานะปุ่ม
         window.location.reload();
       }
 
@@ -384,5 +490,48 @@
   if(btnAll) btnAll.addEventListener('click', () => callGenerate('all'));
   if(btnGame) btnGame.addEventListener('click', () => callGenerate('game'));
   if(btnPractice) btnPractice.addEventListener('click', () => callGenerate('practice'));
+
+  /* =========================
+     ✅ Dropdown click-to-open (แก้เด้ง)
+     ========================= */
+  (function initDropdowns(){
+    const dropdowns = Array.from(document.querySelectorAll('.dropdown'));
+
+    function closeAll(except=null){
+      dropdowns.forEach(d => { if(d !== except) d.classList.remove('open'); });
+    }
+
+    dropdowns.forEach(d => {
+      const btn = d.querySelector('.dropdown-btn');
+      const menu = d.querySelector('.dropdown-content');
+      if(!btn) return;
+
+      // disabled -> ไม่ให้เปิด
+      if(btn.classList.contains('disabled') || btn.disabled) return;
+
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const isOpen = d.classList.contains('open');
+        closeAll();
+        d.classList.toggle('open', !isOpen);
+      });
+
+      if(menu){
+        // คลิกในเมนู ไม่ให้ปิดทันที
+        menu.addEventListener('click', (e) => {
+          e.stopPropagation();
+        });
+      }
+    });
+
+    // คลิกที่อื่น = ปิดหมด
+    document.addEventListener('click', () => closeAll());
+
+    // ESC = ปิดหมด
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape') closeAll();
+    });
+  })();
 </script>
 {% endblock %}
