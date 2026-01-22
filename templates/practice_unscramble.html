@@ -1,0 +1,723 @@
+{% extends "base.html" %}
+{% block title %}Sentence Unscramble - {{ topic.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+  --primary: #667eea;
+  --primary-dark: #5a67d8;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+}
+
+/* Navigation */
+.quick-nav {
+  display: flex;
+  gap: .75rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: .75rem 0 1.25rem;
+}
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .6rem .9rem;
+  border-radius: 12px;
+  font-weight: 800;
+  text-decoration: none;
+  border: 1px solid rgba(0,0,0,.10);
+  background: #f7fafc;
+  color: #1a202c;
+  transition: all .15s ease;
+}
+.nav-btn:hover {
+  background: #edf2f7;
+  transform: translateY(-1px);
+}
+
+/* Main Container */
+.practice-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Progress Bar */
+.progress-section {
+  background: #fff;
+  padding: 1.25rem;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.08);
+  margin-bottom: 1.5rem;
+}
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: .75rem;
+}
+.progress-text {
+  font-weight: 700;
+  color: #334155;
+}
+.progress-score {
+  font-weight: 800;
+  color: var(--primary);
+}
+.progress-bar {
+  height: 10px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), #a78bfa);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+/* Question Card */
+.question-card {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.1);
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+}
+.question-number {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--primary), #a78bfa);
+  color: #fff;
+  padding: .4rem 1rem;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: .9rem;
+  margin-bottom: 1rem;
+}
+.instruction {
+  text-align: center;
+  color: #64748b;
+  margin-bottom: 1rem;
+}
+.hint-text {
+  text-align: center;
+  color: #94a3b8;
+  font-size: .9rem;
+  margin-bottom: 1.5rem;
+  font-style: italic;
+}
+
+/* Answer Zone */
+.answer-zone {
+  min-height: 70px;
+  border: 3px dashed #cbd5e1;
+  border-radius: 16px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: .5rem;
+  align-items: center;
+  justify-content: center;
+  background: #f8fafc;
+  transition: all .2s;
+}
+.answer-zone.active {
+  border-color: var(--primary);
+  background: #f0f4ff;
+}
+.answer-zone.correct {
+  border-color: var(--success);
+  background: #dcfce7;
+  border-style: solid;
+}
+.answer-zone.wrong {
+  border-color: var(--danger);
+  background: #fee2e2;
+  border-style: solid;
+}
+.answer-zone .placeholder {
+  color: #94a3b8;
+  font-style: italic;
+}
+
+/* Word Tokens */
+.words-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+.word-token {
+  padding: .75rem 1.25rem;
+  background: linear-gradient(135deg, #667eea, #764ba2);
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s;
+  box-shadow: 0 4px 10px rgba(102,126,234,.3);
+}
+.word-token:hover:not(:disabled) {
+  transform: translateY(-3px);
+  box-shadow: 0 6px 15px rgba(102,126,234,.4);
+}
+.word-token:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+  transform: none;
+}
+.word-token.in-answer {
+  background: #94a3b8;
+  box-shadow: none;
+}
+
+/* Answer Token (in answer zone) */
+.answer-token {
+  padding: .5rem 1rem;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s;
+}
+.answer-token:hover {
+  background: var(--danger);
+  transform: scale(1.05);
+}
+
+/* Feedback */
+.feedback {
+  text-align: center;
+  padding: 1rem;
+  border-radius: 12px;
+  margin-top: 1rem;
+  font-weight: 700;
+  display: none;
+}
+.feedback.show {
+  display: block;
+}
+.feedback.correct {
+  background: #dcfce7;
+  color: #166534;
+}
+.feedback.wrong {
+  background: #fee2e2;
+  color: #991b1b;
+}
+.correct-answer {
+  margin-top: .5rem;
+  font-weight: 600;
+  color: #166534;
+}
+
+/* Buttons */
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+  flex-wrap: wrap;
+}
+.btn {
+  padding: .75rem 2rem;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), #a78bfa);
+  color: #fff;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(102,126,234,.4);
+}
+.btn-secondary {
+  background: #f1f5f9;
+  color: #475569;
+}
+.btn-secondary:hover {
+  background: #e2e8f0;
+}
+.btn-success {
+  background: linear-gradient(135deg, var(--success), #4ade80);
+  color: #fff;
+}
+.btn-warning {
+  background: linear-gradient(135deg, var(--warning), #fbbf24);
+  color: #1e293b;
+}
+
+/* Result Screen */
+.result-screen {
+  display: none;
+  text-align: center;
+  padding: 3rem 2rem;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.1);
+}
+.result-screen.active {
+  display: block;
+}
+.result-emoji {
+  font-size: 5rem;
+  margin-bottom: 1rem;
+}
+.result-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: .5rem;
+}
+.result-score {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--primary);
+  margin-bottom: 2rem;
+}
+.result-details {
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+  margin-bottom: 2rem;
+}
+.result-stat {
+  text-align: center;
+}
+.result-stat-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+.result-stat-value.correct { color: var(--success); }
+.result-stat-value.wrong { color: var(--danger); }
+.result-stat-label {
+  font-size: .85rem;
+  color: #64748b;
+}
+.result-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+/* Sound Toggle */
+.sound-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(102,126,234,.4);
+  transition: all .2s;
+}
+.sound-toggle:hover {
+  transform: scale(1.1);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Navigation -->
+<div class="quick-nav">
+  <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="nav-btn">← Back to Topic</a>
+  <a href="{{ url_for('practice', topic_id=topic.id) }}" class="nav-btn">📝 MCQ Practice</a>
+  <a href="{{ url_for('practice_fill_blanks', topic_id=topic.id) }}" class="nav-btn">✍️ Fill Blanks</a>
+</div>
+
+<div class="practice-container">
+  <!-- Progress -->
+  <div class="progress-section">
+    <div class="progress-header">
+      <span class="progress-text">Question <span id="currentNum">1</span> / <span id="totalNum">10</span></span>
+      <span class="progress-score">Score: <span id="score">0</span></span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+    </div>
+  </div>
+
+  <!-- Question Card -->
+  <div class="question-card" id="questionCard">
+    <div class="question-number" id="questionNumber">Question 1</div>
+    <p class="instruction">🔀 เรียงคำให้เป็นประโยคที่ถูกต้อง</p>
+    <p class="hint-text" id="hintText"></p>
+    
+    <!-- Answer Zone -->
+    <div class="answer-zone" id="answerZone">
+      <span class="placeholder">คลิกคำด้านล่างเพื่อเรียงประโยค</span>
+    </div>
+    
+    <!-- Scrambled Words -->
+    <div class="words-container" id="wordsContainer">
+      <!-- Words will be inserted here -->
+    </div>
+    
+    <div class="feedback" id="feedback"></div>
+    
+    <div class="action-buttons">
+      <button class="btn btn-secondary" onclick="clearAnswer()">🗑️ ล้าง</button>
+      <button class="btn btn-success" id="checkBtn" onclick="checkAnswer()">✅ ตรวจคำตอบ</button>
+      <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()" style="display:none;">Next →</button>
+    </div>
+  </div>
+
+  <!-- Result Screen -->
+  <div class="result-screen" id="resultScreen">
+    <div class="result-emoji" id="resultEmoji">🎉</div>
+    <div class="result-title" id="resultTitle">Great Job!</div>
+    <div class="result-score" id="resultScore">80%</div>
+    <div class="result-details">
+      <div class="result-stat">
+        <div class="result-stat-value correct" id="correctCount">8</div>
+        <div class="result-stat-label">Correct</div>
+      </div>
+      <div class="result-stat">
+        <div class="result-stat-value wrong" id="wrongCount">2</div>
+        <div class="result-stat-label">Wrong</div>
+      </div>
+    </div>
+    <div class="result-actions">
+      <button class="btn btn-secondary" onclick="location.href='{{ url_for('topic_detail', topic_id=topic.id) }}'">🏠 Back</button>
+      <button class="btn btn-primary" onclick="restartPractice()">🔄 Try Again</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sound Toggle -->
+<button class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔊</button>
+
+<script>
+// Practice Data from server
+const practiceData = {{ practice_data | tojson | safe }};
+
+// ===== SOUND SYSTEM =====
+let soundEnabled = true;
+let audioContext = null;
+
+function initAudio() {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return audioContext;
+}
+
+function playTone(frequency, duration, type = 'sine', volume = 0.3) {
+  if (!soundEnabled) return;
+  try {
+    const ctx = initAudio();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    oscillator.frequency.value = frequency;
+    oscillator.type = type;
+    gainNode.gain.setValueAtTime(volume, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + duration);
+  } catch (e) {}
+}
+
+function playCorrectSound() {
+  playTone(523, 0.15, 'sine', 0.3);
+  setTimeout(() => playTone(659, 0.15, 'sine', 0.3), 100);
+  setTimeout(() => playTone(784, 0.2, 'sine', 0.3), 200);
+}
+
+function playWrongSound() {
+  playTone(200, 0.3, 'square', 0.15);
+}
+
+function playWinSound() {
+  const notes = [523, 659, 784, 1047];
+  notes.forEach((note, i) => {
+    setTimeout(() => playTone(note, 0.3, 'sine', 0.3), i * 150);
+  });
+}
+
+function playClickSound() {
+  playTone(500, 0.08, 'sine', 0.2);
+}
+
+function playDropSound() {
+  playTone(300, 0.1, 'sine', 0.15);
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  document.getElementById('soundToggle').textContent = soundEnabled ? '🔊' : '🔇';
+}
+
+// ===== GAME STATE =====
+let questions = [];
+let currentIndex = 0;
+let score = 0;
+let correctCount = 0;
+let wrongCount = 0;
+let answered = false;
+let currentAnswer = [];
+let currentWords = [];
+
+// Initialize
+function init() {
+  questions = prepareQuestions();
+  if (questions.length === 0) {
+    alert('ไม่มีข้อมูลสำหรับแบบฝึกหัดนี้');
+    return;
+  }
+  document.getElementById('totalNum').textContent = questions.length;
+  loadQuestion();
+}
+
+function prepareQuestions() {
+  const result = [];
+  
+  // From examples
+  if (practiceData.examples) {
+    practiceData.examples.forEach(ex => {
+      if (ex.en && ex.en.split(' ').length >= 3) {
+        result.push({
+          sentence: ex.en.replace(/[.!?]$/, ''),
+          hint: ex.th || ''
+        });
+      }
+    });
+  }
+  
+  // From vocabulary examples
+  if (practiceData.vocabulary) {
+    practiceData.vocabulary.forEach(v => {
+      if (v.example && v.example.split(' ').length >= 3) {
+        result.push({
+          sentence: v.example.replace(/[.!?]$/, ''),
+          hint: v.meaning || ''
+        });
+      }
+    });
+  }
+  
+  // From dialogue lines
+  if (practiceData.dialogues) {
+    practiceData.dialogues.forEach(d => {
+      if (d.text && d.text.split(' ').length >= 3) {
+        result.push({
+          sentence: d.text.replace(/[.!?]$/, ''),
+          hint: ''
+        });
+      }
+    });
+  }
+  
+  // Shuffle and limit
+  shuffleArray(result);
+  return result.slice(0, 12);
+}
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function loadQuestion() {
+  if (currentIndex >= questions.length) {
+    showResult();
+    return;
+  }
+  
+  answered = false;
+  currentAnswer = [];
+  const q = questions[currentIndex];
+  
+  // Update UI
+  document.getElementById('currentNum').textContent = currentIndex + 1;
+  document.getElementById('questionNumber').textContent = `Question ${currentIndex + 1}`;
+  document.getElementById('progressFill').style.width = `${(currentIndex / questions.length) * 100}%`;
+  document.getElementById('hintText').textContent = q.hint ? `💡 ${q.hint}` : '';
+  
+  // Scramble words
+  currentWords = q.sentence.split(' ');
+  const scrambled = [...currentWords];
+  shuffleArray(scrambled);
+  
+  // Make sure it's actually scrambled
+  while (scrambled.join(' ') === currentWords.join(' ') && scrambled.length > 2) {
+    shuffleArray(scrambled);
+  }
+  
+  // Render scrambled words
+  renderWords(scrambled);
+  
+  // Clear answer zone
+  const answerZone = document.getElementById('answerZone');
+  answerZone.innerHTML = '<span class="placeholder">คลิกคำด้านล่างเพื่อเรียงประโยค</span>';
+  answerZone.className = 'answer-zone';
+  
+  // Reset buttons
+  document.getElementById('feedback').classList.remove('show');
+  document.getElementById('checkBtn').style.display = 'inline-block';
+  document.getElementById('nextBtn').style.display = 'none';
+}
+
+function renderWords(words) {
+  const container = document.getElementById('wordsContainer');
+  container.innerHTML = words.map((word, i) => `
+    <button class="word-token" data-word="${escapeHtml(word)}" data-index="${i}" onclick="addWord(this)">${escapeHtml(word)}</button>
+  `).join('');
+}
+
+function addWord(btn) {
+  if (answered || btn.disabled) return;
+  playClickSound();
+  
+  const word = btn.dataset.word;
+  currentAnswer.push({ word, btn });
+  btn.disabled = true;
+  btn.classList.add('in-answer');
+  
+  updateAnswerZone();
+}
+
+function removeWord(index) {
+  if (answered) return;
+  playDropSound();
+  
+  const removed = currentAnswer.splice(index, 1)[0];
+  removed.btn.disabled = false;
+  removed.btn.classList.remove('in-answer');
+  
+  updateAnswerZone();
+}
+
+function updateAnswerZone() {
+  const answerZone = document.getElementById('answerZone');
+  
+  if (currentAnswer.length === 0) {
+    answerZone.innerHTML = '<span class="placeholder">คลิกคำด้านล่างเพื่อเรียงประโยค</span>';
+    answerZone.classList.remove('active');
+  } else {
+    answerZone.classList.add('active');
+    answerZone.innerHTML = currentAnswer.map((item, i) => `
+      <button class="answer-token" onclick="removeWord(${i})">${escapeHtml(item.word)}</button>
+    `).join('');
+  }
+}
+
+function clearAnswer() {
+  if (answered) return;
+  currentAnswer.forEach(item => {
+    item.btn.disabled = false;
+    item.btn.classList.remove('in-answer');
+  });
+  currentAnswer = [];
+  updateAnswerZone();
+}
+
+function checkAnswer() {
+  if (answered || currentAnswer.length === 0) return;
+  answered = true;
+  
+  const userAnswer = currentAnswer.map(a => a.word).join(' ');
+  const correctAnswer = currentWords.join(' ');
+  const isCorrect = userAnswer.toLowerCase() === correctAnswer.toLowerCase();
+  
+  const answerZone = document.getElementById('answerZone');
+  const feedback = document.getElementById('feedback');
+  
+  // Disable word buttons
+  document.querySelectorAll('.word-token').forEach(b => b.disabled = true);
+  
+  if (isCorrect) {
+    playCorrectSound();
+    answerZone.classList.add('correct');
+    feedback.innerHTML = '✅ ถูกต้อง!';
+    feedback.className = 'feedback show correct';
+    score += 10;
+    correctCount++;
+  } else {
+    playWrongSound();
+    answerZone.classList.add('wrong');
+    feedback.innerHTML = `❌ ไม่ถูกต้อง<div class="correct-answer">คำตอบที่ถูก: ${correctAnswer}</div>`;
+    feedback.className = 'feedback show wrong';
+    wrongCount++;
+  }
+  
+  // Update score
+  document.getElementById('score').textContent = score;
+  
+  // Show next button
+  document.getElementById('checkBtn').style.display = 'none';
+  document.getElementById('nextBtn').style.display = 'inline-block';
+}
+
+function nextQuestion() {
+  currentIndex++;
+  loadQuestion();
+}
+
+function showResult() {
+  playWinSound();
+  
+  document.getElementById('questionCard').style.display = 'none';
+  document.getElementById('resultScreen').classList.add('active');
+  
+  const percent = Math.round((correctCount / questions.length) * 100);
+  document.getElementById('resultScore').textContent = percent + '%';
+  document.getElementById('correctCount').textContent = correctCount;
+  document.getElementById('wrongCount').textContent = wrongCount;
+  
+  // Emoji based on score
+  let emoji = '🎉', title = 'ยอดเยี่ยม!';
+  if (percent < 50) { emoji = '😢'; title = 'ลองใหม่นะ!'; }
+  else if (percent < 70) { emoji = '😊'; title = 'ดีมาก!'; }
+  else if (percent < 90) { emoji = '🌟'; title = 'เก่งมาก!'; }
+  
+  document.getElementById('resultEmoji').textContent = emoji;
+  document.getElementById('resultTitle').textContent = title;
+}
+
+function restartPractice() {
+  currentIndex = 0;
+  score = 0;
+  correctCount = 0;
+  wrongCount = 0;
+  
+  document.getElementById('questionCard').style.display = 'block';
+  document.getElementById('resultScreen').classList.remove('active');
+  document.getElementById('score').textContent = '0';
+  
+  questions = prepareQuestions();
+  loadQuestion();
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Start
+init();
+</script>
+{% endblock %}

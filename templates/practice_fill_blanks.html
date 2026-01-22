@@ -1,0 +1,651 @@
+{% extends "base.html" %}
+{% block title %}Fill in the Blanks - {{ topic.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+  --primary: #667eea;
+  --primary-dark: #5a67d8;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+}
+
+/* Navigation */
+.quick-nav {
+  display: flex;
+  gap: .75rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: .75rem 0 1.25rem;
+}
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .6rem .9rem;
+  border-radius: 12px;
+  font-weight: 800;
+  text-decoration: none;
+  border: 1px solid rgba(0,0,0,.10);
+  background: #f7fafc;
+  color: #1a202c;
+  transition: all .15s ease;
+}
+.nav-btn:hover {
+  background: #edf2f7;
+  transform: translateY(-1px);
+}
+
+/* Main Container */
+.practice-container {
+  max-width: 800px;
+  margin: 0 auto;
+}
+
+/* Progress Bar */
+.progress-section {
+  background: #fff;
+  padding: 1.25rem;
+  border-radius: 16px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.08);
+  margin-bottom: 1.5rem;
+}
+.progress-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: .75rem;
+}
+.progress-text {
+  font-weight: 700;
+  color: #334155;
+}
+.progress-score {
+  font-weight: 800;
+  color: var(--primary);
+}
+.progress-bar {
+  height: 10px;
+  background: #e2e8f0;
+  border-radius: 999px;
+  overflow: hidden;
+}
+.progress-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary), #a78bfa);
+  border-radius: 999px;
+  transition: width 0.3s ease;
+}
+
+/* Question Card */
+.question-card {
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.1);
+  padding: 2rem;
+  margin-bottom: 1.5rem;
+}
+.question-number {
+  display: inline-block;
+  background: linear-gradient(135deg, var(--primary), #a78bfa);
+  color: #fff;
+  padding: .4rem 1rem;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: .9rem;
+  margin-bottom: 1rem;
+}
+.sentence-display {
+  font-size: 1.4rem;
+  line-height: 2;
+  color: #1e293b;
+  margin-bottom: 1.5rem;
+  text-align: center;
+}
+.blank-slot {
+  display: inline-block;
+  min-width: 120px;
+  padding: .25rem .75rem;
+  margin: 0 .25rem;
+  border-bottom: 3px solid var(--primary);
+  background: #f0f4ff;
+  border-radius: 8px 8px 0 0;
+  font-weight: 700;
+  color: var(--primary);
+  text-align: center;
+  transition: all .2s;
+}
+.blank-slot.correct {
+  background: #dcfce7;
+  border-color: var(--success);
+  color: var(--success);
+}
+.blank-slot.wrong {
+  background: #fee2e2;
+  border-color: var(--danger);
+  color: var(--danger);
+}
+
+/* Choices */
+.choices-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: .75rem;
+  justify-content: center;
+}
+.choice-btn {
+  padding: .75rem 1.5rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #334155;
+  cursor: pointer;
+  transition: all .2s;
+}
+.choice-btn:hover:not(:disabled) {
+  border-color: var(--primary);
+  background: #f0f4ff;
+  transform: translateY(-2px);
+}
+.choice-btn:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.choice-btn.selected {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #fff;
+}
+.choice-btn.correct {
+  border-color: var(--success);
+  background: var(--success);
+  color: #fff;
+}
+.choice-btn.wrong {
+  border-color: var(--danger);
+  background: var(--danger);
+  color: #fff;
+}
+
+/* Feedback */
+.feedback {
+  text-align: center;
+  padding: 1rem;
+  border-radius: 12px;
+  margin-top: 1rem;
+  font-weight: 700;
+  display: none;
+}
+.feedback.show {
+  display: block;
+}
+.feedback.correct {
+  background: #dcfce7;
+  color: #166534;
+}
+.feedback.wrong {
+  background: #fee2e2;
+  color: #991b1b;
+}
+
+/* Navigation Buttons */
+.nav-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+.btn {
+  padding: .75rem 2rem;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-primary {
+  background: linear-gradient(135deg, var(--primary), #a78bfa);
+  color: #fff;
+}
+.btn-primary:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 15px rgba(102,126,234,.4);
+}
+.btn-secondary {
+  background: #f1f5f9;
+  color: #475569;
+}
+.btn-secondary:hover {
+  background: #e2e8f0;
+}
+
+/* Result Screen */
+.result-screen {
+  display: none;
+  text-align: center;
+  padding: 3rem 2rem;
+  background: #fff;
+  border-radius: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,.1);
+}
+.result-screen.active {
+  display: block;
+}
+.result-emoji {
+  font-size: 5rem;
+  margin-bottom: 1rem;
+}
+.result-title {
+  font-size: 1.8rem;
+  font-weight: 800;
+  color: #1e293b;
+  margin-bottom: .5rem;
+}
+.result-score {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--primary);
+  margin-bottom: 2rem;
+}
+.result-details {
+  display: flex;
+  justify-content: center;
+  gap: 3rem;
+  margin-bottom: 2rem;
+}
+.result-stat {
+  text-align: center;
+}
+.result-stat-value {
+  font-size: 1.5rem;
+  font-weight: 800;
+}
+.result-stat-value.correct { color: var(--success); }
+.result-stat-value.wrong { color: var(--danger); }
+.result-stat-label {
+  font-size: .85rem;
+  color: #64748b;
+}
+.result-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+}
+
+/* Sound Toggle */
+.sound-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(102,126,234,.4);
+  transition: all .2s;
+}
+.sound-toggle:hover {
+  transform: scale(1.1);
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Navigation -->
+<div class="quick-nav">
+  <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="nav-btn">← Back to Topic</a>
+  <a href="{{ url_for('practice', topic_id=topic.id) }}" class="nav-btn">📝 MCQ Practice</a>
+  <a href="{{ url_for('practice_unscramble', topic_id=topic.id) }}" class="nav-btn">🔀 Unscramble</a>
+</div>
+
+<div class="practice-container">
+  <!-- Progress -->
+  <div class="progress-section">
+    <div class="progress-header">
+      <span class="progress-text">Question <span id="currentNum">1</span> / <span id="totalNum">10</span></span>
+      <span class="progress-score">Score: <span id="score">0</span></span>
+    </div>
+    <div class="progress-bar">
+      <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+    </div>
+  </div>
+
+  <!-- Question Card -->
+  <div class="question-card" id="questionCard">
+    <div class="question-number" id="questionNumber">Question 1</div>
+    <div class="sentence-display" id="sentenceDisplay">
+      Loading...
+    </div>
+    <div class="choices-container" id="choicesContainer">
+      <!-- Choices will be inserted here -->
+    </div>
+    <div class="feedback" id="feedback"></div>
+    <div class="nav-buttons">
+      <button class="btn btn-primary" id="nextBtn" onclick="nextQuestion()" style="display:none;">Next →</button>
+    </div>
+  </div>
+
+  <!-- Result Screen -->
+  <div class="result-screen" id="resultScreen">
+    <div class="result-emoji" id="resultEmoji">🎉</div>
+    <div class="result-title" id="resultTitle">Great Job!</div>
+    <div class="result-score" id="resultScore">80%</div>
+    <div class="result-details">
+      <div class="result-stat">
+        <div class="result-stat-value correct" id="correctCount">8</div>
+        <div class="result-stat-label">Correct</div>
+      </div>
+      <div class="result-stat">
+        <div class="result-stat-value wrong" id="wrongCount">2</div>
+        <div class="result-stat-label">Wrong</div>
+      </div>
+    </div>
+    <div class="result-actions">
+      <button class="btn btn-secondary" onclick="location.href='{{ url_for('topic_detail', topic_id=topic.id) }}'">🏠 Back</button>
+      <button class="btn btn-primary" onclick="restartPractice()">🔄 Try Again</button>
+    </div>
+  </div>
+</div>
+
+<!-- Sound Toggle -->
+<button class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔊</button>
+
+<script>
+// Practice Data from server
+const practiceData = {{ practice_data | tojson | safe }};
+
+// ===== SOUND SYSTEM =====
+let soundEnabled = true;
+let audioContext = null;
+
+function initAudio() {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return audioContext;
+}
+
+function playTone(frequency, duration, type = 'sine', volume = 0.3) {
+  if (!soundEnabled) return;
+  try {
+    const ctx = initAudio();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    oscillator.frequency.value = frequency;
+    oscillator.type = type;
+    gainNode.gain.setValueAtTime(volume, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + duration);
+  } catch (e) {}
+}
+
+function playCorrectSound() {
+  playTone(523, 0.15, 'sine', 0.3);
+  setTimeout(() => playTone(659, 0.15, 'sine', 0.3), 100);
+  setTimeout(() => playTone(784, 0.2, 'sine', 0.3), 200);
+}
+
+function playWrongSound() {
+  playTone(200, 0.3, 'square', 0.15);
+}
+
+function playWinSound() {
+  const notes = [523, 659, 784, 1047];
+  notes.forEach((note, i) => {
+    setTimeout(() => playTone(note, 0.3, 'sine', 0.3), i * 150);
+  });
+}
+
+function playClickSound() {
+  playTone(400, 0.1, 'sine', 0.2);
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  document.getElementById('soundToggle').textContent = soundEnabled ? '🔊' : '🔇';
+}
+
+// ===== GAME STATE =====
+let questions = [];
+let currentIndex = 0;
+let score = 0;
+let correctCount = 0;
+let wrongCount = 0;
+let answered = false;
+
+// Initialize
+function init() {
+  questions = prepareQuestions();
+  if (questions.length === 0) {
+    alert('ไม่มีข้อมูลสำหรับแบบฝึกหัดนี้');
+    return;
+  }
+  document.getElementById('totalNum').textContent = questions.length;
+  loadQuestion();
+}
+
+function prepareQuestions() {
+  const result = [];
+  
+  // From vocabulary - create fill-in-blank sentences
+  if (practiceData.vocabulary) {
+    practiceData.vocabulary.forEach(v => {
+      if (v.word && v.example) {
+        const sentence = v.example;
+        const word = v.word;
+        // Create blank by replacing word in sentence
+        const blankSentence = sentence.replace(new RegExp(word, 'i'), '_____');
+        if (blankSentence !== sentence) {
+          result.push({
+            sentence: blankSentence,
+            answer: word,
+            hint: v.meaning || ''
+          });
+        }
+      }
+    });
+  }
+  
+  // From examples
+  if (practiceData.examples) {
+    practiceData.examples.forEach(ex => {
+      if (ex.en) {
+        const words = ex.en.split(' ').filter(w => w.length > 3);
+        if (words.length > 0) {
+          const targetWord = words[Math.floor(Math.random() * words.length)];
+          const clean = targetWord.replace(/[.,!?]/g, '');
+          const blankSentence = ex.en.replace(clean, '_____');
+          result.push({
+            sentence: blankSentence,
+            answer: clean,
+            hint: ex.th || ''
+          });
+        }
+      }
+    });
+  }
+  
+  // From game questions
+  if (practiceData.questions) {
+    practiceData.questions.forEach(q => {
+      if (q.question && q.answer) {
+        result.push({
+          sentence: q.question.replace(q.answer, '_____'),
+          answer: q.answer,
+          hint: ''
+        });
+      }
+    });
+  }
+  
+  // Shuffle and limit
+  shuffleArray(result);
+  return result.slice(0, 15);
+}
+
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function loadQuestion() {
+  if (currentIndex >= questions.length) {
+    showResult();
+    return;
+  }
+  
+  answered = false;
+  const q = questions[currentIndex];
+  
+  // Update UI
+  document.getElementById('currentNum').textContent = currentIndex + 1;
+  document.getElementById('questionNumber').textContent = `Question ${currentIndex + 1}`;
+  document.getElementById('progressFill').style.width = `${(currentIndex / questions.length) * 100}%`;
+  
+  // Display sentence with blank
+  document.getElementById('sentenceDisplay').innerHTML = q.sentence.replace('_____', '<span class="blank-slot" id="blankSlot">?</span>');
+  
+  // Generate choices (correct answer + distractors)
+  const choices = generateChoices(q.answer);
+  
+  // Render choices
+  const container = document.getElementById('choicesContainer');
+  container.innerHTML = choices.map((choice, i) => `
+    <button class="choice-btn" data-answer="${escapeHtml(choice)}" onclick="selectAnswer(this, '${escapeHtml(choice)}')">${escapeHtml(choice)}</button>
+  `).join('');
+  
+  // Hide feedback and next button
+  document.getElementById('feedback').classList.remove('show');
+  document.getElementById('nextBtn').style.display = 'none';
+}
+
+function generateChoices(correct) {
+  const choices = [correct];
+  const allAnswers = questions.map(q => q.answer).filter(a => a !== correct);
+  shuffleArray(allAnswers);
+  
+  // Add 3 distractors
+  for (let i = 0; i < 3 && i < allAnswers.length; i++) {
+    choices.push(allAnswers[i]);
+  }
+  
+  // If not enough, add some random words
+  const fillers = ['the', 'is', 'are', 'have', 'has', 'do', 'does', 'can', 'will'];
+  while (choices.length < 4) {
+    const filler = fillers[Math.floor(Math.random() * fillers.length)];
+    if (!choices.includes(filler)) choices.push(filler);
+  }
+  
+  shuffleArray(choices);
+  return choices;
+}
+
+function selectAnswer(btn, answer) {
+  if (answered) return;
+  answered = true;
+  playClickSound();
+  
+  const q = questions[currentIndex];
+  const isCorrect = answer.toLowerCase() === q.answer.toLowerCase();
+  const blankSlot = document.getElementById('blankSlot');
+  const feedback = document.getElementById('feedback');
+  
+  // Update blank slot
+  blankSlot.textContent = q.answer;
+  
+  // Disable all buttons
+  document.querySelectorAll('.choice-btn').forEach(b => b.disabled = true);
+  
+  if (isCorrect) {
+    playCorrectSound();
+    btn.classList.add('correct');
+    blankSlot.classList.add('correct');
+    feedback.textContent = '✅ ถูกต้อง!';
+    feedback.className = 'feedback show correct';
+    score += 10;
+    correctCount++;
+  } else {
+    playWrongSound();
+    btn.classList.add('wrong');
+    blankSlot.classList.add('wrong');
+    // Show correct answer
+    document.querySelectorAll('.choice-btn').forEach(b => {
+      if (b.dataset.answer.toLowerCase() === q.answer.toLowerCase()) {
+        b.classList.add('correct');
+      }
+    });
+    feedback.textContent = `❌ คำตอบที่ถูกคือ: ${q.answer}`;
+    feedback.className = 'feedback show wrong';
+    wrongCount++;
+  }
+  
+  // Update score
+  document.getElementById('score').textContent = score;
+  
+  // Show next button
+  document.getElementById('nextBtn').style.display = 'inline-block';
+}
+
+function nextQuestion() {
+  currentIndex++;
+  loadQuestion();
+}
+
+function showResult() {
+  playWinSound();
+  
+  document.getElementById('questionCard').style.display = 'none';
+  document.getElementById('resultScreen').classList.add('active');
+  
+  const percent = Math.round((correctCount / questions.length) * 100);
+  document.getElementById('resultScore').textContent = percent + '%';
+  document.getElementById('correctCount').textContent = correctCount;
+  document.getElementById('wrongCount').textContent = wrongCount;
+  
+  // Emoji based on score
+  let emoji = '🎉', title = 'ยอดเยี่ยม!';
+  if (percent < 50) { emoji = '😢'; title = 'ลองใหม่นะ!'; }
+  else if (percent < 70) { emoji = '😊'; title = 'ดีมาก!'; }
+  else if (percent < 90) { emoji = '🌟'; title = 'เก่งมาก!'; }
+  
+  document.getElementById('resultEmoji').textContent = emoji;
+  document.getElementById('resultTitle').textContent = title;
+}
+
+function restartPractice() {
+  currentIndex = 0;
+  score = 0;
+  correctCount = 0;
+  wrongCount = 0;
+  
+  document.getElementById('questionCard').style.display = 'block';
+  document.getElementById('resultScreen').classList.remove('active');
+  document.getElementById('score').textContent = '0';
+  
+  questions = prepareQuestions();
+  loadQuestion();
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+// Start
+init();
+</script>
+{% endblock %}

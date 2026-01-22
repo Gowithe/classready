@@ -1,0 +1,833 @@
+{% extends "base.html" %}
+{% block title %}Millionaire - {{ topic.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+  --primary: #667eea;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+  --gold: #fbbf24;
+}
+
+* { box-sizing: border-box; }
+
+/* Navigation */
+.quick-nav {
+  display: flex;
+  gap: .75rem;
+  flex-wrap: wrap;
+  align-items: center;
+  margin: .75rem 0 1.25rem;
+}
+.nav-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: .5rem;
+  padding: .6rem .9rem;
+  border-radius: 12px;
+  font-weight: 800;
+  text-decoration: none;
+  border: 1px solid rgba(0,0,0,.10);
+  background: #f7fafc;
+  color: #1a202c;
+  transition: all .15s ease;
+}
+.nav-btn:hover {
+  background: #edf2f7;
+  transform: translateY(-1px);
+}
+
+/* Game Layout */
+.game-wrapper {
+  max-width: 1000px;
+  margin: 0 auto;
+  display: grid;
+  grid-template-columns: 1fr 200px;
+  gap: 1.5rem;
+}
+@media (max-width: 768px) {
+  .game-wrapper {
+    grid-template-columns: 1fr;
+  }
+}
+
+/* Main Game Area */
+.game-main {
+  background: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%);
+  border-radius: 20px;
+  padding: 2rem;
+  min-height: 500px;
+  position: relative;
+  overflow: hidden;
+}
+.game-main::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: radial-gradient(ellipse at center, rgba(99,102,241,0.2) 0%, transparent 70%);
+  pointer-events: none;
+}
+
+/* Prize Display */
+.prize-display {
+  text-align: center;
+  margin-bottom: 2rem;
+  position: relative;
+}
+.current-prize {
+  font-size: 2.5rem;
+  font-weight: 900;
+  color: var(--gold);
+  text-shadow: 0 0 20px rgba(251,191,36,0.5);
+}
+.question-number {
+  color: rgba(255,255,255,0.7);
+  font-size: 1rem;
+  margin-top: .5rem;
+}
+
+/* Question Box */
+.question-box {
+  background: linear-gradient(135deg, #3730a3, #4f46e5);
+  border: 3px solid var(--gold);
+  border-radius: 16px;
+  padding: 1.5rem 2rem;
+  margin-bottom: 1.5rem;
+  text-align: center;
+  position: relative;
+}
+.question-text {
+  color: #fff;
+  font-size: 1.25rem;
+  font-weight: 700;
+  line-height: 1.5;
+}
+
+/* Choices Grid */
+.choices-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 1rem;
+}
+@media (max-width: 500px) {
+  .choices-grid {
+    grid-template-columns: 1fr;
+  }
+}
+
+.choice-btn {
+  background: linear-gradient(135deg, #1e3a5f, #2d4a6f);
+  border: 2px solid #4a5568;
+  border-radius: 30px;
+  padding: 1rem 1.5rem;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all .2s ease;
+  text-align: left;
+  display: flex;
+  align-items: center;
+  gap: .75rem;
+}
+.choice-btn:hover:not(:disabled) {
+  background: linear-gradient(135deg, #2d4a6f, #3d5a7f);
+  border-color: var(--gold);
+  transform: scale(1.02);
+}
+.choice-btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+.choice-btn.selected {
+  background: linear-gradient(135deg, #c2410c, #ea580c);
+  border-color: #f97316;
+  animation: pulse 1s infinite;
+}
+@keyframes pulse {
+  0%, 100% { box-shadow: 0 0 0 0 rgba(249,115,22,0.4); }
+  50% { box-shadow: 0 0 0 10px rgba(249,115,22,0); }
+}
+.choice-btn.correct {
+  background: linear-gradient(135deg, #15803d, #22c55e);
+  border-color: #4ade80;
+  animation: none;
+}
+.choice-btn.wrong {
+  background: linear-gradient(135deg, #b91c1c, #ef4444);
+  border-color: #f87171;
+  animation: none;
+}
+.choice-btn.eliminated {
+  opacity: 0.3;
+  text-decoration: line-through;
+  pointer-events: none;
+}
+.choice-label {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  background: rgba(255,255,255,0.2);
+  border-radius: 50%;
+  font-weight: 900;
+  flex-shrink: 0;
+}
+
+/* Lifelines */
+.lifelines {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+.lifeline-btn {
+  width: 60px;
+  height: 60px;
+  border-radius: 50%;
+  background: linear-gradient(135deg, #4f46e5, #6366f1);
+  border: 2px solid var(--gold);
+  color: #fff;
+  font-size: 1.5rem;
+  cursor: pointer;
+  transition: all .2s;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.lifeline-btn:hover:not(:disabled) {
+  transform: scale(1.1);
+  box-shadow: 0 0 20px rgba(251,191,36,0.4);
+}
+.lifeline-btn:disabled {
+  background: #374151;
+  border-color: #4b5563;
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+.lifeline-btn.used {
+  background: #1f2937;
+  border-color: #374151;
+  opacity: 0.3;
+}
+
+/* Prize Ladder */
+.prize-ladder {
+  background: linear-gradient(180deg, #1e1b4b 0%, #312e81 100%);
+  border-radius: 16px;
+  padding: 1rem;
+}
+.prize-ladder h3 {
+  color: var(--gold);
+  text-align: center;
+  margin-bottom: 1rem;
+  font-size: 1rem;
+}
+.prize-item {
+  padding: .5rem .75rem;
+  margin-bottom: .25rem;
+  border-radius: 8px;
+  font-size: .85rem;
+  font-weight: 600;
+  color: rgba(255,255,255,0.6);
+  display: flex;
+  justify-content: space-between;
+  transition: all .2s;
+}
+.prize-item.current {
+  background: linear-gradient(90deg, #c2410c, #ea580c);
+  color: #fff;
+  transform: scale(1.05);
+}
+.prize-item.passed {
+  color: var(--success);
+}
+.prize-item.milestone {
+  color: var(--gold);
+  font-weight: 800;
+}
+
+/* Start Screen */
+.start-screen {
+  text-align: center;
+  padding: 3rem 2rem;
+}
+.start-screen h1 {
+  color: var(--gold);
+  font-size: 2rem;
+  margin-bottom: 1rem;
+  text-shadow: 0 0 20px rgba(251,191,36,0.3);
+}
+.start-screen p {
+  color: rgba(255,255,255,0.7);
+  margin-bottom: 2rem;
+}
+.btn-start {
+  background: linear-gradient(135deg, var(--gold), #f59e0b);
+  color: #1e1b4b;
+  border: none;
+  padding: 1rem 3rem;
+  border-radius: 30px;
+  font-size: 1.2rem;
+  font-weight: 900;
+  cursor: pointer;
+  transition: all .2s;
+}
+.btn-start:hover {
+  transform: scale(1.05);
+  box-shadow: 0 0 30px rgba(251,191,36,0.5);
+}
+
+/* Result Screen */
+.result-screen {
+  display: none;
+  text-align: center;
+  padding: 3rem 2rem;
+}
+.result-screen.active {
+  display: block;
+}
+.result-emoji {
+  font-size: 5rem;
+  margin-bottom: 1rem;
+}
+.result-title {
+  color: #fff;
+  font-size: 1.8rem;
+  margin-bottom: .5rem;
+}
+.result-prize {
+  color: var(--gold);
+  font-size: 2.5rem;
+  font-weight: 900;
+  margin-bottom: 2rem;
+}
+.result-actions {
+  display: flex;
+  gap: 1rem;
+  justify-content: center;
+  flex-wrap: wrap;
+}
+.btn-result {
+  padding: .75rem 2rem;
+  border-radius: 30px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all .2s;
+  border: none;
+}
+.btn-play-again {
+  background: linear-gradient(135deg, var(--gold), #f59e0b);
+  color: #1e1b4b;
+}
+.btn-quit {
+  background: rgba(255,255,255,0.1);
+  color: #fff;
+  border: 1px solid rgba(255,255,255,0.3);
+}
+
+/* Timer */
+.timer-bar {
+  position: absolute;
+  top: 0;
+  left: 0;
+  height: 4px;
+  background: var(--gold);
+  transition: width 0.1s linear;
+}
+
+/* Hide elements */
+.hidden { display: none !important; }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Navigation -->
+<div class="quick-nav">
+  <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="nav-btn">← Back to Topic</a>
+  <a href="{{ url_for('game', topic_id=topic.id) }}" class="nav-btn">🎯 Bamboozle</a>
+  <a href="{{ url_for('game_memory', topic_id=topic.id) }}" class="nav-btn">🃏 Memory</a>
+</div>
+
+<div class="game-wrapper">
+  <!-- Main Game Area -->
+  <div class="game-main">
+    <div class="timer-bar" id="timerBar" style="width: 100%"></div>
+    
+    <!-- Start Screen -->
+    <div class="start-screen" id="startScreen">
+      <h1>🏆 Who Wants to Be a Millionaire?</h1>
+      <p>ตอบคำถาม 15 ข้อ เพื่อรับรางวัลสูงสุด!</p>
+      <button class="btn-start" onclick="startGame()">เริ่มเกม</button>
+    </div>
+    
+    <!-- Game Screen -->
+    <div id="gameScreen" class="hidden">
+      <div class="prize-display">
+        <div class="current-prize" id="currentPrize">100</div>
+        <div class="question-number" id="questionNumber">คำถามที่ 1 / 15</div>
+      </div>
+      
+      <div class="question-box">
+        <div class="question-text" id="questionText">Loading...</div>
+      </div>
+      
+      <div class="choices-grid" id="choicesGrid">
+        <!-- Choices will be inserted here -->
+      </div>
+      
+      <div class="lifelines">
+        <button class="lifeline-btn" id="lifeline5050" onclick="use5050()" title="50:50">½</button>
+        <button class="lifeline-btn" id="lifelineHint" onclick="useHint()" title="คำใบ้">💡</button>
+        <button class="lifeline-btn" id="lifelineSkip" onclick="useSkip()" title="ข้ามคำถาม">⏭️</button>
+        <button class="lifeline-btn" id="soundToggle" onclick="toggleSound()" title="เสียง" style="background: linear-gradient(135deg, #059669, #10b981);">🔊</button>
+      </div>
+    </div>
+    
+    <!-- Result Screen -->
+    <div class="result-screen" id="resultScreen">
+      <div class="result-emoji" id="resultEmoji">🏆</div>
+      <div class="result-title" id="resultTitle">ยินดีด้วย!</div>
+      <div class="result-prize" id="resultPrize">1,000,000</div>
+      <div class="result-actions">
+        <button class="btn-result btn-play-again" onclick="startGame()">🔄 เล่นอีกครั้ง</button>
+        <button class="btn-result btn-quit" onclick="location.href='{{ url_for('topic_detail', topic_id=topic.id) }}'">🚪 ออก</button>
+      </div>
+    </div>
+  </div>
+  
+  <!-- Prize Ladder -->
+  <div class="prize-ladder" id="prizeLadder">
+    <h3>💰 รางวัล</h3>
+    <!-- Prize items will be inserted here -->
+  </div>
+</div>
+
+<script>
+// Game Data from server
+const questions = {{ questions | tojson | safe }};
+
+// Prize levels
+const prizes = [
+  100, 200, 300, 500, 1000,
+  2000, 4000, 8000, 16000, 32000,
+  64000, 125000, 250000, 500000, 1000000
+];
+const milestones = [4, 9, 14]; // Safe havens (index)
+
+// ===== SOUND SYSTEM (Web Audio API) =====
+let soundEnabled = true;
+let audioContext = null;
+
+function initAudio() {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return audioContext;
+}
+
+function playTone(frequency, duration, type = 'sine', volume = 0.3) {
+  if (!soundEnabled) return;
+  try {
+    const ctx = initAudio();
+    const oscillator = ctx.createOscillator();
+    const gainNode = ctx.createGain();
+    
+    oscillator.connect(gainNode);
+    gainNode.connect(ctx.destination);
+    
+    oscillator.frequency.value = frequency;
+    oscillator.type = type;
+    gainNode.gain.setValueAtTime(volume, ctx.currentTime);
+    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+    
+    oscillator.start(ctx.currentTime);
+    oscillator.stop(ctx.currentTime + duration);
+  } catch (e) {
+    console.log('Audio error:', e);
+  }
+}
+
+function playSelectSound() {
+  playTone(400, 0.15, 'sine', 0.25);
+}
+
+function playCorrectSound() {
+  // Triumphant ascending
+  playTone(523, 0.2, 'sine', 0.3);
+  setTimeout(() => playTone(659, 0.2, 'sine', 0.3), 150);
+  setTimeout(() => playTone(784, 0.3, 'sine', 0.35), 300);
+}
+
+function playWrongSound() {
+  // Descending sad tones
+  playTone(400, 0.3, 'sawtooth', 0.2);
+  setTimeout(() => playTone(300, 0.3, 'sawtooth', 0.2), 200);
+  setTimeout(() => playTone(200, 0.5, 'sawtooth', 0.15), 400);
+}
+
+function playLifelineSound() {
+  playTone(880, 0.1, 'sine', 0.2);
+  setTimeout(() => playTone(1100, 0.15, 'sine', 0.25), 100);
+}
+
+function playWinSound() {
+  // Big victory fanfare
+  const melody = [523, 659, 784, 1047, 784, 1047];
+  melody.forEach((note, i) => {
+    setTimeout(() => playTone(note, 0.25, 'sine', 0.3), i * 150);
+  });
+}
+
+function playLoseSound() {
+  playTone(300, 0.4, 'sawtooth', 0.2);
+  setTimeout(() => playTone(250, 0.4, 'sawtooth', 0.2), 300);
+  setTimeout(() => playTone(200, 0.6, 'sawtooth', 0.15), 600);
+}
+
+function playTickSound() {
+  playTone(800, 0.05, 'square', 0.1);
+}
+
+function playStartSound() {
+  playTone(440, 0.15, 'sine', 0.2);
+  setTimeout(() => playTone(554, 0.15, 'sine', 0.2), 150);
+  setTimeout(() => playTone(659, 0.2, 'sine', 0.25), 300);
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  const btn = document.getElementById('soundToggle');
+  if (btn) btn.textContent = soundEnabled ? '🔊' : '🔇';
+  if (soundEnabled) playTone(440, 0.1, 'sine', 0.2);
+}
+
+// Game State
+let currentQuestion = 0;
+let currentPrize = 0;
+let safePrize = 0;
+let gameQuestions = [];
+let selectedAnswer = null;
+let lifelines = { fifty: true, hint: true, skip: true };
+let timer = null;
+let timeLeft = 30;
+
+// Initialize prize ladder
+function initPrizeLadder() {
+  const ladder = document.getElementById('prizeLadder');
+  let html = '<h3>💰 รางวัล</h3>';
+  
+  for (let i = prizes.length - 1; i >= 0; i--) {
+    const isMilestone = milestones.includes(i);
+    html += `
+      <div class="prize-item ${isMilestone ? 'milestone' : ''}" data-level="${i}">
+        <span>${i + 1}</span>
+        <span>${formatNumber(prizes[i])}</span>
+      </div>
+    `;
+  }
+  
+  ladder.innerHTML = html;
+}
+
+function formatNumber(num) {
+  return num.toLocaleString();
+}
+
+// Start game
+function startGame() {
+  playStartSound();
+  
+  // Shuffle and select questions
+  gameQuestions = shuffleArray([...questions]).slice(0, 15);
+  
+  if (gameQuestions.length < 5) {
+    alert('คำถามไม่พอ! ต้องมีอย่างน้อย 5 ข้อ');
+    return;
+  }
+  
+  // Reset state
+  currentQuestion = 0;
+  currentPrize = 0;
+  safePrize = 0;
+  selectedAnswer = null;
+  lifelines = { fifty: true, hint: true, skip: true };
+  
+  // Reset lifeline buttons
+  document.getElementById('lifeline5050').classList.remove('used');
+  document.getElementById('lifelineHint').classList.remove('used');
+  document.getElementById('lifelineSkip').classList.remove('used');
+  document.getElementById('lifeline5050').disabled = false;
+  document.getElementById('lifelineHint').disabled = false;
+  document.getElementById('lifelineSkip').disabled = false;
+  
+  // Show game screen
+  document.getElementById('startScreen').classList.add('hidden');
+  document.getElementById('resultScreen').classList.remove('active');
+  document.getElementById('gameScreen').classList.remove('hidden');
+  
+  // Init ladder
+  initPrizeLadder();
+  
+  // Load first question
+  loadQuestion();
+}
+
+function loadQuestion() {
+  if (currentQuestion >= gameQuestions.length || currentQuestion >= prizes.length) {
+    winGame();
+    return;
+  }
+  
+  const q = gameQuestions[currentQuestion];
+  selectedAnswer = null;
+  
+  // Update UI
+  document.getElementById('currentPrize').textContent = formatNumber(prizes[currentQuestion]);
+  document.getElementById('questionNumber').textContent = `คำถามที่ ${currentQuestion + 1} / ${Math.min(gameQuestions.length, 15)}`;
+  document.getElementById('questionText').textContent = q.prompt || q.question;
+  
+  // Render choices
+  const choices = q.choices || ['A', 'B', 'C', 'D'];
+  const labels = ['A', 'B', 'C', 'D'];
+  let choicesHtml = '';
+  
+  choices.forEach((choice, i) => {
+    choicesHtml += `
+      <button class="choice-btn" data-index="${i}" onclick="selectAnswer(${i})">
+        <span class="choice-label">${labels[i]}</span>
+        <span>${escapeHtml(choice)}</span>
+      </button>
+    `;
+  });
+  
+  document.getElementById('choicesGrid').innerHTML = choicesHtml;
+  
+  // Update prize ladder
+  updatePrizeLadder();
+  
+  // Start timer
+  startTimer();
+}
+
+function updatePrizeLadder() {
+  document.querySelectorAll('.prize-item').forEach((item, i) => {
+    const level = parseInt(item.dataset.level);
+    item.classList.remove('current', 'passed');
+    
+    if (level === currentQuestion) {
+      item.classList.add('current');
+    } else if (level < currentQuestion) {
+      item.classList.add('passed');
+    }
+  });
+}
+
+function selectAnswer(index) {
+  if (selectedAnswer !== null) return;
+  
+  playSelectSound();
+  selectedAnswer = index;
+  stopTimer();
+  
+  // Highlight selected
+  const btns = document.querySelectorAll('.choice-btn');
+  btns.forEach(btn => btn.disabled = true);
+  btns[index].classList.add('selected');
+  
+  // Check answer after delay
+  setTimeout(() => {
+    checkAnswer(index);
+  }, 2000);
+}
+
+function checkAnswer(index) {
+  const q = gameQuestions[currentQuestion];
+  const correctIndex = findCorrectIndex(q);
+  
+  const btns = document.querySelectorAll('.choice-btn');
+  btns[correctIndex].classList.add('correct');
+  
+  if (index === correctIndex) {
+    // Correct!
+    playCorrectSound();
+    currentPrize = prizes[currentQuestion];
+    if (milestones.includes(currentQuestion)) {
+      safePrize = currentPrize;
+    }
+    
+    setTimeout(() => {
+      currentQuestion++;
+      loadQuestion();
+    }, 1500);
+  } else {
+    // Wrong!
+    playWrongSound();
+    btns[index].classList.remove('selected');
+    btns[index].classList.add('wrong');
+    
+    setTimeout(() => {
+      loseGame();
+    }, 2000);
+  }
+}
+
+function findCorrectIndex(q) {
+  // Try to find correct index from data
+  if (typeof q.correct_index === 'number') {
+    return q.correct_index;
+  }
+  
+  // Try to match correct_answer with choices
+  if (q.correct_answer && q.choices) {
+    const idx = q.choices.findIndex(c => 
+      c.toString().trim().toLowerCase() === q.correct_answer.toString().trim().toLowerCase()
+    );
+    if (idx !== -1) return idx;
+  }
+  
+  return 0;
+}
+
+// Timer
+function startTimer() {
+  timeLeft = 30;
+  updateTimerBar();
+  
+  timer = setInterval(() => {
+    timeLeft--;
+    updateTimerBar();
+    
+    if (timeLeft <= 0) {
+      stopTimer();
+      timeUp();
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  if (timer) {
+    clearInterval(timer);
+    timer = null;
+  }
+}
+
+function updateTimerBar() {
+  const percent = (timeLeft / 30) * 100;
+  document.getElementById('timerBar').style.width = percent + '%';
+}
+
+function timeUp() {
+  if (selectedAnswer === null) {
+    // Auto-select wrong answer
+    const correctIndex = findCorrectIndex(gameQuestions[currentQuestion]);
+    const wrongIndex = (correctIndex + 1) % 4;
+    selectAnswer(wrongIndex);
+  }
+}
+
+// Lifelines
+function use5050() {
+  if (!lifelines.fifty) return;
+  playLifelineSound();
+  lifelines.fifty = false;
+  
+  const btn = document.getElementById('lifeline5050');
+  btn.classList.add('used');
+  btn.disabled = true;
+  
+  const q = gameQuestions[currentQuestion];
+  const correctIndex = findCorrectIndex(q);
+  
+  // Get 2 random wrong answers to eliminate
+  const wrongIndices = [0, 1, 2, 3].filter(i => i !== correctIndex);
+  shuffleArray(wrongIndices);
+  const toEliminate = wrongIndices.slice(0, 2);
+  
+  // Eliminate choices
+  const btns = document.querySelectorAll('.choice-btn');
+  toEliminate.forEach(i => {
+    btns[i].classList.add('eliminated');
+    btns[i].disabled = true;
+  });
+}
+
+function useHint() {
+  if (!lifelines.hint) return;
+  playLifelineSound();
+  lifelines.hint = false;
+  
+  const btn = document.getElementById('lifelineHint');
+  btn.classList.add('used');
+  btn.disabled = true;
+  
+  const q = gameQuestions[currentQuestion];
+  const hint = q.explain || q.hint || 'ลองคิดดีๆ นะ!';
+  alert('💡 คำใบ้: ' + hint);
+}
+
+function useSkip() {
+  if (!lifelines.skip) return;
+  playLifelineSound();
+  lifelines.skip = false;
+  
+  const btn = document.getElementById('lifelineSkip');
+  btn.classList.add('used');
+  btn.disabled = true;
+  
+  stopTimer();
+  
+  // Move to next question without changing prize level
+  gameQuestions.splice(currentQuestion, 1);
+  loadQuestion();
+}
+
+// End game
+function winGame() {
+  stopTimer();
+  playWinSound();
+  showResult('🏆', 'ยินดีด้วย! คุณชนะ!', currentPrize);
+}
+
+function loseGame() {
+  stopTimer();
+  playLoseSound();
+  const finalPrize = safePrize;
+  const emoji = finalPrize > 0 ? '😢' : '💔';
+  const title = finalPrize > 0 ? 'เสียใจด้วย...' : 'Game Over!';
+  showResult(emoji, title, finalPrize);
+}
+
+function showResult(emoji, title, prize) {
+  document.getElementById('gameScreen').classList.add('hidden');
+  document.getElementById('resultEmoji').textContent = emoji;
+  document.getElementById('resultTitle').textContent = title;
+  document.getElementById('resultPrize').textContent = formatNumber(prize) + ' คะแนน';
+  document.getElementById('resultScreen').classList.add('active');
+}
+
+// Helpers
+function shuffleArray(array) {
+  for (let i = array.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [array[i], array[j]] = [array[j], array[i]];
+  }
+  return array;
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text || '';
+  return div.innerHTML;
+}
+
+// Initialize
+initPrizeLadder();
+</script>
+{% endblock %}
