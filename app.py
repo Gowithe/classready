@@ -853,7 +853,7 @@ def practice(topic_id):
 
 def _get_practice_data_from_slides(topic):
     """Extract vocabulary, examples, dialogues from slides for practice activities"""
-    data = {"vocabulary": [], "examples": [], "dialogues": [], "questions": []}
+    data = {"vocabulary": [], "examples": [], "dialogues": [], "questions": [], "mcq_questions": []}
     
     # From slides
     if topic.get("slides_json"):
@@ -895,6 +895,10 @@ def _get_practice_data_from_slides(topic):
         for q in qs:
             data["questions"].append({"question": q["question"], "answer": q["answer"]})
     
+    # From MCQ practice questions
+    mcq_rows = _normalize_practice_questions(PracticeQuestion.get_by_topic(topic["id"]))
+    data["mcq_questions"] = mcq_rows
+    
     return data
 
 
@@ -903,7 +907,61 @@ def _get_practice_data_from_slides(topic):
 def practice_fill_blanks(topic_id):
     topic = _get_topic_or_404(topic_id)
     practice_data = _get_practice_data_from_slides(topic)
-    return render_template("practice_fill_blanks.html", topic=topic, practice_data=practice_data)
+    link = PracticeLink.get_latest_active_by_topic_and_user(topic_id, session["user_id"])
+    student_url = None
+    if link:
+        student_url = request.url_root.rstrip("/") + url_for("public_fill_blanks", token=link["token"])
+    return render_template("practice_fill_blanks.html", topic=topic, practice_data=practice_data, student_url=student_url)
+
+
+@app.route("/api/practice/<int:topic_id>/fill-blanks/link", methods=["POST"])
+@login_required
+def api_fill_blanks_create_link(topic_id):
+    _get_topic_or_404(topic_id)
+    old = PracticeLink.get_latest_active_by_topic_and_user(topic_id, session["user_id"])
+    if not old:
+        link = PracticeLink.create(topic_id, session["user_id"], secrets.token_urlsafe(12))
+    else:
+        link = old
+    return jsonify({"url": request.url_root.rstrip("/") + url_for("public_fill_blanks", token=link["token"])})
+
+
+@app.route("/topic/<int:topic_id>/practice/fill-blanks/scores")
+@login_required
+def practice_fill_blanks_scores(topic_id):
+    topic = _get_topic_or_404(topic_id)
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT ps.* FROM practice_submissions ps JOIN practice_links pl ON ps.link_id=pl.id WHERE pl.topic_id=? ORDER BY ps.id DESC LIMIT 500", (topic_id,))
+    submissions = [dict(r) for r in c.fetchall()]
+    conn.close()
+    return render_template("practice_scores.html", topic=topic, submissions=submissions, practice_type="Fill in the Blanks")
+
+
+@app.route("/p/fill/<token>")
+def public_fill_blanks(token):
+    link = PracticeLink.get_by_token(token)
+    if not link or not link["is_active"]:
+        return "ลิงก์ไม่ถูกต้องหรือหมดอายุ", 404
+    topic = Topic.get_by_id(link["topic_id"])
+    if not topic:
+        return "Topic not found", 404
+    practice_data = _get_practice_data_from_slides(topic)
+    return render_template("practice_fill_blanks_public.html", topic=topic, practice_data=practice_data, token=token)
+
+
+@app.route("/api/public/fill/<token>/submit", methods=["POST"])
+def api_public_fill_blanks_submit(token):
+    link = PracticeLink.get_by_token(token)
+    if not link or not link["is_active"]:
+        return _json_error("Invalid link", 404)
+    data = request.get_json() or {}
+    name = (data.get("name") or "Anonymous").strip()[:100]
+    score = int(data.get("score", 0))
+    total = int(data.get("total", 0))
+    pct = (score/total*100) if total else 0
+    PracticeSubmission.create(link["id"], name, "", score, total, pct, json.dumps(data.get("answers", {})))
+    return jsonify({"ok": True, "score": score, "total": total, "percentage": pct})
 
 
 @app.route("/topic/<int:topic_id>/practice/unscramble")
@@ -911,7 +969,61 @@ def practice_fill_blanks(topic_id):
 def practice_unscramble(topic_id):
     topic = _get_topic_or_404(topic_id)
     practice_data = _get_practice_data_from_slides(topic)
-    return render_template("practice_unscramble.html", topic=topic, practice_data=practice_data)
+    link = PracticeLink.get_latest_active_by_topic_and_user(topic_id, session["user_id"])
+    student_url = None
+    if link:
+        student_url = request.url_root.rstrip("/") + url_for("public_unscramble", token=link["token"])
+    return render_template("practice_unscramble.html", topic=topic, practice_data=practice_data, student_url=student_url)
+
+
+@app.route("/api/practice/<int:topic_id>/unscramble/link", methods=["POST"])
+@login_required
+def api_unscramble_create_link(topic_id):
+    _get_topic_or_404(topic_id)
+    old = PracticeLink.get_latest_active_by_topic_and_user(topic_id, session["user_id"])
+    if not old:
+        link = PracticeLink.create(topic_id, session["user_id"], secrets.token_urlsafe(12))
+    else:
+        link = old
+    return jsonify({"url": request.url_root.rstrip("/") + url_for("public_unscramble", token=link["token"])})
+
+
+@app.route("/topic/<int:topic_id>/practice/unscramble/scores")
+@login_required
+def practice_unscramble_scores(topic_id):
+    topic = _get_topic_or_404(topic_id)
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT ps.* FROM practice_submissions ps JOIN practice_links pl ON ps.link_id=pl.id WHERE pl.topic_id=? ORDER BY ps.id DESC LIMIT 500", (topic_id,))
+    submissions = [dict(r) for r in c.fetchall()]
+    conn.close()
+    return render_template("practice_scores.html", topic=topic, submissions=submissions, practice_type="Sentence Unscramble")
+
+
+@app.route("/p/unscramble/<token>")
+def public_unscramble(token):
+    link = PracticeLink.get_by_token(token)
+    if not link or not link["is_active"]:
+        return "ลิงก์ไม่ถูกต้องหรือหมดอายุ", 404
+    topic = Topic.get_by_id(link["topic_id"])
+    if not topic:
+        return "Topic not found", 404
+    practice_data = _get_practice_data_from_slides(topic)
+    return render_template("practice_unscramble_public.html", topic=topic, practice_data=practice_data, token=token)
+
+
+@app.route("/api/public/unscramble/<token>/submit", methods=["POST"])
+def api_public_unscramble_submit(token):
+    link = PracticeLink.get_by_token(token)
+    if not link or not link["is_active"]:
+        return _json_error("Invalid link", 404)
+    data = request.get_json() or {}
+    name = (data.get("name") or "Anonymous").strip()[:100]
+    score = int(data.get("score", 0))
+    total = int(data.get("total", 0))
+    pct = (score/total*100) if total else 0
+    PracticeSubmission.create(link["id"], name, "", score, total, pct, json.dumps(data.get("answers", {})))
+    return jsonify({"ok": True, "score": score, "total": total, "percentage": pct})
 
 @app.route("/api/practice/<int:topic_id>/submit", methods=["POST"])
 @login_required
