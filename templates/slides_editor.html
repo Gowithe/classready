@@ -535,54 +535,6 @@
     color: white;
   }
 
-  /* Image Upload */
-  .image-upload-area {
-    border: 2px dashed var(--border);
-    border-radius: 8px;
-    padding: 2rem;
-    text-align: center;
-    cursor: pointer;
-    transition: all 0.2s;
-    background: #f8fafc;
-  }
-
-  .image-upload-area:hover {
-    border-color: var(--primary);
-    background: rgba(102,126,234,0.05);
-  }
-
-  .image-upload-area.has-image {
-    padding: 1rem;
-  }
-
-  .image-upload-area img {
-    max-width: 100%;
-    max-height: 200px;
-    border-radius: 8px;
-  }
-
-  .image-upload-icon {
-    font-size: 2.5rem;
-    color: var(--muted);
-    margin-bottom: 0.5rem;
-  }
-
-  .image-upload-text {
-    color: var(--muted);
-    font-size: 0.9rem;
-  }
-
-  .remove-image-btn {
-    margin-top: 0.75rem;
-    padding: 0.4rem 1rem;
-    background: var(--danger);
-    color: white;
-    border: none;
-    border-radius: 6px;
-    cursor: pointer;
-    font-size: 0.85rem;
-  }
-
   /* Modal Footer */
   .modal-footer {
     padding: 1rem 1.5rem;
@@ -1003,11 +955,6 @@ function renderPreview() {
     contentHtml += `</div>`;
   }
 
-  // Image
-  if (slide.image_url) {
-    contentHtml += `<div style="margin-top:1rem;"><img src="${escapeHtml(slide.image_url)}" style="max-width:100%; border-radius:8px;"></div>`;
-  }
-
   // Teacher notes
   if (slide.teacher_notes) {
     contentHtml += `<div style="margin-top:1.5rem; background:rgba(245,158,11,0.2); padding:1rem; border-radius:8px; border-left:4px solid #f59e0b;">
@@ -1088,23 +1035,6 @@ function openEditModal(index) {
     formHtml += buildListField('Questions', 'editQuestions', slide.questions || []);
   }
 
-  // Image upload
-  formHtml += `
-    <div class="form-group">
-      <label>Image (optional)</label>
-      <div class="image-upload-area ${slide.image_url ? 'has-image' : ''}" id="imageUploadArea">
-        ${slide.image_url ? 
-          `<img src="${escapeHtml(slide.image_url)}" id="previewImage">
-           <button type="button" class="remove-image-btn" onclick="removeImage()">🗑️ Remove Image</button>` :
-          `<div class="image-upload-icon">🖼️</div>
-           <div class="image-upload-text">Click to upload or drag image here</div>`
-        }
-      </div>
-      <input type="file" id="imageInput" accept="image/*" style="display:none;">
-      <input type="hidden" id="editImageUrl" value="${escapeHtml(slide.image_url || '')}">
-    </div>
-  `;
-
   // Teacher notes
   formHtml += `
     <div class="form-group">
@@ -1115,9 +1045,6 @@ function openEditModal(index) {
 
   modalBody.innerHTML = formHtml;
   editModal.classList.add('show');
-
-  // Setup image upload
-  setupImageUpload();
 }
 
 function buildListField(label, id, items) {
@@ -1186,73 +1113,6 @@ function addVocabItem(id) {
   row.querySelector('input').focus();
 }
 
-function setupImageUpload() {
-  const area = document.getElementById('imageUploadArea');
-  const input = document.getElementById('imageInput');
-  
-  if (!area || !input) return;
-
-  area.addEventListener('click', (e) => {
-    if (!e.target.closest('.remove-image-btn')) {
-      input.click();
-    }
-  });
-
-  input.addEventListener('change', handleImageSelect);
-
-  area.addEventListener('dragover', (e) => {
-    e.preventDefault();
-    area.style.borderColor = 'var(--primary)';
-  });
-
-  area.addEventListener('dragleave', () => {
-    area.style.borderColor = '';
-  });
-
-  area.addEventListener('drop', (e) => {
-    e.preventDefault();
-    area.style.borderColor = '';
-    const file = e.dataTransfer.files[0];
-    if (file && file.type.startsWith('image/')) {
-      handleImageFile(file);
-    }
-  });
-}
-
-function handleImageSelect(e) {
-  const file = e.target.files[0];
-  if (file) {
-    handleImageFile(file);
-  }
-}
-
-function handleImageFile(file) {
-  const reader = new FileReader();
-  reader.onload = (e) => {
-    const area = document.getElementById('imageUploadArea');
-    const urlInput = document.getElementById('editImageUrl');
-    area.classList.add('has-image');
-    area.innerHTML = `
-      <img src="${e.target.result}" id="previewImage">
-      <button type="button" class="remove-image-btn" onclick="removeImage()">🗑️ Remove Image</button>
-    `;
-    urlInput.value = e.target.result;
-  };
-  reader.readAsDataURL(file);
-}
-
-function removeImage() {
-  const area = document.getElementById('imageUploadArea');
-  const urlInput = document.getElementById('editImageUrl');
-  area.classList.remove('has-image');
-  area.innerHTML = `
-    <div class="image-upload-icon">🖼️</div>
-    <div class="image-upload-text">Click to upload or drag image here</div>
-  `;
-  urlInput.value = '';
-  setupImageUpload();
-}
-
 // Save slide from modal
 function saveSlideFromModal() {
   const slide = slides[editingSlideIndex];
@@ -1262,7 +1122,6 @@ function saveSlideFromModal() {
   slide.title = document.getElementById('editTitle').value;
   slide.subtitle = document.getElementById('editSubtitle').value;
   slide.content = document.getElementById('editContent').value;
-  slide.image_url = document.getElementById('editImageUrl').value;
   slide.teacher_notes = document.getElementById('editTeacherNotes').value;
 
   // Collect list items
