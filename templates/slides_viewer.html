@@ -1394,6 +1394,10 @@ body.fullscreen-mode .slide-footer {
           <button class="theme-btn playful active" onclick="setTheme('playful')" title="Playful"></button>
         </div>
         <button class="btn btn-secondary" onclick="toggleFullscreen()">⛶ Fullscreen</button>
+        <a href="{{ url_for('edit_slides', topic_id=topic.id) }}" class="btn btn-primary">✏️ Edit Slides</a>
+        {% if topic.pdf_file %}
+        <a href="{{ url_for('uploaded_file', filename=topic.pdf_file) }}" class="btn btn-secondary" target="_blank">📄 View PDF</a>
+        {% endif %}
         <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="btn btn-secondary">← Back</a>
       </div>
     </div>
@@ -1446,8 +1450,8 @@ function getStickers(slideIndex) {
 
 // Get image URL from Unsplash based on keywords
 function getImageUrl(slide, index) {
-  // If slide has image_url, use it
-  if (slide.image_url && !slide.image_url.startsWith('data:')) {
+  // If slide has image_url, use it (including base64 data URLs)
+  if (slide.image_url) {
     return slide.image_url;
   }
   
@@ -1456,7 +1460,7 @@ function getImageUrl(slide, index) {
   const title = slide.title || '';
   const slideType = slide.type || '';
   
-  // Skip images for certain slide types
+  // Skip auto-images for certain slide types
   if (['hook', 'objectives', 'guided_practice', 'exit_ticket', 'review'].includes(slideType)) {
     return null;
   }
@@ -1870,6 +1874,42 @@ function extractContent(slide, type) {
       html += `<li>${escapeHtml(b)}</li>`;
     });
     html += '</ul>';
+  }
+  
+  // Tasks (for production slide)
+  if (slide.tasks && Array.isArray(slide.tasks)) {
+    html += '<div class="tasks-list">';
+    slide.tasks.forEach((task, i) => {
+      html += `<div style="background:linear-gradient(135deg, #fef3c7, #fde68a);padding:14px 18px;border-radius:12px;margin-bottom:10px;border:2px solid #1e293b;box-shadow:3px 3px 0 #1e293b;">
+        <span style="font-weight:800;color:#7c3aed;margin-right:8px;">📝 Task ${i+1}:</span>
+        <span style="color:#1e293b;">${escapeHtml(task)}</span>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  
+  // Summary (for review slide)
+  if (slide.summary && Array.isArray(slide.summary)) {
+    html += '<div class="summary-list">';
+    slide.summary.forEach((item, i) => {
+      html += `<div style="background:#f0fdf4;padding:12px 16px;border-radius:10px;margin-bottom:8px;border-left:4px solid #22c55e;display:flex;align-items:center;gap:10px;">
+        <span style="font-size:1.2rem;">✅</span>
+        <span style="color:#166534;font-weight:600;">${escapeHtml(item)}</span>
+      </div>`;
+    });
+    html += '</div>';
+  }
+  
+  // Questions (for exit_ticket slide)
+  if (slide.questions && Array.isArray(slide.questions)) {
+    html += '<div class="questions-list">';
+    slide.questions.forEach((q, i) => {
+      html += `<div style="background:linear-gradient(135deg, #ede9fe, #ddd6fe);padding:14px 18px;border-radius:12px;margin-bottom:10px;border:2px solid #7c3aed;">
+        <span style="font-weight:800;color:#5b21b6;margin-right:8px;">❓ Q${i+1}:</span>
+        <span style="color:#4c1d95;">${escapeHtml(q)}</span>
+      </div>`;
+    });
+    html += '</div>';
   }
   
   return html || '<p style="color:#6b7280;text-align:center;">Content coming soon...</p>';
