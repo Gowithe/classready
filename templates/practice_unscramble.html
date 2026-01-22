@@ -5,13 +5,11 @@
 <style>
 :root {
   --primary: #667eea;
-  --primary-dark: #5a67d8;
   --success: #22c55e;
   --danger: #ef4444;
   --warning: #f59e0b;
 }
 
-/* Navigation */
 .quick-nav {
   display: flex;
   gap: .75rem;
@@ -30,20 +28,47 @@
   border: 1px solid rgba(0,0,0,.10);
   background: #f7fafc;
   color: #1a202c;
-  transition: all .15s ease;
 }
-.nav-btn:hover {
-  background: #edf2f7;
-  transform: translateY(-1px);
-}
+.nav-btn:hover { background: #edf2f7; }
 
-/* Main Container */
-.practice-container {
-  max-width: 800px;
-  margin: 0 auto;
+.link-section {
+  background: #fff;
+  padding: 1rem 1.25rem;
+  border-radius: 12px;
+  box-shadow: 0 2px 10px rgba(0,0,0,.08);
+  margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: center;
+  justify-content: space-between;
 }
+.link-section h4 { margin: 0; font-size: .95rem; color: #334155; }
+.link-url {
+  flex: 1;
+  min-width: 200px;
+  padding: .5rem .75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  font-size: .85rem;
+  background: #f8fafc;
+}
+.link-actions { display: flex; gap: .5rem; }
+.btn-small {
+  padding: .5rem 1rem;
+  border: none;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: .85rem;
+  cursor: pointer;
+  text-decoration: none;
+}
+.btn-copy { background: var(--primary); color: #fff; }
+.btn-create { background: var(--success); color: #fff; }
+.btn-scores { background: var(--warning); color: #1e293b; }
 
-/* Progress Bar */
+.practice-container { max-width: 800px; margin: 0 auto; }
+
 .progress-section {
   background: #fff;
   padding: 1.25rem;
@@ -54,17 +79,10 @@
 .progress-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
   margin-bottom: .75rem;
 }
-.progress-text {
-  font-weight: 700;
-  color: #334155;
-}
-.progress-score {
-  font-weight: 800;
-  color: var(--primary);
-}
+.progress-text { font-weight: 700; }
+.progress-score { font-weight: 800; color: var(--primary); }
 .progress-bar {
   height: 10px;
   background: #e2e8f0;
@@ -74,11 +92,9 @@
 .progress-fill {
   height: 100%;
   background: linear-gradient(90deg, var(--primary), #a78bfa);
-  border-radius: 999px;
-  transition: width 0.3s ease;
+  transition: width 0.3s;
 }
 
-/* Question Card */
 .question-card {
   background: #fff;
   border-radius: 20px;
@@ -96,20 +112,9 @@
   font-size: .9rem;
   margin-bottom: 1rem;
 }
-.instruction {
-  text-align: center;
-  color: #64748b;
-  margin-bottom: 1rem;
-}
-.hint-text {
-  text-align: center;
-  color: #94a3b8;
-  font-size: .9rem;
-  margin-bottom: 1.5rem;
-  font-style: italic;
-}
+.instruction { text-align: center; color: #64748b; margin-bottom: 1rem; }
+.hint-text { text-align: center; color: #94a3b8; font-size: .9rem; margin-bottom: 1.5rem; font-style: italic; }
 
-/* Answer Zone */
 .answer-zone {
   min-height: 70px;
   border: 3px dashed #cbd5e1;
@@ -122,28 +127,11 @@
   align-items: center;
   justify-content: center;
   background: #f8fafc;
-  transition: all .2s;
 }
-.answer-zone.active {
-  border-color: var(--primary);
-  background: #f0f4ff;
-}
-.answer-zone.correct {
-  border-color: var(--success);
-  background: #dcfce7;
-  border-style: solid;
-}
-.answer-zone.wrong {
-  border-color: var(--danger);
-  background: #fee2e2;
-  border-style: solid;
-}
-.answer-zone .placeholder {
-  color: #94a3b8;
-  font-style: italic;
-}
+.answer-zone.correct { border-color: var(--success); background: #dcfce7; border-style: solid; }
+.answer-zone.wrong { border-color: var(--danger); background: #fee2e2; border-style: solid; }
+.answer-zone .placeholder { color: #94a3b8; font-style: italic; }
 
-/* Word Tokens */
 .words-container {
   display: flex;
   flex-wrap: wrap;
@@ -160,41 +148,22 @@
   font-size: 1.1rem;
   font-weight: 700;
   cursor: pointer;
-  transition: all .2s;
   box-shadow: 0 4px 10px rgba(102,126,234,.3);
 }
-.word-token:hover:not(:disabled) {
-  transform: translateY(-3px);
-  box-shadow: 0 6px 15px rgba(102,126,234,.4);
-}
-.word-token:disabled {
-  opacity: 0.4;
-  cursor: not-allowed;
-  transform: none;
-}
-.word-token.in-answer {
-  background: #94a3b8;
-  box-shadow: none;
-}
+.word-token:hover:not(:disabled) { transform: translateY(-3px); }
+.word-token:disabled { opacity: 0.4; cursor: not-allowed; }
 
-/* Answer Token (in answer zone) */
 .answer-token {
   padding: .5rem 1rem;
   background: var(--primary);
   color: #fff;
   border: none;
   border-radius: 10px;
-  font-size: 1rem;
   font-weight: 600;
   cursor: pointer;
-  transition: all .2s;
 }
-.answer-token:hover {
-  background: var(--danger);
-  transform: scale(1.05);
-}
+.answer-token:hover { background: var(--danger); }
 
-/* Feedback */
 .feedback {
   text-align: center;
   padding: 1rem;
@@ -203,24 +172,11 @@
   font-weight: 700;
   display: none;
 }
-.feedback.show {
-  display: block;
-}
-.feedback.correct {
-  background: #dcfce7;
-  color: #166534;
-}
-.feedback.wrong {
-  background: #fee2e2;
-  color: #991b1b;
-}
-.correct-answer {
-  margin-top: .5rem;
-  font-weight: 600;
-  color: #166534;
-}
+.feedback.show { display: block; }
+.feedback.correct { background: #dcfce7; color: #166534; }
+.feedback.wrong { background: #fee2e2; color: #991b1b; }
+.correct-answer { margin-top: .5rem; font-weight: 600; color: #166534; }
 
-/* Buttons */
 .action-buttons {
   display: flex;
   justify-content: center;
@@ -234,33 +190,11 @@
   border-radius: 12px;
   font-weight: 700;
   cursor: pointer;
-  transition: all .2s;
 }
-.btn-primary {
-  background: linear-gradient(135deg, var(--primary), #a78bfa);
-  color: #fff;
-}
-.btn-primary:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 15px rgba(102,126,234,.4);
-}
-.btn-secondary {
-  background: #f1f5f9;
-  color: #475569;
-}
-.btn-secondary:hover {
-  background: #e2e8f0;
-}
-.btn-success {
-  background: linear-gradient(135deg, var(--success), #4ade80);
-  color: #fff;
-}
-.btn-warning {
-  background: linear-gradient(135deg, var(--warning), #fbbf24);
-  color: #1e293b;
-}
+.btn-primary { background: linear-gradient(135deg, var(--primary), #a78bfa); color: #fff; }
+.btn-secondary { background: #f1f5f9; color: #475569; }
+.btn-success { background: var(--success); color: #fff; }
 
-/* Result Screen */
 .result-screen {
   display: none;
   text-align: center;
@@ -269,51 +203,18 @@
   border-radius: 20px;
   box-shadow: 0 4px 20px rgba(0,0,0,.1);
 }
-.result-screen.active {
-  display: block;
-}
-.result-emoji {
-  font-size: 5rem;
-  margin-bottom: 1rem;
-}
-.result-title {
-  font-size: 1.8rem;
-  font-weight: 800;
-  color: #1e293b;
-  margin-bottom: .5rem;
-}
-.result-score {
-  font-size: 2.5rem;
-  font-weight: 900;
-  color: var(--primary);
-  margin-bottom: 2rem;
-}
-.result-details {
-  display: flex;
-  justify-content: center;
-  gap: 3rem;
-  margin-bottom: 2rem;
-}
-.result-stat {
-  text-align: center;
-}
-.result-stat-value {
-  font-size: 1.5rem;
-  font-weight: 800;
-}
+.result-screen.active { display: block; }
+.result-emoji { font-size: 5rem; margin-bottom: 1rem; }
+.result-title { font-size: 1.8rem; font-weight: 800; margin-bottom: .5rem; }
+.result-score { font-size: 2.5rem; font-weight: 900; color: var(--primary); margin-bottom: 2rem; }
+.result-details { display: flex; justify-content: center; gap: 3rem; margin-bottom: 2rem; }
+.result-stat { text-align: center; }
+.result-stat-value { font-size: 1.5rem; font-weight: 800; }
 .result-stat-value.correct { color: var(--success); }
 .result-stat-value.wrong { color: var(--danger); }
-.result-stat-label {
-  font-size: .85rem;
-  color: #64748b;
-}
-.result-actions {
-  display: flex;
-  gap: 1rem;
-  justify-content: center;
-}
+.result-stat-label { font-size: .85rem; color: #64748b; }
+.result-actions { display: flex; gap: 1rem; justify-content: center; }
 
-/* Sound Toggle */
 .sound-toggle {
   position: fixed;
   bottom: 20px;
@@ -326,25 +227,32 @@
   border: none;
   font-size: 1.5rem;
   cursor: pointer;
-  box-shadow: 0 4px 15px rgba(102,126,234,.4);
-  transition: all .2s;
-}
-.sound-toggle:hover {
-  transform: scale(1.1);
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<!-- Navigation -->
 <div class="quick-nav">
   <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="nav-btn">← Back to Topic</a>
   <a href="{{ url_for('practice', topic_id=topic.id) }}" class="nav-btn">📝 MCQ Practice</a>
   <a href="{{ url_for('practice_fill_blanks', topic_id=topic.id) }}" class="nav-btn">✍️ Fill Blanks</a>
 </div>
 
+<div class="link-section">
+  <h4>🔗 ลิงก์สำหรับนักเรียน</h4>
+  {% if student_url %}
+  <input type="text" class="link-url" id="studentUrl" value="{{ student_url }}" readonly>
+  <div class="link-actions">
+    <button class="btn-small btn-copy" onclick="copyLink()">📋 Copy</button>
+    <a href="{{ url_for('practice_unscramble_scores', topic_id=topic.id) }}" class="btn-small btn-scores">📊 ดูคะแนน</a>
+  </div>
+  {% else %}
+  <span style="color:#64748b;">ยังไม่มีลิงก์</span>
+  <button class="btn-small btn-create" onclick="createLink()">➕ สร้างลิงก์</button>
+  {% endif %}
+</div>
+
 <div class="practice-container">
-  <!-- Progress -->
   <div class="progress-section">
     <div class="progress-header">
       <span class="progress-text">Question <span id="currentNum">1</span> / <span id="totalNum">10</span></span>
@@ -355,21 +263,16 @@
     </div>
   </div>
 
-  <!-- Question Card -->
   <div class="question-card" id="questionCard">
     <div class="question-number" id="questionNumber">Question 1</div>
     <p class="instruction">🔀 เรียงคำให้เป็นประโยคที่ถูกต้อง</p>
     <p class="hint-text" id="hintText"></p>
     
-    <!-- Answer Zone -->
     <div class="answer-zone" id="answerZone">
       <span class="placeholder">คลิกคำด้านล่างเพื่อเรียงประโยค</span>
     </div>
     
-    <!-- Scrambled Words -->
-    <div class="words-container" id="wordsContainer">
-      <!-- Words will be inserted here -->
-    </div>
+    <div class="words-container" id="wordsContainer"></div>
     
     <div class="feedback" id="feedback"></div>
     
@@ -380,7 +283,6 @@
     </div>
   </div>
 
-  <!-- Result Screen -->
   <div class="result-screen" id="resultScreen">
     <div class="result-emoji" id="resultEmoji">🎉</div>
     <div class="result-title" id="resultTitle">Great Job!</div>
@@ -402,72 +304,59 @@
   </div>
 </div>
 
-<!-- Sound Toggle -->
 <button class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔊</button>
 
 <script>
-// Practice Data from server
 const practiceData = {{ practice_data | tojson | safe }};
+const topicId = {{ topic.id }};
 
-// ===== SOUND SYSTEM =====
 let soundEnabled = true;
 let audioContext = null;
 
 function initAudio() {
-  if (!audioContext) {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  }
+  if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
   return audioContext;
 }
 
-function playTone(frequency, duration, type = 'sine', volume = 0.3) {
+function playTone(freq, dur, type = 'sine', vol = 0.3) {
   if (!soundEnabled) return;
   try {
     const ctx = initAudio();
-    const oscillator = ctx.createOscillator();
-    const gainNode = ctx.createGain();
-    oscillator.connect(gainNode);
-    gainNode.connect(ctx.destination);
-    oscillator.frequency.value = frequency;
-    oscillator.type = type;
-    gainNode.gain.setValueAtTime(volume, ctx.currentTime);
-    gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
-    oscillator.start(ctx.currentTime);
-    oscillator.stop(ctx.currentTime + duration);
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = freq;
+    osc.type = type;
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + dur);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + dur);
   } catch (e) {}
 }
 
-function playCorrectSound() {
-  playTone(523, 0.15, 'sine', 0.3);
-  setTimeout(() => playTone(659, 0.15, 'sine', 0.3), 100);
-  setTimeout(() => playTone(784, 0.2, 'sine', 0.3), 200);
-}
-
-function playWrongSound() {
-  playTone(200, 0.3, 'square', 0.15);
-}
-
-function playWinSound() {
-  const notes = [523, 659, 784, 1047];
-  notes.forEach((note, i) => {
-    setTimeout(() => playTone(note, 0.3, 'sine', 0.3), i * 150);
-  });
-}
-
-function playClickSound() {
-  playTone(500, 0.08, 'sine', 0.2);
-}
-
-function playDropSound() {
-  playTone(300, 0.1, 'sine', 0.15);
-}
-
+function playCorrectSound() { playTone(523, 0.15); setTimeout(() => playTone(659, 0.15), 100); setTimeout(() => playTone(784, 0.2), 200); }
+function playWrongSound() { playTone(200, 0.3, 'square', 0.15); }
+function playWinSound() { [523, 659, 784, 1047].forEach((n, i) => setTimeout(() => playTone(n, 0.3), i * 150)); }
+function playClickSound() { playTone(500, 0.08, 'sine', 0.2); }
 function toggleSound() {
   soundEnabled = !soundEnabled;
   document.getElementById('soundToggle').textContent = soundEnabled ? '🔊' : '🔇';
 }
 
-// ===== GAME STATE =====
+function copyLink() {
+  const input = document.getElementById('studentUrl');
+  input.select();
+  document.execCommand('copy');
+  alert('คัดลอกลิงก์แล้ว!');
+}
+
+function createLink() {
+  fetch(`/api/practice/${topicId}/unscramble/link`, { method: 'POST' })
+    .then(r => r.json())
+    .then(data => { if (data.url) location.reload(); });
+}
+
 let questions = [];
 let currentIndex = 0;
 let score = 0;
@@ -477,11 +366,10 @@ let answered = false;
 let currentAnswer = [];
 let currentWords = [];
 
-// Initialize
 function init() {
   questions = prepareQuestions();
   if (questions.length === 0) {
-    alert('ไม่มีข้อมูลสำหรับแบบฝึกหัดนี้');
+    document.getElementById('wordsContainer').innerHTML = '<p style="color:#64748b;">ไม่มีข้อมูล กรุณา Generate Practice ก่อน</p>';
     return;
   }
   document.getElementById('totalNum').textContent = questions.length;
@@ -491,145 +379,117 @@ function init() {
 function prepareQuestions() {
   const result = [];
   
-  // From examples
-  if (practiceData.examples) {
+  if (practiceData.examples && practiceData.examples.length > 0) {
     practiceData.examples.forEach(ex => {
       if (ex.en && ex.en.split(' ').length >= 3) {
-        result.push({
-          sentence: ex.en.replace(/[.!?]$/, ''),
-          hint: ex.th || ''
-        });
+        result.push({ sentence: ex.en.replace(/[.!?]$/, ''), hint: ex.th || '' });
       }
     });
   }
   
-  // From vocabulary examples
-  if (practiceData.vocabulary) {
+  if (practiceData.vocabulary && practiceData.vocabulary.length > 0) {
     practiceData.vocabulary.forEach(v => {
       if (v.example && v.example.split(' ').length >= 3) {
-        result.push({
-          sentence: v.example.replace(/[.!?]$/, ''),
-          hint: v.meaning || ''
-        });
+        result.push({ sentence: v.example.replace(/[.!?]$/, ''), hint: v.meaning || '' });
       }
     });
   }
   
-  // From dialogue lines
-  if (practiceData.dialogues) {
+  if (practiceData.dialogues && practiceData.dialogues.length > 0) {
     practiceData.dialogues.forEach(d => {
       if (d.text && d.text.split(' ').length >= 3) {
-        result.push({
-          sentence: d.text.replace(/[.!?]$/, ''),
-          hint: ''
-        });
+        result.push({ sentence: d.text.replace(/[.!?]$/, ''), hint: '' });
       }
     });
   }
   
-  // Shuffle and limit
   shuffleArray(result);
   return result.slice(0, 12);
 }
 
-function shuffleArray(array) {
-  for (let i = array.length - 1; i > 0; i--) {
+function shuffleArray(arr) {
+  for (let i = arr.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
-    [array[i], array[j]] = [array[j], array[i]];
+    [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-  return array;
+  return arr;
 }
 
 function loadQuestion() {
-  if (currentIndex >= questions.length) {
-    showResult();
-    return;
-  }
+  if (currentIndex >= questions.length) { showResult(); return; }
   
   answered = false;
   currentAnswer = [];
   const q = questions[currentIndex];
   
-  // Update UI
   document.getElementById('currentNum').textContent = currentIndex + 1;
   document.getElementById('questionNumber').textContent = `Question ${currentIndex + 1}`;
   document.getElementById('progressFill').style.width = `${(currentIndex / questions.length) * 100}%`;
   document.getElementById('hintText').textContent = q.hint ? `💡 ${q.hint}` : '';
   
-  // Scramble words
   currentWords = q.sentence.split(' ');
   const scrambled = [...currentWords];
   shuffleArray(scrambled);
   
-  // Make sure it's actually scrambled
   while (scrambled.join(' ') === currentWords.join(' ') && scrambled.length > 2) {
     shuffleArray(scrambled);
   }
   
-  // Render scrambled words
   renderWords(scrambled);
   
-  // Clear answer zone
   const answerZone = document.getElementById('answerZone');
   answerZone.innerHTML = '<span class="placeholder">คลิกคำด้านล่างเพื่อเรียงประโยค</span>';
   answerZone.className = 'answer-zone';
   
-  // Reset buttons
   document.getElementById('feedback').classList.remove('show');
+  document.getElementById('feedback').className = 'feedback';
   document.getElementById('checkBtn').style.display = 'inline-block';
   document.getElementById('nextBtn').style.display = 'none';
 }
 
 function renderWords(words) {
   const container = document.getElementById('wordsContainer');
-  container.innerHTML = words.map((word, i) => `
-    <button class="word-token" data-word="${escapeHtml(word)}" data-index="${i}" onclick="addWord(this)">${escapeHtml(word)}</button>
-  `).join('');
+  container.innerHTML = '';
+  words.forEach((word, i) => {
+    const btn = document.createElement('button');
+    btn.className = 'word-token';
+    btn.textContent = word;
+    btn.dataset.word = word;
+    btn.dataset.index = i;
+    btn.addEventListener('click', function() { addWord(this); });
+    container.appendChild(btn);
+  });
 }
 
 function addWord(btn) {
   if (answered || btn.disabled) return;
   playClickSound();
-  
-  const word = btn.dataset.word;
-  currentAnswer.push({ word, btn });
+  currentAnswer.push({ word: btn.dataset.word, btn: btn });
   btn.disabled = true;
-  btn.classList.add('in-answer');
-  
   updateAnswerZone();
 }
 
 function removeWord(index) {
   if (answered) return;
-  playDropSound();
-  
   const removed = currentAnswer.splice(index, 1)[0];
   removed.btn.disabled = false;
-  removed.btn.classList.remove('in-answer');
-  
   updateAnswerZone();
 }
 
 function updateAnswerZone() {
   const answerZone = document.getElementById('answerZone');
-  
   if (currentAnswer.length === 0) {
     answerZone.innerHTML = '<span class="placeholder">คลิกคำด้านล่างเพื่อเรียงประโยค</span>';
-    answerZone.classList.remove('active');
   } else {
-    answerZone.classList.add('active');
-    answerZone.innerHTML = currentAnswer.map((item, i) => `
-      <button class="answer-token" onclick="removeWord(${i})">${escapeHtml(item.word)}</button>
-    `).join('');
+    answerZone.innerHTML = currentAnswer.map((item, i) => 
+      `<button class="answer-token" onclick="removeWord(${i})">${item.word}</button>`
+    ).join('');
   }
 }
 
 function clearAnswer() {
   if (answered) return;
-  currentAnswer.forEach(item => {
-    item.btn.disabled = false;
-    item.btn.classList.remove('in-answer');
-  });
+  currentAnswer.forEach(item => item.btn.disabled = false);
   currentAnswer = [];
   updateAnswerZone();
 }
@@ -645,7 +505,6 @@ function checkAnswer() {
   const answerZone = document.getElementById('answerZone');
   const feedback = document.getElementById('feedback');
   
-  // Disable word buttons
   document.querySelectorAll('.word-token').forEach(b => b.disabled = true);
   
   if (isCorrect) {
@@ -663,22 +522,15 @@ function checkAnswer() {
     wrongCount++;
   }
   
-  // Update score
   document.getElementById('score').textContent = score;
-  
-  // Show next button
   document.getElementById('checkBtn').style.display = 'none';
   document.getElementById('nextBtn').style.display = 'inline-block';
 }
 
-function nextQuestion() {
-  currentIndex++;
-  loadQuestion();
-}
+function nextQuestion() { currentIndex++; loadQuestion(); }
 
 function showResult() {
   playWinSound();
-  
   document.getElementById('questionCard').style.display = 'none';
   document.getElementById('resultScreen').classList.add('active');
   
@@ -687,7 +539,6 @@ function showResult() {
   document.getElementById('correctCount').textContent = correctCount;
   document.getElementById('wrongCount').textContent = wrongCount;
   
-  // Emoji based on score
   let emoji = '🎉', title = 'ยอดเยี่ยม!';
   if (percent < 50) { emoji = '😢'; title = 'ลองใหม่นะ!'; }
   else if (percent < 70) { emoji = '😊'; title = 'ดีมาก!'; }
@@ -698,26 +549,14 @@ function showResult() {
 }
 
 function restartPractice() {
-  currentIndex = 0;
-  score = 0;
-  correctCount = 0;
-  wrongCount = 0;
-  
+  currentIndex = 0; score = 0; correctCount = 0; wrongCount = 0;
   document.getElementById('questionCard').style.display = 'block';
   document.getElementById('resultScreen').classList.remove('active');
   document.getElementById('score').textContent = '0';
-  
-  questions = prepareQuestions();
+  shuffleArray(questions);
   loadQuestion();
 }
 
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-// Start
 init();
 </script>
 {% endblock %}
