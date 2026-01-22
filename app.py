@@ -744,6 +744,53 @@ def api_game_session_save(session_id):
 
 
 # ==============================================================================
+# Memory Match Game
+# ==============================================================================
+@app.route("/topic/<int:topic_id>/game/memory")
+@login_required
+def game_memory(topic_id):
+    topic = _get_topic_or_404(topic_id)
+    
+    # Get vocabulary from slides
+    vocabulary = []
+    if topic.get("slides_json"):
+        try:
+            obj = json.loads(topic["slides_json"])
+            slides = obj.get("slides", obj) if isinstance(obj, dict) else obj
+            for slide in slides:
+                if slide.get("type") == "vocabulary" and slide.get("vocabulary"):
+                    for v in slide["vocabulary"]:
+                        if v.get("word") and v.get("meaning"):
+                            vocabulary.append({"word": v["word"], "meaning": v["meaning"]})
+        except:
+            pass
+    
+    # Get game questions as fallback
+    questions = []
+    for set_no in range(1, 4):
+        qs = GameQuestion.get_by_topic_and_set(topic_id, set_no)
+        for q in qs:
+            questions.append({"question": q["question"], "answer": q["answer"]})
+    
+    game_data = {"vocabulary": vocabulary, "questions": questions}
+    return render_template("game_memory.html", topic=topic, game_data=game_data)
+
+
+# ==============================================================================
+# Millionaire Game
+# ==============================================================================
+@app.route("/topic/<int:topic_id>/game/millionaire")
+@login_required
+def game_millionaire(topic_id):
+    topic = _get_topic_or_404(topic_id)
+    
+    # Get practice questions (MCQ)
+    questions = _normalize_practice_questions(PracticeQuestion.get_by_topic(topic_id))
+    
+    return render_template("game_millionaire.html", topic=topic, questions=questions)
+
+
+# ==============================================================================
 # Practice Helpers
 # ==============================================================================
 def _normalize_practice_questions(rows):
@@ -802,6 +849,69 @@ def practice(topic_id):
     link = PracticeLink.get_latest_active_by_topic_and_user(topic_id, session["user_id"])
     student_url = (request.url_root.rstrip("/") + url_for("public_practice", token=link["token"])) if link else None
     return render_template("practice.html", topic=topic, questions=questions, student_url=student_url)
+
+
+def _get_practice_data_from_slides(topic):
+    """Extract vocabulary, examples, dialogues from slides for practice activities"""
+    data = {"vocabulary": [], "examples": [], "dialogues": [], "questions": []}
+    
+    # From slides
+    if topic.get("slides_json"):
+        try:
+            obj = json.loads(topic["slides_json"])
+            slides = obj.get("slides", obj) if isinstance(obj, dict) else obj
+            for slide in slides:
+                slide_type = slide.get("type", "")
+                
+                # Vocabulary
+                if slide_type == "vocabulary" and slide.get("vocabulary"):
+                    for v in slide["vocabulary"]:
+                        if v.get("word") and v.get("meaning"):
+                            data["vocabulary"].append({
+                                "word": v["word"],
+                                "meaning": v["meaning"],
+                                "example": v.get("example", "")
+                            })
+                
+                # Examples
+                if slide.get("examples"):
+                    for ex in slide["examples"]:
+                        if isinstance(ex, dict) and ex.get("en"):
+                            data["examples"].append({"en": ex["en"], "th": ex.get("th", "")})
+                        elif isinstance(ex, str):
+                            data["examples"].append({"en": ex, "th": ""})
+                
+                # Dialogues
+                if slide_type == "dialogue" and slide.get("lines"):
+                    for line in slide["lines"]:
+                        if isinstance(line, dict) and line.get("text"):
+                            data["dialogues"].append({"speaker": line.get("speaker", ""), "text": line["text"]})
+        except:
+            pass
+    
+    # From game questions
+    for set_no in range(1, 4):
+        qs = GameQuestion.get_by_topic_and_set(topic["id"], set_no)
+        for q in qs:
+            data["questions"].append({"question": q["question"], "answer": q["answer"]})
+    
+    return data
+
+
+@app.route("/topic/<int:topic_id>/practice/fill-blanks")
+@login_required
+def practice_fill_blanks(topic_id):
+    topic = _get_topic_or_404(topic_id)
+    practice_data = _get_practice_data_from_slides(topic)
+    return render_template("practice_fill_blanks.html", topic=topic, practice_data=practice_data)
+
+
+@app.route("/topic/<int:topic_id>/practice/unscramble")
+@login_required
+def practice_unscramble(topic_id):
+    topic = _get_topic_or_404(topic_id)
+    practice_data = _get_practice_data_from_slides(topic)
+    return render_template("practice_unscramble.html", topic=topic, practice_data=practice_data)
 
 @app.route("/api/practice/<int:topic_id>/submit", methods=["POST"])
 @login_required
