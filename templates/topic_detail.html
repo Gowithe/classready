@@ -244,12 +244,18 @@
   <hr style="margin:14px 0; border:none; border-top:1px solid #e2e8f0;">
 
   <div class="muted" style="margin-bottom:8px;">
-    Generate Game/Practice from PDF (จะเขียนทับคำถามเดิม)
+    🤖 AI Generate จาก PDF (สร้างสไลด์/เกม/แบบฝึกหัดอัตโนมัติ)
   </div>
 
   <div class="btnrow">
     <button class="btn2 green" id="btnGenAll" type="button" {% if not topic.pdf_file %}disabled{% endif %}>
-      ✨ Generate All
+      ✨ Generate All (Slides + Game + Practice)
+    </button>
+  </div>
+  
+  <div class="btnrow" style="margin-top: 8px;">
+    <button class="btn2" id="btnGenSlides" type="button" style="background: #8b5cf6;" {% if not topic.pdf_file %}disabled{% endif %}>
+      🎬 Generate Slides
     </button>
     <button class="btn2 secondary" id="btnGenGame" type="button" {% if not topic.pdf_file %}disabled{% endif %}>
       🎮 Generate Game
@@ -286,8 +292,10 @@
   }
 
   function showModal(mode) {
-    let message = 'Generating Game + Practice from PDF...';
-    if (mode === 'game') {
+    let message = 'Generating Slides + Game + Practice from PDF...';
+    if (mode === 'slides') {
+      message = 'Generating Slides from PDF...';
+    } else if (mode === 'game') {
       message = 'Generating Game from PDF...';
     } else if (mode === 'practice') {
       message = 'Generating Practice from PDF...';
@@ -319,11 +327,21 @@
       return;
     }
 
-    const ok = confirm(`ยืนยัน Generate (${mode}) จาก PDF?\nระบบจะเขียนทับคำถามเดิม`);
+    let confirmMsg = `ยืนยัน Generate (${mode}) จาก PDF?`;
+    if (mode === 'all') {
+      confirmMsg = 'ยืนยัน Generate All (Slides + Game + Practice) จาก PDF?\nระบบจะเขียนทับข้อมูลเดิมทั้งหมด';
+    } else if (mode === 'slides') {
+      confirmMsg = 'ยืนยัน Generate Slides จาก PDF?\nระบบจะเขียนทับสไลด์เดิม';
+    } else {
+      confirmMsg = `ยืนยัน Generate ${mode} จาก PDF?\nระบบจะเขียนทับคำถามเดิม`;
+    }
+    
+    const ok = confirm(confirmMsg);
     if(!ok) return;
 
     const buttons = [
       document.getElementById('btnGenAll'),
+      document.getElementById('btnGenSlides'),
       document.getElementById('btnGenGame'),
       document.getElementById('btnGenPractice')
     ];
@@ -333,7 +351,7 @@
     showModal(mode);
 
     try{
-      setStatus('⏳ Generating... (กำลังสร้างคำถามจาก PDF)');
+      setStatus('⏳ Generating... (กำลังสร้างเนื้อหาจาก PDF)');
 
       const res = await fetch(`/api/topic/${topicId}/generate`, {
         method: 'POST',
@@ -354,7 +372,9 @@
       setStatus('✅ Generated successfully!');
       hideModal();
 
-      if(mode === 'game'){
+      if(mode === 'slides'){
+        window.location.href = `/topic/${topicId}/slides`;
+      }else if(mode === 'game'){
         window.location.href = `/topic/${topicId}/game`;
       }else if(mode === 'practice'){
         window.location.href = `/topic/${topicId}/practice`;
@@ -374,10 +394,12 @@
   }
 
   const btnAll = document.getElementById('btnGenAll');
+  const btnSlides = document.getElementById('btnGenSlides');
   const btnGame = document.getElementById('btnGenGame');
   const btnPractice = document.getElementById('btnGenPractice');
 
   if(btnAll) btnAll.addEventListener('click', () => callGenerate('all'));
+  if(btnSlides) btnSlides.addEventListener('click', () => callGenerate('slides'));
   if(btnGame) btnGame.addEventListener('click', () => callGenerate('game'));
   if(btnPractice) btnPractice.addEventListener('click', () => callGenerate('practice'));
 </script>
