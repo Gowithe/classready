@@ -197,13 +197,17 @@
     {% endif %}
     
     {% if has_game %}
-      <a href="{{ url_for('game', topic_id=topic.id) }}">🎮 Game</a>
+      <a href="{{ url_for('game', topic_id=topic.id) }}">🎯 Bamboozle</a>
+      <a href="{{ url_for('game_memory', topic_id=topic.id) }}" style="background: #ec4899;">🃏 Memory</a>
     {% else %}
-      <a class="disabled" href="javascript:void(0)" title="กรุณา Generate Game ก่อน">🎮 Game <span class="nav-badge">ยังไม่มี</span></a>
+      <a class="disabled" href="javascript:void(0)" title="กรุณา Generate Game ก่อน">🎯 Bamboozle <span class="nav-badge">ยังไม่มี</span></a>
     {% endif %}
     
     {% if has_practice %}
-      <a href="{{ url_for('practice', topic_id=topic.id) }}">📝 Practice</a>
+      <a href="{{ url_for('practice', topic_id=topic.id) }}">📝 MCQ</a>
+      <a href="{{ url_for('game_millionaire', topic_id=topic.id) }}" style="background: #8b5cf6;">🏆 Millionaire</a>
+      <a href="{{ url_for('practice_fill_blanks', topic_id=topic.id) }}" style="background: #06b6d4;">✍️ Fill Blanks</a>
+      <a href="{{ url_for('practice_unscramble', topic_id=topic.id) }}" style="background: #f97316;">🔀 Unscramble</a>
     {% else %}
       <a class="disabled" href="javascript:void(0)" title="กรุณา Generate Practice ก่อน">📝 Practice <span class="nav-badge">ยังไม่มี</span></a>
     {% endif %}
@@ -244,18 +248,12 @@
   <hr style="margin:14px 0; border:none; border-top:1px solid #e2e8f0;">
 
   <div class="muted" style="margin-bottom:8px;">
-    🤖 AI Generate จาก PDF (สร้างสไลด์/เกม/แบบฝึกหัดอัตโนมัติ)
+    Generate Game/Practice from PDF (จะเขียนทับคำถามเดิม)
   </div>
 
   <div class="btnrow">
     <button class="btn2 green" id="btnGenAll" type="button" {% if not topic.pdf_file %}disabled{% endif %}>
-      ✨ Generate All (Slides + Game + Practice)
-    </button>
-  </div>
-  
-  <div class="btnrow" style="margin-top: 8px;">
-    <button class="btn2" id="btnGenSlides" type="button" style="background: #8b5cf6;" {% if not topic.pdf_file %}disabled{% endif %}>
-      🎬 Generate Slides
+      ✨ Generate All
     </button>
     <button class="btn2 secondary" id="btnGenGame" type="button" {% if not topic.pdf_file %}disabled{% endif %}>
       🎮 Generate Game
@@ -292,10 +290,8 @@
   }
 
   function showModal(mode) {
-    let message = 'Generating Slides + Game + Practice from PDF...';
-    if (mode === 'slides') {
-      message = 'Generating Slides from PDF...';
-    } else if (mode === 'game') {
+    let message = 'Generating Game + Practice from PDF...';
+    if (mode === 'game') {
       message = 'Generating Game from PDF...';
     } else if (mode === 'practice') {
       message = 'Generating Practice from PDF...';
@@ -327,21 +323,11 @@
       return;
     }
 
-    let confirmMsg = `ยืนยัน Generate (${mode}) จาก PDF?`;
-    if (mode === 'all') {
-      confirmMsg = 'ยืนยัน Generate All (Slides + Game + Practice) จาก PDF?\nระบบจะเขียนทับข้อมูลเดิมทั้งหมด';
-    } else if (mode === 'slides') {
-      confirmMsg = 'ยืนยัน Generate Slides จาก PDF?\nระบบจะเขียนทับสไลด์เดิม';
-    } else {
-      confirmMsg = `ยืนยัน Generate ${mode} จาก PDF?\nระบบจะเขียนทับคำถามเดิม`;
-    }
-    
-    const ok = confirm(confirmMsg);
+    const ok = confirm(`ยืนยัน Generate (${mode}) จาก PDF?\nระบบจะเขียนทับคำถามเดิม`);
     if(!ok) return;
 
     const buttons = [
       document.getElementById('btnGenAll'),
-      document.getElementById('btnGenSlides'),
       document.getElementById('btnGenGame'),
       document.getElementById('btnGenPractice')
     ];
@@ -351,7 +337,7 @@
     showModal(mode);
 
     try{
-      setStatus('⏳ Generating... (กำลังสร้างเนื้อหาจาก PDF)');
+      setStatus('⏳ Generating... (กำลังสร้างคำถามจาก PDF)');
 
       const res = await fetch(`/api/topic/${topicId}/generate`, {
         method: 'POST',
@@ -372,9 +358,7 @@
       setStatus('✅ Generated successfully!');
       hideModal();
 
-      if(mode === 'slides'){
-        window.location.href = `/topic/${topicId}/slides`;
-      }else if(mode === 'game'){
+      if(mode === 'game'){
         window.location.href = `/topic/${topicId}/game`;
       }else if(mode === 'practice'){
         window.location.href = `/topic/${topicId}/practice`;
@@ -394,12 +378,10 @@
   }
 
   const btnAll = document.getElementById('btnGenAll');
-  const btnSlides = document.getElementById('btnGenSlides');
   const btnGame = document.getElementById('btnGenGame');
   const btnPractice = document.getElementById('btnGenPractice');
 
   if(btnAll) btnAll.addEventListener('click', () => callGenerate('all'));
-  if(btnSlides) btnSlides.addEventListener('click', () => callGenerate('slides'));
   if(btnGame) btnGame.addEventListener('click', () => callGenerate('game'));
   if(btnPractice) btnPractice.addEventListener('click', () => callGenerate('practice'));
 </script>
