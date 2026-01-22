@@ -225,15 +225,25 @@ def my_delete_topic(topic_id):
 @login_required
 def view_slides(topic_id):
     topic = _get_topic_or_404(topic_id)
-    if topic.get("pdf_file"):
-        return render_template("slides_pdf_presentation.html", topic=topic, pdf_url=url_for("uploaded_file", filename=topic["pdf_file"]))
+    
+    # Check if topic has generated slides first
     slides = []
     if topic.get("slides_json"):
         try:
             obj = json.loads(topic["slides_json"])
             slides = obj.get("slides", obj) if isinstance(obj, dict) else obj
         except: pass
-    return render_template("slides_viewer.html", topic=topic, slides=slides)
+    
+    # If has slides, show slides viewer
+    if slides:
+        return render_template("slides_viewer.html", topic=topic, slides=slides)
+    
+    # If no slides but has PDF, show PDF presentation
+    if topic.get("pdf_file"):
+        return render_template("slides_pdf_presentation.html", topic=topic, pdf_url=url_for("uploaded_file", filename=topic["pdf_file"]))
+    
+    # No slides and no PDF - show empty slides viewer
+    return render_template("slides_viewer.html", topic=topic, slides=[])
 
 @app.route("/topic/<int:topic_id>/slides/edit")
 @login_required
@@ -1148,7 +1158,21 @@ def _save_practice_only(topic_id, practice):
         ci = max(0, min(int(it.get("correct_index") or 0), 3))
         PracticeQuestion.create(topic_id, "multiple_choice", json.dumps({"prompt": prompt, "choices": choices}), str(choices[ci]).strip())
 
+def _save_slides_only(topic_id, slides):
+    """Save generated slides to topic.slides_json"""
+    topic = Topic.get_by_id(topic_id)
+    if not topic:
+        return
+    slides_json = json.dumps({"slides": slides or []}, ensure_ascii=False)
+    Topic.update(topic_id, topic["name"], topic.get("description") or "", slides_json, topic.get("pdf_file"))
+
 def _save_game_and_practice(topic_id, game, practice):
+    _save_game_only(topic_id, game)
+    _save_practice_only(topic_id, practice)
+
+def _save_all(topic_id, slides, game, practice):
+    """Save slides, game, and practice all at once"""
+    _save_slides_only(topic_id, slides)
     _save_game_only(topic_id, game)
     _save_practice_only(topic_id, practice)
 
@@ -1164,9 +1188,17 @@ def api_generate_from_pdf(topic_id):
     except Exception as e: return _json_error(str(e), 400)
     try: bundle = generate_lesson_bundle(f"{topic['name']}\n\n[PDF]\n{text[:8000]}", "Secondary", "EN", "Minimal", "gpt-4o-mini")
     except Exception as e: return _json_error(str(e), 500)
-    if mode == "game": _save_game_only(topic_id, bundle.get("game") or {})
-    elif mode == "practice": _save_practice_only(topic_id, bundle.get("practice") or [])
-    else: _save_game_and_practice(topic_id, bundle.get("game") or {}, bundle.get("practice") or [])
+    
+    # Save based on mode
+    if mode == "slides":
+        _save_slides_only(topic_id, bundle.get("slides") or [])
+    elif mode == "game":
+        _save_game_only(topic_id, bundle.get("game") or {})
+    elif mode == "practice":
+        _save_practice_only(topic_id, bundle.get("practice") or [])
+    else:  # mode == "all"
+        _save_all(topic_id, bundle.get("slides") or [], bundle.get("game") or {}, bundle.get("practice") or [])
+    
     return jsonify({"ok": True})
 
 
