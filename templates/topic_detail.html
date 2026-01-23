@@ -72,13 +72,14 @@
   .dropdown-btn.games { background: #ec4899; color: white; }
   .dropdown-btn.activities { background: #06b6d4; color: white; }
   .dropdown-btn.disabled { background: #e2e8f0; color: #94a3b8; cursor: not-allowed; }
+  
   .dropdown-content {
     display: none;
     position: absolute;
     top: 100%;
     left: 0;
     background: white;
-    min-width: 200px;
+    min-width: 260px; /* ปรับขนาดให้กว้างขึ้น */
     box-shadow: 0 8px 24px rgba(0,0,0,0.15);
     border-radius: 8px;
     z-index: 100;
@@ -93,6 +94,7 @@
   .dropdown:focus-within .dropdown-content{
     display:block;
   }
+  
   .dropdown-content a {
     display: flex;
     align-items: center;
@@ -104,7 +106,9 @@
     transition: background 0.15s;
     border-radius: 0;
     background: white;
+    white-space: nowrap; /* บังคับให้อยู่บรรทัดเดียว */
   }
+  
   .dropdown-content a:hover {
     background: #f1f5f9;
   }
@@ -258,7 +262,6 @@
   <p>{{ topic.description or 'No description' }}</p>
 
   <div class="topic-nav">
-    <!-- Slides Dropdown -->
     <div class="dropdown">
       <button class="dropdown-btn slides">🎬 Slides ▼</button>
       <div class="dropdown-content">
@@ -276,7 +279,6 @@
       </div>
     </div>
     
-    <!-- Games Dropdown -->
     <div class="dropdown">
       <button class="dropdown-btn games {% if not has_game %}disabled{% endif %}">🎮 Games ▼</button>
       <div class="dropdown-content">
@@ -293,7 +295,6 @@
       </div>
     </div>
     
-    <!-- Activities Dropdown -->
     <div class="dropdown">
       <button class="dropdown-btn activities {% if not has_practice %}disabled{% endif %}">📝 Activities ▼</button>
       <div class="dropdown-content">
@@ -364,7 +365,6 @@
 </div>
 {% endif %}
 
-<!-- Modal Popup -->
 <div class="modal-overlay" id="generatingModal">
   <div class="modal-box">
     <h3>⏳ Generating Lesson</h3>
@@ -376,12 +376,6 @@
 
 <script>
   // ---------------- Dropdown (click-to-toggle) ----------------
-  // Fix: hover dropdown closes too fast when moving mouse across small gap.
-  // Behavior:
-  // - Click a dropdown button to open/close
-  // - Click outside to close
-  // - ESC to close
-  // - Works on touch devices too
   (function(){
     const dropdowns = Array.from(document.querySelectorAll('.dropdown'));
 
@@ -402,14 +396,12 @@
       const menu = d.querySelector('.dropdown-content');
       if(!btn || !menu) return;
 
-      // accessibility
       const menuId = `dd_menu_${i}`;
       if(!menu.id) menu.id = menuId;
       btn.setAttribute('aria-haspopup', 'true');
       btn.setAttribute('aria-controls', menu.id);
       btn.setAttribute('aria-expanded', 'false');
 
-      // disabled safeguard
       if(btn.classList.contains('disabled') || btn.disabled){
         return;
       }
@@ -424,7 +416,6 @@
         syncAria();
       });
 
-      // Prevent clicks inside menu from bubbling to document (which would close it before navigation)
       menu.addEventListener('click', (e) => {
         e.stopPropagation();
       });
@@ -435,7 +426,6 @@
       if(e.key === 'Escape') closeAll(null);
     });
 
-    // initial aria sync
     syncAria();
   })();
   // ------------------------------------------------------------
@@ -495,7 +485,6 @@
     ];
     buttons.forEach(b => { if(b) b.disabled = true; });
 
-    // Show modal popup
     showModal(mode);
 
     try{
@@ -525,7 +514,6 @@
       }else if(mode === 'practice'){
         window.location.href = `/topic/${topicId}/practice`;
       }else{
-        // Reload หน้าเพื่ออัปเดตสถานะปุ่ม
         window.location.reload();
       }
 
