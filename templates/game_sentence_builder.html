@@ -640,7 +640,6 @@
 </div>
 
 
-<!-- Sentence Editor Modal -->
 <div class="modal-backdrop" id="editorBackdrop" onclick="onBackdropClick(event)">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-header">
@@ -780,36 +779,74 @@ function drawWheel() {
 }
 
 function spinWheel() {
-  if(isSpinning || students.length < 2) return;
+  if (isSpinning || students.length < 2) return;
   isSpinning = true;
   document.getElementById('btnSpin').disabled = true;
   document.getElementById('selectedStudent').classList.remove('show');
   playSpinSound();
   
-  const spins = 5 + Math.random() * 5;
-  const target = rotation + spins * 2 * Math.PI;
+  // 1. สุ่มผู้ชนะไว้ก่อนเลย (Random Index) เพื่อความชัวร์
+  const winningIndex = Math.floor(Math.random() * students.length);
+  
+  // 2. คำนวณองศาที่จะให้หยุด (Target Angle)
+  // slice = ขนาดมุมของแต่ละคน
+  const slice = (2 * Math.PI) / students.length;
+  
+  // คำนวณมุมที่ต้องหมุนไปเพื่อให้ winningIndex มาอยู่ตรงเข็ม (เข็มอยู่ตำแหน่งบน = 3PI/2 หรือ 270องศา)
+  // สูตร: ตำแหน่งเข็ม - (ตำแหน่งเริ่มของคนนั้น + ครึ่งช่อง) + Jitter(สุ่มตำแหน่งในช่องไม่ให้ซ้ำจุดเดิมเป๊ะๆ)
+  const pointerAngle = 1.5 * Math.PI; 
+  const centerOfSlice = (winningIndex * slice) + (slice / 2);
+  let targetAngleInCircle = pointerAngle - centerOfSlice;
+  
+  // เพิ่มความสมจริง: สุ่มให้หยุดเยื้องๆ ซ้ายขวาในช่องของตัวเอง (Jitter) ไม่ให้หยุดกลางเป๊ะตลอด
+  const jitter = (Math.random() - 0.5) * (slice * 0.8); // 0.8 คือขยับได้ 80% ของช่อง
+  targetAngleInCircle += jitter;
+
+  // 3. คำนวณระยะทางที่ต้องหมุนจริง (ให้หมุนอย่างน้อย 5 รอบ)
+  const minSpins = 5;
+  const fullSpins = minSpins * 2 * Math.PI;
+  
+  // ปรับ rotation ปัจจุบันให้เป็นค่าบวก (modulo) เพื่อหา delta
+  const currentMod = rotation % (2 * Math.PI);
+  let dist = targetAngleInCircle - currentMod;
+  
+  // ถ้า dist ติดลบ หรือน้อยไป ให้บวกเพิ่มเพื่อให้หมุนไปข้างหน้าเสมอ
+  while (dist < 0) {
+      dist += 2 * Math.PI;
+  }
+  
+  const target = rotation + fullSpins + dist;
   const startRot = rotation;
   const startTime = performance.now();
-  
+  const duration = 4000; // หมุนนาน 4 วินาที
+
   function animate(time) {
-    const p = Math.min((time - startTime) / 4000, 1);
-    const ease = 1 - Math.pow(1 - p, 3);
+    const p = Math.min((time - startTime) / duration, 1);
+    
+    // Ease Out Quart (หมุนเร็วแล้วค่อยๆ ช้าลงตอนปลาย)
+    const ease = 1 - Math.pow(1 - p, 4); 
+    
     rotation = startRot + (target - startRot) * ease;
     drawWheel();
-    if(p < 1) requestAnimationFrame(animate);
-    else {
+    
+    if (p < 1) {
+      requestAnimationFrame(animate);
+    } else {
       isSpinning = false;
       document.getElementById('btnSpin').disabled = false;
-      const slice = (2*Math.PI) / students.length;
-      const norm = ((rotation % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
-      const ptr = (3*Math.PI/2 - norm + 2*Math.PI) % (2*Math.PI);
-      const winIdx = Math.floor(ptr / slice) % students.length;
-      const winner = students[winIdx];
+      
+      // แสดงผลผู้ชนะ (ใช้ค่า winningIndex ที่สุ่มไว้ตอนแรกได้เลย ไม่ต้องคำนวณย้อนกลับ)
+      const winner = students[winningIndex];
       const sel = document.getElementById('selectedStudent');
       sel.textContent = '🎉 ' + winner + ' 🎉';
       sel.classList.add('show');
       playWinSound();
-      setTimeout(() => { currentPlayerName = winner; startGameWithPlayer(winner); }, 1500);
+      
+      // เริ่มเกม
+      setTimeout(() => { 
+          currentPlayerName = winner; 
+          startGameWithPlayer(winner); 
+      }, 1500);
     }
   }
   requestAnimationFrame(animate);
@@ -866,9 +903,6 @@ function prepareQuestions() {
   }
 
   // 1. ดึงจาก Examples
-
-  
-  // 1. ดึงจาก Examples
   if (gameData.examples && gameData.examples.length > 0) {
     gameData.examples.forEach(ex => {
       // ต้องมีทั้ง EN และ TH
@@ -906,19 +940,23 @@ function startGameWithPlayer(playerName) {
   document.getElementById('gameSection').classList.add('active');
   document.getElementById('currentPlayer').textContent = '👤 ' + playerName;
   
-  questions = prepareQuestions();
-  
+  // *** FIXED HERE: Check if questions already exist (game in progress) ***
   if (questions.length === 0) {
-    document.getElementById('questionText').innerHTML = '<span style="color:red;">ไม่พบประโยคที่มีคำแปลภาษาไทยใน Topic นี้</span>';
-    return;
-  } else {
-    document.getElementById('questionText').style.color = '#1e293b';
+    questions = prepareQuestions();
+    
+    if (questions.length === 0) {
+      document.getElementById('questionText').innerHTML = '<span style="color:red;">ไม่พบประโยคที่มีคำแปลภาษาไทยใน Topic นี้</span>';
+      return;
+    } else {
+      document.getElementById('questionText').style.color = '#1e293b';
+    }
+    
+    // Only reset index/score if it was a fresh start
+    currentIndex = 0;
+    score = 0;
+    correctCount = 0;
+    wrongCount = 0;
   }
-  
-  currentIndex = 0;
-  score = 0;
-  correctCount = 0;
-  wrongCount = 0;
   
   loadQuestion();
 }
@@ -1122,6 +1160,12 @@ function restartGame() {
   document.getElementById('resultScreen').classList.remove('active');
   document.getElementById('gameSection').classList.remove('active');
   document.getElementById('selectedStudent').classList.remove('show');
+  
+  // *** FIXED HERE: Explicitly clear questions to force new set generation ***
+  questions = [];
+  currentIndex = 0;
+  score = 0;
+  
   document.getElementById('score').textContent = '0';
   if (students.length >= 2) spinWheel();
   else { currentPlayerName = 'Player'; startGameWithPlayer('Player'); }
