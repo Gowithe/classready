@@ -85,9 +85,13 @@
     margin-top: 4px;
     overflow: hidden;
   }
-  .dropdown:hover .dropdown-content,
-  .dropdown-content:hover {
-    display: block;
+  .dropdown.open .dropdown-content{
+    display:block;
+  }
+
+  /* Optional: allow keyboard focus to keep menu open */
+  .dropdown:focus-within .dropdown-content{
+    display:block;
   }
   .dropdown-content a {
     display: flex;
@@ -371,6 +375,71 @@
 </div>
 
 <script>
+  // ---------------- Dropdown (click-to-toggle) ----------------
+  // Fix: hover dropdown closes too fast when moving mouse across small gap.
+  // Behavior:
+  // - Click a dropdown button to open/close
+  // - Click outside to close
+  // - ESC to close
+  // - Works on touch devices too
+  (function(){
+    const dropdowns = Array.from(document.querySelectorAll('.dropdown'));
+
+    function syncAria(){
+      dropdowns.forEach(d => {
+        const btn = d.querySelector('.dropdown-btn');
+        if(btn) btn.setAttribute('aria-expanded', d.classList.contains('open') ? 'true' : 'false');
+      });
+    }
+
+    function closeAll(except){
+      dropdowns.forEach(d => { if(d !== except) d.classList.remove('open'); });
+      syncAria();
+    }
+
+    dropdowns.forEach((d, i) => {
+      const btn = d.querySelector('.dropdown-btn');
+      const menu = d.querySelector('.dropdown-content');
+      if(!btn || !menu) return;
+
+      // accessibility
+      const menuId = `dd_menu_${i}`;
+      if(!menu.id) menu.id = menuId;
+      btn.setAttribute('aria-haspopup', 'true');
+      btn.setAttribute('aria-controls', menu.id);
+      btn.setAttribute('aria-expanded', 'false');
+
+      // disabled safeguard
+      if(btn.classList.contains('disabled') || btn.disabled){
+        return;
+      }
+
+      btn.addEventListener('click', (e) => {
+        e.preventDefault();
+        e.stopPropagation();
+        const willOpen = !d.classList.contains('open');
+        closeAll(d);
+        if(willOpen) d.classList.add('open');
+        else d.classList.remove('open');
+        syncAria();
+      });
+
+      // Prevent clicks inside menu from bubbling to document (which would close it before navigation)
+      menu.addEventListener('click', (e) => {
+        e.stopPropagation();
+      });
+    });
+
+    document.addEventListener('click', () => closeAll(null));
+    document.addEventListener('keydown', (e) => {
+      if(e.key === 'Escape') closeAll(null);
+    });
+
+    // initial aria sync
+    syncAria();
+  })();
+  // ------------------------------------------------------------
+
   const topicId = {{ topic.id }};
   const hasPdf = {{ 1 if topic.pdf_file else 0 }};
   const statusbar = document.getElementById('statusbar');
