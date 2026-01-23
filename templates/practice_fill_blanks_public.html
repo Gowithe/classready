@@ -1,250 +1,292 @@
-<!DOCTYPE html>
-<html lang="th">
-<head>
-  <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Fill in the Blanks - {{ topic.name }}</title>
-  <link href="https://fonts.googleapis.com/css2?family=Prompt:wght@400;600;700;800&display=swap" rel="stylesheet">
-  <style>
-    * { box-sizing: border-box; margin: 0; padding: 0; }
-    body {
-      font-family: 'Prompt', sans-serif;
-      background: linear-gradient(135deg, #f0f4ff 0%, #e8f4f8 100%);
-      min-height: 100vh;
-      padding: 1rem;
-    }
-    :root {
-      --primary: #667eea;
-      --success: #22c55e;
-      --danger: #ef4444;
-    }
-    .container { max-width: 700px; margin: 0 auto; }
-    
-    /* Name Form */
-    .name-form {
-      background: #fff;
-      border-radius: 16px;
-      padding: 2rem;
-      box-shadow: 0 4px 20px rgba(0,0,0,.1);
-      text-align: center;
-    }
-    .name-form h1 { color: var(--primary); margin-bottom: 0.5rem; }
-    .name-form p { color: #64748b; margin-bottom: 1.5rem; }
-    .name-form input {
-      width: 100%;
-      max-width: 300px;
-      padding: 1rem;
-      border: 2px solid #e2e8f0;
-      border-radius: 12px;
-      font-size: 1.1rem;
-      margin-bottom: 1rem;
-    }
-    .name-form input:focus { outline: none; border-color: var(--primary); }
-    .btn-start {
-      padding: 1rem 3rem;
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      border-radius: 12px;
-      font-size: 1.1rem;
-      font-weight: 700;
-      cursor: pointer;
-    }
-    .btn-start:hover { background: #5a67d8; }
-    
-    /* Practice Container */
-    .practice-container { display: none; }
-    .practice-container.active { display: block; }
-    
-    .progress-section {
-      background: #fff;
-      padding: 1rem;
-      border-radius: 12px;
-      margin-bottom: 1rem;
-      box-shadow: 0 2px 10px rgba(0,0,0,.08);
-    }
-    .progress-header {
-      display: flex;
-      justify-content: space-between;
-      margin-bottom: 0.5rem;
-      font-weight: 600;
-    }
-    .progress-bar {
-      height: 8px;
-      background: #e2e8f0;
-      border-radius: 999px;
-      overflow: hidden;
-    }
-    .progress-fill {
-      height: 100%;
-      background: var(--primary);
-      transition: width 0.3s;
-    }
-    
-    .question-card {
-      background: #fff;
-      border-radius: 16px;
-      padding: 1.5rem;
-      box-shadow: 0 4px 20px rgba(0,0,0,.1);
-      margin-bottom: 1rem;
-    }
-    .question-number {
-      display: inline-block;
-      background: var(--primary);
-      color: #fff;
-      padding: 0.3rem 0.8rem;
-      border-radius: 999px;
-      font-weight: 700;
-      font-size: 0.85rem;
-      margin-bottom: 1rem;
-    }
-    .sentence-display {
-      font-size: 1.2rem;
-      line-height: 1.8;
-      margin-bottom: 1.5rem;
-      text-align: center;
-    }
-    .blank-slot {
-      display: inline-block;
-      min-width: 80px;
-      padding: 0.2rem 0.5rem;
-      border-bottom: 3px solid var(--primary);
-      background: #f0f4ff;
-      border-radius: 6px 6px 0 0;
-      font-weight: 700;
-      color: var(--primary);
-    }
-    .blank-slot.correct { background: #dcfce7; border-color: var(--success); color: var(--success); }
-    .blank-slot.wrong { background: #fee2e2; border-color: var(--danger); color: var(--danger); }
-    
-    .choices-container {
-      display: flex;
-      flex-wrap: wrap;
-      gap: 0.5rem;
-      justify-content: center;
-    }
-    .choice-btn {
-      padding: 0.6rem 1.2rem;
-      border: 2px solid #e2e8f0;
-      border-radius: 10px;
-      background: #fff;
-      font-size: 1rem;
-      font-weight: 600;
-      cursor: pointer;
-      transition: all 0.2s;
-    }
-    .choice-btn:hover:not(:disabled) { border-color: var(--primary); background: #f0f4ff; }
-    .choice-btn:disabled { opacity: 0.5; cursor: not-allowed; }
-    .choice-btn.correct { border-color: var(--success); background: var(--success); color: #fff; }
-    .choice-btn.wrong { border-color: var(--danger); background: var(--danger); color: #fff; }
-    
-    .feedback {
-      text-align: center;
-      padding: 0.75rem;
-      border-radius: 10px;
-      margin-top: 1rem;
-      font-weight: 700;
-      display: none;
-    }
-    .feedback.show { display: block; }
-    .feedback.correct { background: #dcfce7; color: #166534; }
-    .feedback.wrong { background: #fee2e2; color: #991b1b; }
-    
-    .nav-buttons { text-align: center; margin-top: 1rem; }
-    .btn-next {
-      padding: 0.75rem 2rem;
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      border-radius: 10px;
-      font-weight: 700;
-      cursor: pointer;
-      display: none;
-    }
-    
-    /* Result */
-    .result-screen {
-      display: none;
-      text-align: center;
-      background: #fff;
-      border-radius: 16px;
-      padding: 2rem;
-      box-shadow: 0 4px 20px rgba(0,0,0,.1);
-    }
-    .result-screen.active { display: block; }
-    .result-emoji { font-size: 4rem; margin-bottom: 0.5rem; }
-    .result-title { font-size: 1.5rem; font-weight: 800; margin-bottom: 0.5rem; }
-    .result-score { font-size: 2rem; font-weight: 900; color: var(--primary); margin-bottom: 1rem; }
-    .result-details { display: flex; justify-content: center; gap: 2rem; margin-bottom: 1.5rem; }
-    .result-stat { text-align: center; }
-    .result-stat-value { font-size: 1.3rem; font-weight: 800; }
-    .result-stat-value.correct { color: var(--success); }
-    .result-stat-value.wrong { color: var(--danger); }
-    .result-stat-label { font-size: 0.8rem; color: #64748b; }
-    
-    .sound-toggle {
-      position: fixed;
-      bottom: 15px;
-      right: 15px;
-      width: 45px;
-      height: 45px;
-      border-radius: 50%;
-      background: var(--primary);
-      color: #fff;
-      border: none;
-      font-size: 1.3rem;
-      cursor: pointer;
-    }
-  </style>
-</head>
-<body>
-<div class="container">
-  <!-- Name Form -->
-  <div class="name-form" id="nameForm">
-    <h1>✍️ Fill in the Blanks</h1>
-    <p>{{ topic.name }}</p>
-    <input type="text" id="studentName" placeholder="ชื่อ-นามสกุล" maxlength="100">
-    <br>
-    <button class="btn-start" onclick="startPractice()">เริ่มทำแบบฝึกหัด</button>
-  </div>
+{% extends "base.html" %}
+{% block title %}Fill in the Blanks | {{ topic.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .wrap{max-width:1000px;margin:1.25rem auto;padding:0 1rem;}
+  .card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:16px;padding:16px;box-shadow:0 10px 24px rgba(0,0,0,.06);}
+  .h1{font-size:1.25rem;font-weight:900;margin-bottom:.25rem;}
+  .muted{color:#64748b;font-size:.95rem;}
   
-  <!-- Practice Container -->
-  <div class="practice-container" id="practiceContainer">
-    <div class="progress-section">
-      <div class="progress-header">
-        <span>Question <span id="currentNum">1</span> / <span id="totalNum">10</span></span>
-        <span>Score: <span id="score">0</span></span>
-      </div>
-      <div class="progress-bar">
-        <div class="progress-fill" id="progressFill" style="width: 0%"></div>
+  /* Student Info Form */
+  .student-form{
+    background: linear-gradient(135deg, #06b6d415, #0891b215);
+    border:1px solid rgba(6,182,212,.2);
+    border-radius:14px;
+    padding:16px;
+    margin-bottom:16px;
+  }
+  .student-form h3{
+    margin:0 0 12px;
+    font-size:1rem;
+    color:#0e7490;
+  }
+  .form-grid{
+    display:grid;
+    grid-template-columns: 2fr 1fr 1fr;
+    gap:12px;
+  }
+  @media(max-width:700px){
+    .form-grid{grid-template-columns:1fr;}
+  }
+  .form-group label{
+    display:block;
+    font-weight:800;
+    font-size:.9rem;
+    margin-bottom:4px;
+    color:#334155;
+  }
+  .form-group input{
+    width:100%;
+    padding:.7rem .85rem;
+    border-radius:10px;
+    border:1px solid rgba(0,0,0,.15);
+    outline:none;
+    font-size:1rem;
+    transition: border-color .2s, box-shadow .2s;
+  }
+  .form-group input:focus{
+    border-color:#06b6d4;
+    box-shadow: 0 0 0 3px rgba(6,182,212,.15);
+  }
+  .form-group input.error{
+    border-color:#ef4444;
+    background:#fef2f2;
+  }
+  .required{color:#ef4444;}
+  
+  /* Progress */
+  .progress-bar{
+    height:6px;
+    background:#e2e8f0;
+    border-radius:3px;
+    margin-top:12px;
+    overflow:hidden;
+  }
+  .progress-bar .fill{
+    height:100%;
+    background: linear-gradient(90deg, #06b6d4, #0891b2);
+    transition: width .3s ease;
+  }
+  .progress-text{
+    font-size:.85rem;
+    color:#64748b;
+    margin-top:6px;
+    text-align:right;
+  }
+  
+  /* Question */
+  .q{
+    margin-top:14px;
+    padding:14px;
+    border-radius:14px;
+    border:1px solid rgba(0,0,0,.08);
+    background:#f8fafc;
+    transition: border-color .2s;
+  }
+  .q.answered{
+    border-color:#22c55e;
+    background:#f0fdf4;
+  }
+  .q strong{display:block;margin-bottom:10px;font-size:1.02rem;}
+  
+  .sentence-display{
+    font-size:1.15rem;
+    line-height:1.8;
+    margin-bottom:1rem;
+    text-align:center;
+    padding:1rem;
+    background:#fff;
+    border-radius:10px;
+  }
+  .blank-slot{
+    display:inline-block;
+    min-width:80px;
+    padding:.2rem .5rem;
+    border-bottom:3px solid #06b6d4;
+    background:#ecfeff;
+    border-radius:6px 6px 0 0;
+    font-weight:700;
+    color:#0891b2;
+  }
+  .blank-slot.correct{background:#dcfce7;border-color:#22c55e;color:#166534;}
+  .blank-slot.wrong{background:#fee2e2;border-color:#ef4444;color:#991b1b;}
+  
+  .choices{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
+  .choice{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    padding:12px 18px;
+    border-radius:12px;
+    border:2px solid rgba(0,0,0,.08);
+    background:#fff;
+    cursor:pointer;
+    transition: all .15s;
+    font-weight:600;
+  }
+  .choice:hover:not(.disabled){
+    border-color:#06b6d4;
+    background:rgba(6,182,212,.04);
+  }
+  .choice.selected{
+    border-color:#06b6d4;
+    background:rgba(6,182,212,.08);
+  }
+  .choice.correct{
+    border-color:#22c55e;
+    background:#22c55e;
+    color:#fff;
+  }
+  .choice.wrong{
+    border-color:#ef4444;
+    background:#ef4444;
+    color:#fff;
+  }
+  .choice.disabled{
+    opacity:.6;
+    cursor:not-allowed;
+  }
+  
+  .feedback{
+    margin-top:8px;
+    font-size:.9rem;
+    padding:8px 10px;
+    border-radius:8px;
+    display:none;
+    text-align:center;
+  }
+  .feedback.show{display:block;}
+  .feedback.correct{background:#dcfce7;color:#166534;}
+  .feedback.wrong{background:#fef2f2;color:#991b1b;}
+  
+  /* Buttons */
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:.5rem;
+    border:0;
+    border-radius:12px;
+    padding:.85rem 1.5rem;
+    font-weight:900;
+    font-size:1rem;
+    cursor:pointer;
+    transition: all .2s;
+  }
+  .btn-primary{
+    background: linear-gradient(135deg, #06b6d4, #0891b2);
+    color:#fff;
+    box-shadow: 0 4px 14px rgba(6,182,212,.35);
+  }
+  .btn-primary:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(6,182,212,.45);
+  }
+  .btn-primary:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+    transform:none;
+  }
+  .btn-secondary{
+    background:#e2e8f0;
+    color:#0f172a;
+  }
+  .btn-secondary:hover{
+    background:#cbd5e1;
+  }
+  .bar{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:16px;
+    padding-top:16px;
+    border-top:1px solid rgba(0,0,0,.08);
+    justify-content:center;
+  }
+  
+  /* Result */
+  .result{
+    margin-top:16px;
+    padding:16px;
+    border-radius:14px;
+    display:none;
+    text-align:center;
+  }
+  .result.show{display:block;}
+  .result.success{
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    border:1px solid #22c55e;
+  }
+  .result.fail{
+    background: linear-gradient(135deg, #fef2f2, #fecaca);
+    border:1px solid #ef4444;
+  }
+  .result h3{margin:0 0 8px;font-size:1.1rem;}
+  .result .score{font-size:2.5rem;font-weight:900;margin:8px 0;}
+  
+  /* Sound Toggle */
+  .sound-toggle{
+    position:fixed;
+    bottom:15px;
+    right:15px;
+    width:45px;
+    height:45px;
+    border-radius:50%;
+    background:#06b6d4;
+    color:#fff;
+    border:none;
+    font-size:1.3rem;
+    cursor:pointer;
+    box-shadow:0 4px 12px rgba(6,182,212,.4);
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrap">
+  <div class="card">
+    <div class="h1">✍️ Fill in the Blanks</div>
+    <div class="muted">{{ topic.name }} • เติมคำในช่องว่างให้ถูกต้อง</div>
+
+    <!-- Student Info Form -->
+    <div class="student-form">
+      <h3>👤 ข้อมูลนักเรียน</h3>
+      <div class="form-grid">
+        <div class="form-group">
+          <label>ชื่อ-สกุล <span class="required">*</span></label>
+          <input id="studentName" placeholder="เช่น ด.ช. สมชาย ใจดี" maxlength="120">
+        </div>
+        <div class="form-group">
+          <label>เลขที่</label>
+          <input id="studentNo" placeholder="เช่น 12" maxlength="20">
+        </div>
+        <div class="form-group">
+          <label>ห้อง</label>
+          <input id="classroom" placeholder="เช่น ม.1/2" maxlength="30">
+        </div>
       </div>
     </div>
-    
-    <div class="question-card" id="questionCard">
-      <div class="question-number" id="questionNumber">Question 1</div>
-      <div class="sentence-display" id="sentenceDisplay">Loading...</div>
-      <div class="choices-container" id="choicesContainer"></div>
-      <div class="feedback" id="feedback"></div>
-      <div class="nav-buttons">
-        <button class="btn-next" id="nextBtn" onclick="nextQuestion()">Next →</button>
-      </div>
+
+    <!-- Progress -->
+    <div class="progress-bar">
+      <div class="fill" id="progressFill" style="width:0%"></div>
     </div>
-    
-    <div class="result-screen" id="resultScreen">
-      <div class="result-emoji" id="resultEmoji">🎉</div>
-      <div class="result-title" id="resultTitle">Great Job!</div>
-      <div class="result-score" id="resultScore">80%</div>
-      <div class="result-details">
-        <div class="result-stat">
-          <div class="result-stat-value correct" id="correctCount">8</div>
-          <div class="result-stat-label">Correct</div>
-        </div>
-        <div class="result-stat">
-          <div class="result-stat-value wrong" id="wrongCount">2</div>
-          <div class="result-stat-label">Wrong</div>
-        </div>
-      </div>
-      <p style="color:#64748b;">คะแนนถูกบันทึกแล้ว!</p>
+    <div class="progress-text" id="progressText">ตอบแล้ว 0 / 0 ข้อ</div>
+
+    <!-- Questions Container -->
+    <div id="questionsContainer"></div>
+
+    <div class="bar">
+      <button class="btn btn-primary" id="btnSubmit">📤 ส่งคำตอบ</button>
+      <button class="btn btn-secondary" id="btnReset" type="button">🔄 เริ่มใหม่</button>
+    </div>
+
+    <div class="result" id="resultBox">
+      <h3 id="resultTitle">ผลการทำแบบฝึกหัด</h3>
+      <div class="score" id="resultScore">0/0</div>
+      <div class="muted" id="resultPercent">0%</div>
+      <div id="resultMsg" style="margin-top:10px;"></div>
     </div>
   </div>
 </div>
@@ -254,8 +296,8 @@
 <script>
 const practiceData = {{ practice_data | tojson | safe }};
 const token = "{{ token }}";
-let studentName = "";
 
+// Sound system
 let soundEnabled = true;
 let audioContext = null;
 function initAudio() {
@@ -277,55 +319,57 @@ function playTone(freq, dur, type = 'sine', vol = 0.3) {
 }
 function playCorrectSound() { playTone(523, 0.15); setTimeout(() => playTone(659, 0.15), 100); setTimeout(() => playTone(784, 0.2), 200); }
 function playWrongSound() { playTone(200, 0.3, 'square', 0.15); }
-function playWinSound() { [523, 659, 784, 1047].forEach((n, i) => setTimeout(() => playTone(n, 0.3), i * 150)); }
 function toggleSound() {
   soundEnabled = !soundEnabled;
   document.getElementById('soundToggle').textContent = soundEnabled ? '🔊' : '🔇';
 }
 
+// Game state
 let questions = [];
-let currentIndex = 0;
-let score = 0;
-let correctCount = 0;
-let wrongCount = 0;
-let answered = false;
-
-function startPractice() {
-  studentName = document.getElementById('studentName').value.trim() || 'Anonymous';
-  document.getElementById('nameForm').style.display = 'none';
-  document.getElementById('practiceContainer').classList.add('active');
-  init();
-}
+let userAnswers = {};
 
 function init() {
   questions = prepareQuestions();
   if (questions.length === 0) {
-    document.getElementById('sentenceDisplay').innerHTML = '<p style="color:#64748b;">ไม่มีข้อมูล</p>';
+    document.getElementById('questionsContainer').innerHTML = '<p style="text-align:center;color:#64748b;padding:2rem;">ไม่มีข้อมูลสำหรับแบบฝึกหัดนี้</p>';
     return;
   }
-  document.getElementById('totalNum').textContent = questions.length;
-  loadQuestion();
+  renderQuestions();
+  updateProgress();
 }
 
 function prepareQuestions() {
   const result = [];
+  
   if (practiceData.mcq_questions && practiceData.mcq_questions.length > 0) {
-    practiceData.mcq_questions.forEach(q => {
+    practiceData.mcq_questions.forEach((q, i) => {
       if (q.prompt && q.choices && q.correct_answer) {
-        result.push({ sentence: q.prompt, answer: q.correct_answer, choices: q.choices });
+        result.push({
+          id: i,
+          sentence: q.prompt,
+          answer: q.correct_answer,
+          choices: q.choices
+        });
       }
     });
   }
+  
   if (practiceData.vocabulary && practiceData.vocabulary.length > 0) {
-    practiceData.vocabulary.forEach(v => {
+    practiceData.vocabulary.forEach((v, i) => {
       if (v.word && v.example) {
         const blank = v.example.replace(new RegExp('\\b' + v.word + '\\b', 'i'), '_____');
         if (blank !== v.example) {
-          result.push({ sentence: blank, answer: v.word, choices: null });
+          result.push({
+            id: 100 + i,
+            sentence: blank,
+            answer: v.word,
+            choices: null
+          });
         }
       }
     });
   }
+  
   shuffleArray(result);
   return result.slice(0, 15);
 }
@@ -335,48 +379,17 @@ function shuffleArray(arr) {
     const j = Math.floor(Math.random() * (i + 1));
     [arr[i], arr[j]] = [arr[j], arr[i]];
   }
-  return arr;
 }
 
-function loadQuestion() {
-  if (currentIndex >= questions.length) { showResult(); return; }
-  answered = false;
-  const q = questions[currentIndex];
-  
-  document.getElementById('currentNum').textContent = currentIndex + 1;
-  document.getElementById('questionNumber').textContent = 'Question ' + (currentIndex + 1);
-  document.getElementById('progressFill').style.width = (currentIndex / questions.length * 100) + '%';
-  
-  let displayText = q.sentence;
-  if (!displayText.includes('_____')) {
-    displayText = displayText + ' <span class="blank-slot" id="blankSlot">?</span>';
-  } else {
-    displayText = displayText.replace('_____', '<span class="blank-slot" id="blankSlot">?</span>');
+function generateChoices(q) {
+  if (q.choices && q.choices.length >= 4) {
+    const c = [...q.choices];
+    shuffleArray(c);
+    return c;
   }
-  document.getElementById('sentenceDisplay').innerHTML = displayText;
   
-  let choices = q.choices && q.choices.length >= 4 ? [...q.choices] : generateChoices(q.answer);
-  shuffleArray(choices);
-  
-  const container = document.getElementById('choicesContainer');
-  container.innerHTML = '';
-  choices.forEach(choice => {
-    const btn = document.createElement('button');
-    btn.className = 'choice-btn';
-    btn.textContent = choice;
-    btn.dataset.answer = choice;
-    btn.addEventListener('click', function() { selectAnswer(this, choice); });
-    container.appendChild(btn);
-  });
-  
-  document.getElementById('feedback').classList.remove('show');
-  document.getElementById('feedback').className = 'feedback';
-  document.getElementById('nextBtn').style.display = 'none';
-}
-
-function generateChoices(correct) {
-  const choices = [correct];
-  const others = questions.map(q => q.answer).filter(a => a !== correct);
+  const choices = [q.answer];
+  const others = questions.map(x => x.answer).filter(a => a !== q.answer);
   shuffleArray(others);
   for (let i = 0; i < 3 && i < others.length; i++) {
     if (!choices.includes(others[i])) choices.push(others[i]);
@@ -386,71 +399,194 @@ function generateChoices(correct) {
     const f = fillers[Math.floor(Math.random() * fillers.length)];
     if (!choices.includes(f)) choices.push(f);
   }
+  shuffleArray(choices);
   return choices.slice(0, 4);
 }
 
-function selectAnswer(btn, answer) {
-  if (answered) return;
-  answered = true;
+function renderQuestions() {
+  const container = document.getElementById('questionsContainer');
+  container.innerHTML = questions.map((q, idx) => {
+    const choices = generateChoices(q);
+    let displayText = q.sentence;
+    if (!displayText.includes('_____')) {
+      displayText = displayText + ` <span class="blank-slot" id="blank${q.id}">?</span>`;
+    } else {
+      displayText = displayText.replace('_____', `<span class="blank-slot" id="blank${q.id}">?</span>`);
+    }
+    
+    return `
+      <div class="q" id="q${q.id}" data-qid="${q.id}">
+        <strong>${idx + 1}. เติมคำในช่องว่าง</strong>
+        <div class="sentence-display">${displayText}</div>
+        <div class="choices" id="choices${q.id}">
+          ${choices.map(c => `
+            <div class="choice" data-answer="${escapeHtml(c)}" onclick="selectChoice(${q.id}, this, '${escapeHtml(c).replace(/'/g, "\\'")}')">${escapeHtml(c)}</div>
+          `).join('')}
+        </div>
+        <div class="feedback" id="fb${q.id}"></div>
+      </div>
+    `;
+  }).join('');
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function selectChoice(qid, el, answer) {
+  const q = questions.find(x => x.id === qid);
+  if (!q) return;
   
-  const q = questions[currentIndex];
-  const isCorrect = answer.toLowerCase().trim() === q.answer.toLowerCase().trim();
-  const blankSlot = document.getElementById('blankSlot');
-  const feedback = document.getElementById('feedback');
+  // If already submitted, do nothing
+  if (document.getElementById('btnSubmit').disabled) return;
   
-  if (blankSlot) blankSlot.textContent = q.answer;
+  playTone(400, 0.1, 'sine', 0.2);
   
-  document.querySelectorAll('.choice-btn').forEach(b => {
-    b.disabled = true;
-    if (b.dataset.answer.toLowerCase().trim() === q.answer.toLowerCase().trim()) b.classList.add('correct');
+  // Mark selection
+  const container = document.getElementById('choices' + qid);
+  container.querySelectorAll('.choice').forEach(c => c.classList.remove('selected'));
+  el.classList.add('selected');
+  
+  // Store answer
+  userAnswers[qid] = answer;
+  
+  // Update blank
+  const blank = document.getElementById('blank' + qid);
+  if (blank) blank.textContent = answer;
+  
+  // Mark question as answered
+  document.getElementById('q' + qid).classList.add('answered');
+  
+  updateProgress();
+}
+
+function updateProgress() {
+  const answered = Object.keys(userAnswers).length;
+  const total = questions.length;
+  const pct = total > 0 ? (answered / total * 100) : 0;
+  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressText').textContent = `ตอบแล้ว ${answered} / ${total} ข้อ`;
+}
+
+function resetAll() {
+  userAnswers = {};
+  document.querySelectorAll('.choice').forEach(c => {
+    c.classList.remove('selected', 'correct', 'wrong', 'disabled');
   });
+  document.querySelectorAll('.q').forEach(q => q.classList.remove('answered'));
+  document.querySelectorAll('.feedback').forEach(fb => {
+    fb.style.display = 'none';
+    fb.className = 'feedback';
+  });
+  document.querySelectorAll('.blank-slot').forEach(b => {
+    b.textContent = '?';
+    b.classList.remove('correct', 'wrong');
+  });
+  document.getElementById('resultBox').classList.remove('show', 'success', 'fail');
+  document.getElementById('btnSubmit').disabled = false;
+  document.getElementById('btnSubmit').innerHTML = '📤 ส่งคำตอบ';
+  updateProgress();
+}
+
+document.getElementById('btnReset').addEventListener('click', resetAll);
+
+document.getElementById('btnSubmit').addEventListener('click', async () => {
+  const studentName = (document.getElementById('studentName').value || '').trim();
+  const studentNo = (document.getElementById('studentNo').value || '').trim();
+  const classroom = (document.getElementById('classroom').value || '').trim();
   
-  if (isCorrect) {
-    playCorrectSound();
-    if (blankSlot) blankSlot.classList.add('correct');
-    feedback.textContent = '✅ ถูกต้อง!';
-    feedback.className = 'feedback show correct';
-    score += 10;
-    correctCount++;
-  } else {
-    playWrongSound();
-    btn.classList.add('wrong');
-    if (blankSlot) blankSlot.classList.add('wrong');
-    feedback.textContent = '❌ คำตอบที่ถูกคือ: ' + q.answer;
-    feedback.className = 'feedback show wrong';
-    wrongCount++;
+  if (!studentName) {
+    alert('กรุณากรอกชื่อ-สกุลก่อนส่ง');
+    document.getElementById('studentName').classList.add('error');
+    document.getElementById('studentName').focus();
+    return;
+  }
+  document.getElementById('studentName').classList.remove('error');
+  
+  const unanswered = questions.length - Object.keys(userAnswers).length;
+  if (unanswered > 0) {
+    if (!confirm(`ยังมี ${unanswered} ข้อที่ยังไม่ได้ตอบ\nต้องการส่งเลยหรือไม่?`)) {
+      return;
+    }
   }
   
-  document.getElementById('score').textContent = score;
-  document.getElementById('nextBtn').style.display = 'inline-block';
-}
-
-function nextQuestion() { currentIndex++; loadQuestion(); }
-
-function showResult() {
-  playWinSound();
-  document.getElementById('questionCard').style.display = 'none';
-  document.getElementById('resultScreen').classList.add('active');
+  const btnSubmit = document.getElementById('btnSubmit');
+  btnSubmit.disabled = true;
+  btnSubmit.innerHTML = '⏳ กำลังส่ง...';
   
-  const percent = Math.round((correctCount / questions.length) * 100);
-  document.getElementById('resultScore').textContent = percent + '%';
-  document.getElementById('correctCount').textContent = correctCount;
-  document.getElementById('wrongCount').textContent = wrongCount;
-  
-  let emoji = '🎉', title = 'ยอดเยี่ยม!';
-  if (percent < 50) { emoji = '😢'; title = 'ลองใหม่นะ!'; }
-  else if (percent < 70) { emoji = '😊'; title = 'ดีมาก!'; }
-  else if (percent < 90) { emoji = '🌟'; title = 'เก่งมาก!'; }
-  document.getElementById('resultEmoji').textContent = emoji;
-  document.getElementById('resultTitle').textContent = title;
-  
-  // Submit score
-  fetch('/api/public/fill/' + token + '/submit', {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ name: studentName, score: correctCount, total: questions.length })
+  // Calculate score locally
+  let score = 0;
+  questions.forEach(q => {
+    const userAns = userAnswers[q.id] || '';
+    const isCorrect = userAns.toLowerCase().trim() === q.answer.toLowerCase().trim();
+    
+    const blank = document.getElementById('blank' + q.id);
+    const fb = document.getElementById('fb' + q.id);
+    const container = document.getElementById('choices' + q.id);
+    
+    // Disable all choices
+    container.querySelectorAll('.choice').forEach(c => {
+      c.classList.add('disabled');
+      if (c.dataset.answer.toLowerCase().trim() === q.answer.toLowerCase().trim()) {
+        c.classList.add('correct');
+      }
+    });
+    
+    if (isCorrect) {
+      score++;
+      if (blank) blank.classList.add('correct');
+      fb.className = 'feedback show correct';
+      fb.innerHTML = '✅ ถูกต้อง!';
+    } else {
+      playWrongSound();
+      if (blank) {
+        blank.textContent = q.answer;
+        blank.classList.add('wrong');
+      }
+      const selectedChoice = container.querySelector('.choice.selected');
+      if (selectedChoice) selectedChoice.classList.add('wrong');
+      fb.className = 'feedback show wrong';
+      fb.innerHTML = `❌ ผิด — คำตอบที่ถูกคือ: <strong>${q.answer}</strong>`;
+    }
   });
-}
+  
+  if (score > 0) playCorrectSound();
+  
+  // Submit to server
+  try {
+    await fetch(`/api/public/fill/${token}/submit`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        student_name: studentName,
+        student_no: studentNo,
+        classroom: classroom,
+        score: score,
+        total: questions.length,
+        answers: userAnswers
+      })
+    });
+  } catch (e) {
+    console.error(e);
+  }
+  
+  // Show result
+  const pct = Math.round(score / questions.length * 100);
+  const isPass = pct >= 50;
+  
+  const resultBox = document.getElementById('resultBox');
+  resultBox.classList.add('show', isPass ? 'success' : 'fail');
+  document.getElementById('resultTitle').textContent = isPass ? '🎉 ทำได้ดีมาก!' : '💪 พยายามต่อไปนะ!';
+  document.getElementById('resultScore').textContent = `${score}/${questions.length}`;
+  document.getElementById('resultPercent').textContent = `${pct}%`;
+  document.getElementById('resultMsg').innerHTML = 'คะแนนถูกบันทึกเรียบร้อยแล้ว ✅';
+  
+  resultBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  btnSubmit.innerHTML = '✅ ส่งแล้ว';
+});
+
+init();
 </script>
-</body>
-</html>
+{% endblock %}
