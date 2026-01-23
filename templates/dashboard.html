@@ -4,171 +4,288 @@
 
 {% block extra_css %}
 <style>
-  .dashboard-header{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    margin-bottom: 2rem;
-    flex-wrap:wrap;
-    gap: 12px;
-  }
-  .dashboard-header h2{ font-size: 2rem; }
-  .cta-buttons{ display:flex; gap: 1rem; flex-wrap:wrap; }
-
-  .section{ margin-bottom: 3rem; }
-  .section h3{
-    font-size: 1.3rem;
-    margin-bottom: 1.0rem;
-    color: #667eea;
-    border-bottom: 2px solid #667eea;
-    padding-bottom: 0.5rem;
+  :root {
+    --primary: #667eea;
+    --primary-dark: #5a67d8;
+    --secondary: #764ba2;
+    --bg-soft: #f8fafc;
+    --text-main: #1e293b;
+    --text-muted: #64748b;
+    --danger: #ef4444;
   }
 
-  .topic-grid{
-    display:grid;
-    grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
-    gap: 1.2rem;
+  body { background-color: var(--bg-soft); }
+
+  /* Welcome Banner */
+  .welcome-banner {
+    background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+    border-radius: 20px;
+    padding: 2.5rem;
+    color: white;
+    margin-bottom: 2.5rem;
+    box-shadow: 0 10px 25px rgba(102, 126, 234, 0.25);
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1.5rem;
   }
-  .topic-card{
-    background:white;
-    border-radius:10px;
-    padding: 1.25rem;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-    transition: all .2s;
+  .welcome-text h1 { margin: 0 0 0.5rem; font-size: 2rem; }
+  .welcome-text p { margin: 0; opacity: 0.9; font-size: 1.1rem; }
+
+  /* Main Action Buttons */
+  .action-bar {
+    display: flex; gap: 10px; flex-wrap: wrap;
   }
-  .topic-card:hover{
-    box-shadow: 0 10px 18px rgba(0,0,0,0.12);
-    transform: translateY(-3px);
+  .btn-action {
+    background: rgba(255, 255, 255, 0.2);
+    border: 1px solid rgba(255, 255, 255, 0.3);
+    color: white;
+    padding: 0.8rem 1.2rem;
+    border-radius: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    transition: all 0.2s;
+    display: inline-flex; align-items: center; gap: 8px;
+    backdrop-filter: blur(5px);
   }
-  .topic-card h4{
-    font-size: 1.05rem;
-    margin-bottom: .4rem;
-    color:#667eea;
+  .btn-action:hover {
+    background: rgba(255, 255, 255, 0.3);
+    transform: translateY(-2px);
   }
-  .topic-card p{
-    font-size:.9rem;
-    color:#718096;
-    margin-bottom: .9rem;
+  .btn-action.primary {
+    background: white; color: var(--primary);
+  }
+  .btn-action.primary:hover {
+    background: #f0f4ff; color: var(--primary-dark);
   }
 
-  .topic-actions{
-    display:flex;
-    gap: .5rem;
-    flex-wrap:wrap;
-    margin-top: .5rem;
+  /* Section Styles */
+  .section-header {
+    display: flex; justify-content: space-between; align-items: center;
+    margin-bottom: 1.5rem; padding-left: 0.5rem; border-left: 5px solid var(--primary);
   }
-  .topic-actions a, .topic-actions button{
-    padding: .5rem .9rem;
-    font-size: .85rem;
-    background:#667eea;
-    color:white;
-    border-radius: 6px;
-    text-decoration:none;
-    border:none;
-    cursor:pointer;
-  }
-  .topic-actions a:hover, .topic-actions button:hover{ background:#764ba2; }
-  .danger{ background:#f56565 !important; }
-  .danger:hover{ background:#e53e3e !important; }
+  .section-header h3 { margin: 0; font-size: 1.4rem; color: var(--text-main); padding-left: 10px; }
 
-  .recent-list{ list-style:none; padding:0; }
-  .recent-list li{
-    padding: 1rem;
-    background:white;
-    margin-bottom: .5rem;
-    border-radius: 8px;
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-    box-shadow: 0 1px 3px rgba(0,0,0,0.05);
+  /* Topic Grid */
+  .topic-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
   }
-  .recent-list a{ color:#667eea; text-decoration:none; font-weight:700; }
+
+  /* Card Design */
+  .topic-card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 4px 6px rgba(0,0,0,0.02);
+    border: 1px solid rgba(0,0,0,0.05);
+    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+    display: flex; flex-direction: column;
+    overflow: hidden;
+    position: relative;
+  }
+  .topic-card::before {
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+    background: linear-gradient(90deg, var(--primary), var(--secondary));
+  }
+  .topic-card:hover {
+    transform: translateY(-5px);
+    box-shadow: 0 12px 20px rgba(0,0,0,0.08);
+  }
+
+  .card-body { padding: 1.5rem; flex: 1; }
+  .card-title {
+    font-size: 1.2rem; font-weight: 800; color: var(--text-main);
+    margin: 0 0 0.5rem; display: block; text-decoration: none;
+  }
+  .card-title:hover { color: var(--primary); }
+  .card-desc {
+    font-size: 0.9rem; color: var(--text-muted); margin: 0;
+    display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
+  }
+
+  /* Quick Links (Pills) */
+  .card-tools {
+    padding: 0 1.5rem 1rem;
+    display: flex; flex-wrap: wrap; gap: 8px;
+  }
+  .tool-pill {
+    font-size: 0.8rem; font-weight: 700; padding: 6px 12px;
+    border-radius: 20px; text-decoration: none; transition: all 0.15s;
+    border: 1px solid transparent;
+  }
+  .pill-slides { background: #eef2ff; color: var(--primary); }
+  .pill-slides:hover { background: #e0e7ff; border-color: var(--primary); }
+  
+  .pill-game { background: #f0fdf4; color: #166534; }
+  .pill-game:hover { background: #dcfce7; border-color: #22c55e; }
+  
+  .pill-practice { background: #fffbeb; color: #92400e; }
+  .pill-practice:hover { background: #fef3c7; border-color: #f59e0b; }
+
+  /* Card Footer */
+  .card-footer {
+    padding: 1rem 1.5rem;
+    background: #f9fafb;
+    border-top: 1px solid #f1f5f9;
+    display: flex; justify-content: space-between; align-items: center;
+  }
+  .btn-icon {
+    background: none; border: none; cursor: pointer;
+    font-size: 0.9rem; color: var(--text-muted);
+    padding: 6px; border-radius: 6px; transition: all 0.2s;
+    display: flex; align-items: center; gap: 4px; text-decoration: none;
+  }
+  .btn-icon:hover { background: #e2e8f0; color: var(--text-main); }
+  .btn-icon.danger:hover { background: #fee2e2; color: var(--danger); }
+
+  /* Recent List */
+  .recent-list {
+    list-style: none; padding: 0; margin: 0;
+    background: white; border-radius: 12px; overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .recent-item {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex; justify-content: space-between; align-items: center;
+    transition: background 0.15s;
+  }
+  .recent-item:last-child { border-bottom: none; }
+  .recent-item:hover { background: #f8fafc; }
+  .recent-name { font-weight: 600; color: var(--text-main); }
+  .recent-link { color: var(--primary); text-decoration: none; font-weight: 700; font-size: 0.9rem; }
+
+  /* Empty State */
+  .empty-state {
+    text-align: center; padding: 3rem; background: white; border-radius: 16px;
+    border: 2px dashed #cbd5e1; color: var(--text-muted);
+  }
+
+  @media (max-width: 640px) {
+    .welcome-banner { padding: 1.5rem; flex-direction: column; align-items: flex-start; }
+    .action-bar { width: 100%; }
+    .btn-action { flex: 1; justify-content: center; }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="dashboard-header">
-  <h2>Dashboard</h2>
-  <div class="cta-buttons">
-    <!-- Classroom Button -->
-    <a href="{{ url_for('classrooms') }}" class="btn" style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:12px 20px;border-radius:12px;font-weight:700;text-decoration:none;">
+
+<div class="welcome-banner">
+  <div class="welcome-text">
+    <h1>👋 Welcome, Teacher!</h1>
+    <p>Manage your lessons, games, and classrooms efficiently.</p>
+  </div>
+  <div class="action-bar">
+    <a href="{{ url_for('classrooms') }}" class="btn-action primary">
       🏫 จัดการห้องเรียน
     </a>
-    <a href="{{ url_for('my_create_topic') }}" class="btn">➕ Create My Topic</a>
-    <a href="{{ url_for('ai_slides') }}" class="btn">✨ Generate Slides with AI</a>
+    <a href="{{ url_for('my_create_topic') }}" class="btn-action">
+      ➕ Create Topic
+    </a>
+    <a href="{{ url_for('ai_slides') }}" class="btn-action">
+      ✨ AI Slides
+    </a>
     {% if session.role == 'admin' %}
-      <a href="{{ url_for('admin_dashboard') }}" class="btn">⚙️ Admin</a>
+      <a href="{{ url_for('admin_dashboard') }}" class="btn-action">⚙️ Admin</a>
     {% endif %}
   </div>
 </div>
 
-<div class="section">
-  <h3>Recent Topics</h3>
-  {% if recent %}
-    <ul class="recent-list">
-      {% for item in recent %}
-        <li>
-          <span>{{ item.name }}</span>
-          <a href="{{ url_for('topic_detail', topic_id=item.topic_id) }}">View</a>
-        </li>
-      {% endfor %}
-    </ul>
-  {% else %}
-    <p style="color:#718096;">No recent topics yet.</p>
-  {% endif %}
-</div>
-
-<div class="section">
-  <h3>My Topics</h3>
-  {% if my_topics %}
-    <div class="topic-grid">
-      {% for topic in my_topics %}
-      <div class="topic-card">
-        <h4>📚 {{ topic.name }}</h4>
-        <p>{{ topic.description or 'No description' }}</p>
-
-        <div class="topic-actions">
-          <a href="{{ url_for('topic_detail', topic_id=topic.id) }}">Open</a>
-          <a href="{{ url_for('my_edit_topic', topic_id=topic.id) }}">Edit</a>
-          <form method="POST" action="{{ url_for('my_delete_topic', topic_id=topic.id) }}" style="display:inline;">
-            <button class="danger" onclick="return confirm('Delete this topic?');">Delete</button>
-          </form>
-        </div>
-
-        <div class="topic-actions" style="margin-top:.6rem;">
-          <a href="{{ url_for('view_slides', topic_id=topic.id) }}">Slides</a>
-          <a href="{{ url_for('game', topic_id=topic.id) }}">Game</a>
-          <a href="{{ url_for('practice', topic_id=topic.id) }}">Practice</a>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <p style="color:#718096;">You have no topics yet. Click “Create My Topic”.</p>
-  {% endif %}
-</div>
-
-{% if session.role == 'admin' %}
-<div class="section">
-  <h3>All Topics (Admin)</h3>
-  {% if topics %}
-    <div class="topic-grid">
-      {% for topic in topics %}
-      <div class="topic-card">
-        <h4>📖 {{ topic.name }}</h4>
-        <p>{{ topic.description or 'No description' }}</p>
-        <div class="topic-actions">
-          <a href="{{ url_for('topic_detail', topic_id=topic.id) }}">Open</a>
-          <a href="{{ url_for('view_slides', topic_id=topic.id) }}">Slides</a>
-          <a href="{{ url_for('game', topic_id=topic.id) }}">Game</a>
-          <a href="{{ url_for('practice', topic_id=topic.id) }}">Practice</a>
-        </div>
-      </div>
-      {% endfor %}
-    </div>
-  {% else %}
-    <p style="color:#718096;">No topics available yet.</p>
-  {% endif %}
+{% if recent %}
+<div style="margin-bottom: 3rem;">
+  <div class="section-header">
+    <h3>🕒 Recently Opened</h3>
+  </div>
+  <ul class="recent-list">
+    {% for item in recent %}
+      <li class="recent-item">
+        <div class="recent-name">📄 {{ item.name }}</div>
+        <a href="{{ url_for('topic_detail', topic_id=item.topic_id) }}" class="recent-link">View Lesson →</a>
+      </li>
+    {% endfor %}
+  </ul>
 </div>
 {% endif %}
+
+<div class="section-header">
+  <h3>📚 My Topics</h3>
+</div>
+
+{% if my_topics %}
+  <div class="topic-grid">
+    {% for topic in my_topics %}
+    <div class="topic-card">
+      <div class="card-body">
+        <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="card-title">
+          {{ topic.name }}
+        </a>
+        <p class="card-desc">{{ topic.description or 'No description provided.' }}</p>
+      </div>
+      
+      <div class="card-tools">
+        <a href="{{ url_for('view_slides', topic_id=topic.id) }}" class="tool-pill pill-slides">📽 Slides</a>
+        <a href="{{ url_for('game', topic_id=topic.id) }}" class="tool-pill pill-game">🎮 Game</a>
+        <a href="{{ url_for('practice', topic_id=topic.id) }}" class="tool-pill pill-practice">📝 Practice</a>
+      </div>
+
+      <div class="card-footer">
+        <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="btn-icon">
+          📂 Open
+        </a>
+        <div style="display:flex; gap:4px;">
+          <a href="{{ url_for('my_edit_topic', topic_id=topic.id) }}" class="btn-icon" title="Edit">
+            ✏️
+          </a>
+          <form method="POST" action="{{ url_for('my_delete_topic', topic_id=topic.id) }}" style="display:inline;">
+            <button class="btn-icon danger" onclick="return confirm('Are you sure you want to delete this topic?');" title="Delete">
+              🗑
+            </button>
+          </form>
+        </div>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <div class="empty-state">
+    <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
+    <h3>You have no topics yet.</h3>
+    <p>Get started by creating your first lesson topic.</p>
+    <a href="{{ url_for('my_create_topic') }}" class="btn-action primary" style="margin-top:1rem; display:inline-flex; border:1px solid #ccc;">
+      ➕ Create My Topic
+    </a>
+  </div>
+{% endif %}
+
+{% if session.role == 'admin' %}
+<div class="section-header" style="margin-top: 4rem; border-color: #334155;">
+  <h3 style="color: #334155;">🛡️ All Topics (Admin View)</h3>
+</div>
+{% if topics %}
+  <div class="topic-grid">
+    {% for topic in topics %}
+    <div class="topic-card" style="opacity: 0.9;">
+      <div class="card-body">
+        <div style="font-size:0.8rem; color:#64748b; margin-bottom:4px;">ID: {{ topic.id }}</div>
+        <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="card-title">
+          {{ topic.name }}
+        </a>
+        <p class="card-desc">{{ topic.description or '-' }}</p>
+      </div>
+      <div class="card-footer">
+        <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="btn-icon">Open</a>
+        <span style="font-size:0.8rem; color:#94a3b8;">Admin Mode</span>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+{% else %}
+  <p style="color:#64748b; padding-left:1rem;">No topics in the system.</p>
+{% endif %}
+{% endif %}
+
 {% endblock %}
