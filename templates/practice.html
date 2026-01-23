@@ -192,13 +192,21 @@ body { background-color: var(--bg-soft); }
 
     <div class="tool-group">
       <div class="tool-label">Student Access Link</div>
+      
+      <div style="margin-bottom:8px; display:flex; align-items:center; gap:8px;">
+        <label for="timeLimitInput" style="font-size:0.9rem; font-weight:600; color:#475569;">
+          ⏱️ จำกัดเวลา (นาที):
+        </label>
+        <input type="number" id="timeLimitInput" class="input-box" style="max-width:80px; padding:0.4rem;" min="0" value="0" placeholder="0 = ไม่จำกัด">
+      </div>
+
       <div class="input-group">
         <button type="button" id="btnCreateLink" class="btn btn-primary btn-sm">🔗 Generate</button>
-        <input id="studentLink" class="input-box" type="text" value="{{ student_url or '' }}" readonly placeholder="Click Generate to create link...">
+        <input id="studentLink" class="input-box" type="text" value="{{ student_url or '' }}" readonly placeholder="Click Generate...">
         <button type="button" id="btnCopyLink" class="btn btn-outline btn-sm">📋</button>
       </div>
       <div style="font-size:0.8rem; color:var(--text-muted); margin-top:4px;">
-        *ส่งลิงก์ให้นักเรียนทำแบบทดสอบได้ทันที (ไม่ต้อง Login)
+        *ส่งลิงก์ให้นักเรียนทำแบบทดสอบ (ถ้าใส่เวลา ลิงก์จะมีตัวจับเวลาติดไปด้วย)
       </div>
     </div>
 
@@ -214,6 +222,10 @@ body { background-color: var(--bg-soft); }
 {% else %}
 
 <div id="practice-container" class="practice-container">
+  <div style="text-align:center; margin-bottom:1rem; color:#64748b; font-style:italic;">
+    (นี่คือมุมมองตัวอย่างคำถาม)
+  </div>
+
   <form id="practice-form">
     {% for q in questions %}
       <div class="question-card">
@@ -248,6 +260,7 @@ body { background-color: var(--bg-soft); }
   const btnCreate = document.getElementById('btnCreateLink');
   const linkInput = document.getElementById('studentLink');
   const btnCopy = document.getElementById('btnCopyLink');
+  const timeLimitInput = document.getElementById('timeLimitInput');
 
   if(btnCreate){
     btnCreate.addEventListener('click', async () => {
@@ -257,7 +270,14 @@ body { background-color: var(--bg-soft); }
         const res = await fetch(`/api/practice/${topicId}/link`, { method:'POST' });
         const data = await res.json();
         if(data.url){
-          linkInput.value = data.url;
+          let finalUrl = data.url;
+          // Append time limit if set
+          const mins = parseInt(timeLimitInput.value) || 0;
+          if(mins > 0) {
+            finalUrl += `?limit=${mins}`;
+          }
+          
+          linkInput.value = finalUrl;
           // Flash effect
           linkInput.style.borderColor = 'var(--success)';
           setTimeout(() => linkInput.style.borderColor = '#e2e8f0', 1000);
@@ -290,7 +310,7 @@ body { background-color: var(--bg-soft); }
     });
   }
 
-  // --- Form Submission Logic ---
+  // --- Form Submission Logic (Teacher Preview) ---
   document.getElementById('practice-form').addEventListener('submit', async (e) => {
     e.preventDefault();
     const btn = document.querySelector('.btn-submit');
