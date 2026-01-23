@@ -1,0 +1,1082 @@
+{% extends "base.html" %}
+{% block title %}Sentence Builder - {{ topic.name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+:root {
+  --primary: #8b5cf6;
+  --primary-dark: #7c3aed;
+  --success: #22c55e;
+  --danger: #ef4444;
+  --warning: #f59e0b;
+}
+
+* { box-sizing: border-box; }
+
+.game-container {
+  max-width: 900px;
+  margin: 0 auto;
+  padding: 1rem;
+}
+
+/* Header */
+.game-header {
+  background: linear-gradient(135deg, var(--primary), #a78bfa);
+  color: #fff;
+  padding: 1.5rem;
+  border-radius: 16px;
+  margin-bottom: 1rem;
+  text-align: center;
+}
+.game-header h1 { margin: 0 0 0.5rem; font-size: 1.5rem; }
+.game-header p { margin: 0; opacity: 0.9; }
+
+/* Nav */
+.nav-row {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.nav-btn {
+  padding: 0.6rem 1rem;
+  border-radius: 10px;
+  font-weight: 700;
+  text-decoration: none;
+  background: #f1f5f9;
+  color: #334155;
+  border: 1px solid rgba(0,0,0,0.08);
+}
+.nav-btn:hover { background: #e2e8f0; }
+
+/* Student Wheel Section */
+.wheel-section {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+}
+.wheel-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1rem;
+  flex-wrap: wrap;
+  gap: 1rem;
+}
+.wheel-header h3 { margin: 0; color: #334155; }
+
+.student-input-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  margin-bottom: 1rem;
+}
+.student-input-row input {
+  flex: 1;
+  min-width: 200px;
+  padding: 0.6rem 1rem;
+  border: 2px solid #e2e8f0;
+  border-radius: 10px;
+  font-size: 1rem;
+}
+.student-input-row input:focus {
+  outline: none;
+  border-color: var(--primary);
+}
+.student-input-row button {
+  padding: 0.6rem 1rem;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-add { background: var(--primary); color: #fff; }
+.btn-clear-list { background: #f1f5f9; color: #64748b; }
+
+.student-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
+  min-height: 40px;
+}
+.student-tag {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  padding: 0.4rem 0.8rem;
+  background: linear-gradient(135deg, #ddd6fe, #c4b5fd);
+  color: #5b21b6;
+  border-radius: 999px;
+  font-weight: 600;
+  font-size: 0.9rem;
+}
+.student-tag button {
+  background: none;
+  border: none;
+  color: #7c3aed;
+  cursor: pointer;
+  font-size: 1rem;
+  padding: 0;
+  line-height: 1;
+}
+
+/* Wheel Canvas */
+.wheel-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+.wheel-wrapper {
+  position: relative;
+  width: 280px;
+  height: 280px;
+}
+#wheelCanvas {
+  width: 280px;
+  height: 280px;
+  border-radius: 50%;
+  box-shadow: 0 8px 30px rgba(139,92,246,0.3);
+}
+.wheel-pointer {
+  position: absolute;
+  top: -15px;
+  left: 50%;
+  transform: translateX(-50%);
+  font-size: 2rem;
+  filter: drop-shadow(0 2px 4px rgba(0,0,0,0.3));
+  z-index: 10;
+}
+.btn-spin {
+  padding: 1rem 3rem;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 800;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(139,92,246,0.4);
+  transition: all 0.2s;
+}
+.btn-spin:hover { transform: translateY(-2px); }
+.btn-spin:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+.selected-student {
+  font-size: 1.5rem;
+  font-weight: 800;
+  color: var(--primary);
+  text-align: center;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f5f3ff, #ede9fe);
+  border-radius: 12px;
+  display: none;
+  margin-top: 1rem;
+}
+.selected-student.show { display: block; }
+
+/* Game Section */
+.game-section {
+  background: #fff;
+  border-radius: 16px;
+  padding: 1.5rem;
+  box-shadow: 0 4px 15px rgba(0,0,0,0.08);
+  display: none;
+}
+.game-section.active { display: block; }
+
+/* Score Bar */
+.score-bar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 1rem;
+  background: linear-gradient(135deg, #f5f3ff, #ede9fe);
+  border-radius: 12px;
+  margin-bottom: 1rem;
+}
+.score-item { text-align: center; }
+.score-value { font-size: 1.5rem; font-weight: 900; color: var(--primary); }
+.score-label { font-size: 0.8rem; color: #64748b; text-transform: uppercase; }
+
+/* Question Card */
+.question-card {
+  background: #f8fafc;
+  border-radius: 16px;
+  padding: 1.5rem;
+  margin-bottom: 1rem;
+}
+.question-number {
+  display: inline-block;
+  background: var(--primary);
+  color: #fff;
+  padding: 0.3rem 1rem;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.9rem;
+  margin-bottom: 1rem;
+}
+.current-player {
+  display: inline-block;
+  background: var(--warning);
+  color: #1e293b;
+  padding: 0.3rem 1rem;
+  border-radius: 999px;
+  font-weight: 700;
+  font-size: 0.85rem;
+  margin-left: 0.5rem;
+}
+
+/* Thai Sentence */
+.thai-sentence {
+  font-size: 1.4rem;
+  font-weight: 700;
+  color: #1e293b;
+  text-align: center;
+  padding: 1.5rem;
+  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  border-radius: 12px;
+  margin-bottom: 1.5rem;
+  border: 2px solid #f59e0b;
+}
+.thai-sentence::before { content: '🇹🇭 '; }
+
+/* Answer Zone */
+.answer-zone {
+  min-height: 70px;
+  border: 3px dashed #cbd5e1;
+  border-radius: 16px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: center;
+  background: #fff;
+  transition: all 0.2s;
+}
+.answer-zone.active { border-color: var(--primary); background: #faf5ff; }
+.answer-zone.correct { border-color: var(--success); background: #dcfce7; border-style: solid; }
+.answer-zone.wrong { border-color: var(--danger); background: #fee2e2; border-style: solid; }
+.answer-zone .placeholder { color: #94a3b8; font-style: italic; }
+
+.answer-token {
+  padding: 0.5rem 1rem;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  border-radius: 10px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s;
+  font-size: 1rem;
+}
+.answer-token:hover { background: var(--danger); }
+
+/* Word Pool */
+.words-container {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  justify-content: center;
+  margin-bottom: 1.5rem;
+}
+.word-token {
+  padding: 0.75rem 1.25rem;
+  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
+  color: #fff;
+  border: none;
+  border-radius: 12px;
+  font-size: 1.1rem;
+  font-weight: 700;
+  cursor: pointer;
+  box-shadow: 0 4px 10px rgba(139,92,246,0.3);
+  transition: all 0.15s;
+}
+.word-token:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 6px 15px rgba(139,92,246,0.4); }
+.word-token:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+
+/* Action Buttons */
+.action-buttons {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  flex-wrap: wrap;
+}
+.btn {
+  padding: 0.75rem 2rem;
+  border: none;
+  border-radius: 12px;
+  font-weight: 700;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s;
+}
+.btn-secondary { background: #e2e8f0; color: #475569; }
+.btn-secondary:hover { background: #cbd5e1; }
+.btn-success { background: var(--success); color: #fff; }
+.btn-success:hover { background: #16a34a; }
+.btn-primary { background: var(--primary); color: #fff; }
+.btn-primary:hover { background: var(--primary-dark); }
+.btn:disabled { opacity: 0.5; cursor: not-allowed; }
+
+/* Feedback */
+.feedback {
+  text-align: center;
+  padding: 1rem;
+  border-radius: 12px;
+  margin-top: 1rem;
+  font-weight: 700;
+  display: none;
+}
+.feedback.show { display: block; }
+.feedback.correct { background: #dcfce7; color: #166534; }
+.feedback.wrong { background: #fee2e2; color: #991b1b; }
+.correct-answer { margin-top: 0.5rem; font-weight: 600; }
+
+/* Result Screen */
+.result-screen {
+  display: none;
+  text-align: center;
+  padding: 2rem;
+}
+.result-screen.active { display: block; }
+.result-emoji { font-size: 5rem; margin-bottom: 1rem; }
+.result-title { font-size: 1.8rem; font-weight: 800; color: #1e293b; margin-bottom: 1rem; }
+.result-score { font-size: 3rem; font-weight: 900; color: var(--primary); margin-bottom: 1.5rem; }
+.result-details { 
+  display: flex; 
+  justify-content: center; 
+  gap: 2rem; 
+  margin-bottom: 2rem;
+  flex-wrap: wrap;
+}
+.result-stat { text-align: center; }
+.result-stat-value { font-size: 1.5rem; font-weight: 800; }
+.result-stat-value.correct-text { color: var(--success); }
+.result-stat-value.wrong-text { color: var(--danger); }
+.result-stat-label { font-size: 0.85rem; color: #64748b; }
+
+/* Leaderboard */
+.leaderboard {
+  background: #f8fafc;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-top: 1.5rem;
+  text-align: left;
+}
+.leaderboard h4 { margin: 0 0 1rem; color: #334155; }
+.leaderboard-item {
+  display: flex;
+  justify-content: space-between;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e2e8f0;
+}
+.leaderboard-item:last-child { border-bottom: none; }
+.leaderboard-rank { font-weight: 800; color: var(--primary); width: 30px; }
+.leaderboard-name { flex: 1; font-weight: 600; }
+.leaderboard-score { font-weight: 800; color: var(--success); }
+
+/* Timer */
+.timer { font-size: 2rem; font-weight: 900; color: var(--warning); }
+.timer.danger { color: var(--danger); animation: pulse 0.5s infinite; }
+@keyframes pulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+
+/* Sound Toggle */
+.sound-toggle {
+  position: fixed;
+  bottom: 20px;
+  right: 20px;
+  width: 50px;
+  height: 50px;
+  border-radius: 50%;
+  background: var(--primary);
+  color: #fff;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  box-shadow: 0 4px 15px rgba(139,92,246,0.4);
+  z-index: 100;
+}
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="game-container">
+  <!-- Nav -->
+  <div class="nav-row">
+    <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="nav-btn">← กลับ</a>
+    <a href="{{ url_for('game', topic_id=topic.id) }}" class="nav-btn">🎯 Bamboozle</a>
+    <a href="{{ url_for('game_memory', topic_id=topic.id) }}" class="nav-btn">🃏 Memory</a>
+  </div>
+
+  <!-- Header -->
+  <div class="game-header">
+    <h1>🏗️ Sentence Builder</h1>
+    <p>{{ topic.name }} • เรียงคำภาษาอังกฤษให้ถูกต้องตามประโยคภาษาไทย</p>
+  </div>
+
+  <!-- Student Wheel Section -->
+  <div class="wheel-section">
+    <div class="wheel-header">
+      <h3>🎡 วงล้อสุ่มนักเรียน</h3>
+    </div>
+    
+    <div class="student-input-row">
+      <input type="text" id="studentNameInput" placeholder="พิมพ์ชื่อนักเรียน แล้วกด Enter หรือ เพิ่ม" maxlength="50">
+      <button class="btn-add" onclick="addStudent()">➕ เพิ่ม</button>
+      <button class="btn-clear-list" onclick="clearStudents()">🗑️ ล้างทั้งหมด</button>
+    </div>
+    
+    <div class="student-list" id="studentList">
+      <span style="color:#94a3b8;font-style:italic;">ยังไม่มีรายชื่อนักเรียน (เพิ่มอย่างน้อย 2 คนเพื่อใช้วงล้อ หรือกด "เริ่มเกมเลย" เพื่อเล่นคนเดียว)</span>
+    </div>
+    
+    <div class="wheel-container">
+      <div class="wheel-wrapper">
+        <div class="wheel-pointer">📍</div>
+        <canvas id="wheelCanvas" width="280" height="280"></canvas>
+      </div>
+      <div style="display:flex; gap:1rem; flex-wrap:wrap; justify-content:center;">
+        <button class="btn-spin" id="btnSpin" onclick="spinWheel()" disabled>🎰 หมุนวงล้อ</button>
+        <button class="btn btn-success" onclick="startSoloGame()">🎮 เริ่มเกมเลย</button>
+      </div>
+    </div>
+    
+    <div class="selected-student" id="selectedStudent"></div>
+  </div>
+
+  <!-- Game Section -->
+  <div class="game-section" id="gameSection">
+    <!-- Score Bar -->
+    <div class="score-bar">
+      <div class="score-item">
+        <div class="score-value" id="currentQ">1</div>
+        <div class="score-label">ข้อที่</div>
+      </div>
+      <div class="score-item">
+        <div class="timer" id="timer">30</div>
+        <div class="score-label">วินาที</div>
+      </div>
+      <div class="score-item">
+        <div class="score-value" id="score">0</div>
+        <div class="score-label">คะแนน</div>
+      </div>
+    </div>
+
+    <!-- Question Card -->
+    <div class="question-card" id="questionCard">
+      <div>
+        <span class="question-number" id="questionNumber">Question 1</span>
+        <span class="current-player" id="currentPlayer">👤 -</span>
+      </div>
+      
+      <div class="thai-sentence" id="thaiSentence">Loading...</div>
+      
+      <div class="answer-zone" id="answerZone">
+        <span class="placeholder">คลิกคำด้านล่างเพื่อเรียงประโยค</span>
+      </div>
+      
+      <div class="words-container" id="wordsContainer"></div>
+      
+      <div class="feedback" id="feedback"></div>
+      
+      <div class="action-buttons">
+        <button class="btn btn-secondary" onclick="clearAnswer()">🗑️ ล้าง</button>
+        <button class="btn btn-success" id="btnCheck" onclick="checkAnswer()">✅ ตรวจคำตอบ</button>
+        <button class="btn btn-primary" id="btnNext" onclick="nextQuestion()" style="display:none;">ข้อต่อไป →</button>
+      </div>
+    </div>
+
+    <!-- Result Screen -->
+    <div class="result-screen" id="resultScreen">
+      <div class="result-emoji" id="resultEmoji">🎉</div>
+      <div class="result-title" id="resultTitle">จบเกม!</div>
+      <div class="result-score" id="resultScore">0 คะแนน</div>
+      <div class="result-details">
+        <div class="result-stat">
+          <div class="result-stat-value correct-text" id="totalCorrect">0</div>
+          <div class="result-stat-label">ถูก</div>
+        </div>
+        <div class="result-stat">
+          <div class="result-stat-value wrong-text" id="totalWrong">0</div>
+          <div class="result-stat-label">ผิด</div>
+        </div>
+      </div>
+      
+      <div class="leaderboard" id="leaderboard" style="display:none;">
+        <h4>🏆 อันดับคะแนน</h4>
+        <div id="leaderboardList"></div>
+      </div>
+      
+      <div class="action-buttons" style="margin-top:1.5rem;">
+        <button class="btn btn-secondary" onclick="location.href='{{ url_for('topic_detail', topic_id=topic.id) }}'">🏠 กลับหน้าหลัก</button>
+        <button class="btn btn-primary" onclick="restartGame()">🔄 เล่นใหม่</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<button class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔊</button>
+
+<script>
+// Game Data
+const gameData = {{ game_data | tojson | safe }};
+
+// Sound System
+let soundEnabled = true;
+let audioContext = null;
+
+function initAudio() {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return audioContext;
+}
+
+function playTone(freq, dur, type = 'sine', vol = 0.3) {
+  if (!soundEnabled) return;
+  try {
+    const ctx = initAudio();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = freq;
+    osc.type = type;
+    gain.gain.setValueAtTime(vol, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + dur);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + dur);
+  } catch (e) {}
+}
+
+function playClickSound() { playTone(600, 0.08, 'sine', 0.2); }
+function playDropSound() { playTone(400, 0.1, 'sine', 0.25); }
+function playCorrectSound() {
+  playTone(523, 0.15, 'sine', 0.3);
+  setTimeout(() => playTone(659, 0.15, 'sine', 0.3), 100);
+  setTimeout(() => playTone(784, 0.2, 'sine', 0.3), 200);
+}
+function playWrongSound() { playTone(200, 0.4, 'square', 0.15); }
+function playSpinSound() {
+  let freq = 200;
+  for (let i = 0; i < 20; i++) {
+    setTimeout(() => playTone(freq + i * 30, 0.05, 'sine', 0.15), i * 50);
+  }
+}
+function playWinSound() {
+  const notes = [523, 659, 784, 1047];
+  notes.forEach((note, i) => {
+    setTimeout(() => playTone(note, 0.3, 'sine', 0.3), i * 150);
+  });
+}
+function playTickSound() { playTone(800, 0.05, 'sine', 0.1); }
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  document.getElementById('soundToggle').textContent = soundEnabled ? '🔊' : '🔇';
+}
+
+// Student Management
+let students = [];
+const colors = ['#8b5cf6', '#ec4899', '#06b6d4', '#22c55e', '#f59e0b', '#ef4444', '#6366f1', '#14b8a6', '#f97316', '#a855f7'];
+
+document.getElementById('studentNameInput').addEventListener('keypress', function(e) {
+  if (e.key === 'Enter') addStudent();
+});
+
+function addStudent() {
+  const input = document.getElementById('studentNameInput');
+  const name = input.value.trim();
+  if (!name) return;
+  if (students.includes(name)) {
+    alert('ชื่อนี้มีอยู่แล้ว');
+    return;
+  }
+  students.push(name);
+  input.value = '';
+  renderStudentList();
+  drawWheel();
+  document.getElementById('btnSpin').disabled = students.length < 2;
+  playClickSound();
+}
+
+function removeStudent(index) {
+  students.splice(index, 1);
+  renderStudentList();
+  drawWheel();
+  document.getElementById('btnSpin').disabled = students.length < 2;
+}
+
+function clearStudents() {
+  students = [];
+  renderStudentList();
+  drawWheel();
+  document.getElementById('btnSpin').disabled = true;
+}
+
+function renderStudentList() {
+  const list = document.getElementById('studentList');
+  if (students.length === 0) {
+    list.innerHTML = '<span style="color:#94a3b8;font-style:italic;">ยังไม่มีรายชื่อนักเรียน (เพิ่มอย่างน้อย 2 คนเพื่อใช้วงล้อ หรือกด "เริ่มเกมเลย" เพื่อเล่นคนเดียว)</span>';
+    return;
+  }
+  list.innerHTML = students.map((s, i) => `
+    <span class="student-tag">
+      ${escapeHtml(s)}
+      <button onclick="removeStudent(${i})">×</button>
+    </span>
+  `).join('');
+}
+
+// Wheel Drawing
+const canvas = document.getElementById('wheelCanvas');
+const ctx = canvas.getContext('2d');
+let rotation = 0;
+let isSpinning = false;
+
+function drawWheel() {
+  const centerX = canvas.width / 2;
+  const centerY = canvas.height / 2;
+  const radius = Math.min(centerX, centerY) - 5;
+  
+  ctx.clearRect(0, 0, canvas.width, canvas.height);
+  
+  if (students.length === 0) {
+    ctx.beginPath();
+    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
+    ctx.fillStyle = '#f1f5f9';
+    ctx.fill();
+    ctx.strokeStyle = '#cbd5e1';
+    ctx.lineWidth = 3;
+    ctx.stroke();
+    
+    ctx.fillStyle = '#94a3b8';
+    ctx.font = '14px Prompt';
+    ctx.textAlign = 'center';
+    ctx.fillText('เพิ่มชื่อนักเรียน', centerX, centerY);
+    return;
+  }
+  
+  const sliceAngle = (2 * Math.PI) / students.length;
+  
+  students.forEach((student, i) => {
+    const startAngle = rotation + i * sliceAngle;
+    const endAngle = startAngle + sliceAngle;
+    
+    // Draw slice
+    ctx.beginPath();
+    ctx.moveTo(centerX, centerY);
+    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
+    ctx.closePath();
+    ctx.fillStyle = colors[i % colors.length];
+    ctx.fill();
+    ctx.strokeStyle = '#fff';
+    ctx.lineWidth = 2;
+    ctx.stroke();
+    
+    // Draw text
+    ctx.save();
+    ctx.translate(centerX, centerY);
+    ctx.rotate(startAngle + sliceAngle / 2);
+    ctx.textAlign = 'right';
+    ctx.fillStyle = '#fff';
+    ctx.font = 'bold 12px Prompt';
+    const maxLen = 8;
+    const displayName = student.length > maxLen ? student.substring(0, maxLen) + '...' : student;
+    ctx.fillText(displayName, radius - 15, 4);
+    ctx.restore();
+  });
+  
+  // Center circle
+  ctx.beginPath();
+  ctx.arc(centerX, centerY, 20, 0, 2 * Math.PI);
+  ctx.fillStyle = '#fff';
+  ctx.fill();
+  ctx.strokeStyle = '#8b5cf6';
+  ctx.lineWidth = 3;
+  ctx.stroke();
+}
+
+function spinWheel() {
+  if (isSpinning || students.length < 2) return;
+  
+  isSpinning = true;
+  document.getElementById('btnSpin').disabled = true;
+  document.getElementById('selectedStudent').classList.remove('show');
+  
+  playSpinSound();
+  
+  const spins = 5 + Math.random() * 5;
+  const targetRotation = rotation + spins * 2 * Math.PI;
+  const duration = 4000;
+  const startTime = performance.now();
+  const startRotation = rotation;
+  
+  function animate(currentTime) {
+    const elapsed = currentTime - startTime;
+    const progress = Math.min(elapsed / duration, 1);
+    
+    // Ease out
+    const easeOut = 1 - Math.pow(1 - progress, 3);
+    rotation = startRotation + (targetRotation - startRotation) * easeOut;
+    
+    drawWheel();
+    
+    if (progress < 1) {
+      if (Math.random() < 0.1) playTickSound();
+      requestAnimationFrame(animate);
+    } else {
+      isSpinning = false;
+      document.getElementById('btnSpin').disabled = false;
+      
+      // Determine winner
+      const sliceAngle = (2 * Math.PI) / students.length;
+      const normalizedRotation = ((rotation % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
+      const pointerAngle = (3 * Math.PI / 2 - normalizedRotation + 2 * Math.PI) % (2 * Math.PI);
+      const winnerIndex = Math.floor(pointerAngle / sliceAngle) % students.length;
+      
+      const winner = students[winnerIndex];
+      document.getElementById('selectedStudent').textContent = '🎉 ' + winner + ' 🎉';
+      document.getElementById('selectedStudent').classList.add('show');
+      
+      playWinSound();
+      
+      // Start game with this player
+      setTimeout(() => {
+        currentPlayerName = winner;
+        startGameWithPlayer(winner);
+      }, 1500);
+    }
+  }
+  
+  requestAnimationFrame(animate);
+}
+
+// Game Logic
+let questions = [];
+let currentIndex = 0;
+let score = 0;
+let correctCount = 0;
+let wrongCount = 0;
+let answered = false;
+let currentAnswer = [];
+let currentWords = [];
+let currentPlayerName = '';
+let timerInterval = null;
+let timeLeft = 30;
+let playerScores = {};
+
+function prepareQuestions() {
+  const result = [];
+  
+  if (gameData.examples && gameData.examples.length > 0) {
+    gameData.examples.forEach(ex => {
+      if (ex.en && ex.th && ex.en.split(' ').length >= 3) {
+        result.push({
+          thai: ex.th,
+          english: ex.en.replace(/[.!?]$/, ''),
+          words: ex.en.replace(/[.!?]$/, '').split(' ')
+        });
+      }
+    });
+  }
+  
+  if (gameData.vocabulary && gameData.vocabulary.length > 0) {
+    gameData.vocabulary.forEach(v => {
+      if (v.example && v.meaning && v.example.split(' ').length >= 3) {
+        result.push({
+          thai: v.meaning,
+          english: v.example.replace(/[.!?]$/, ''),
+          words: v.example.replace(/[.!?]$/, '').split(' ')
+        });
+      }
+    });
+  }
+  
+  // Shuffle
+  for (let i = result.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [result[i], result[j]] = [result[j], result[i]];
+  }
+  
+  return result.slice(0, 10);
+}
+
+function startSoloGame() {
+  currentPlayerName = 'Player';
+  startGameWithPlayer('Player');
+}
+
+function startGameWithPlayer(playerName) {
+  document.getElementById('gameSection').classList.add('active');
+  document.getElementById('currentPlayer').textContent = '👤 ' + playerName;
+  
+  questions = prepareQuestions();
+  if (questions.length === 0) {
+    document.getElementById('thaiSentence').textContent = 'ไม่มีข้อมูลสำหรับเกมนี้ (ต้อง Generate Slides ก่อน)';
+    return;
+  }
+  
+  currentIndex = 0;
+  score = 0;
+  correctCount = 0;
+  wrongCount = 0;
+  
+  loadQuestion();
+}
+
+function loadQuestion() {
+  if (currentIndex >= questions.length) {
+    showResult();
+    return;
+  }
+  
+  answered = false;
+  currentAnswer = [];
+  const q = questions[currentIndex];
+  
+  document.getElementById('currentQ').textContent = currentIndex + 1;
+  document.getElementById('questionNumber').textContent = 'Question ' + (currentIndex + 1) + '/' + questions.length;
+  
+  document.getElementById('thaiSentence').textContent = q.thai;
+  
+  currentWords = [...q.words];
+  const scrambled = [...currentWords];
+  // Shuffle
+  for (let i = scrambled.length - 1; i > 0; i--) {
+    const j = Math.floor(Math.random() * (i + 1));
+    [scrambled[i], scrambled[j]] = [scrambled[j], scrambled[i]];
+  }
+  // Make sure it's different
+  let attempts = 0;
+  while (scrambled.join(' ') === currentWords.join(' ') && scrambled.length > 2 && attempts < 10) {
+    for (let i = scrambled.length - 1; i > 0; i--) {
+      const j = Math.floor(Math.random() * (i + 1));
+      [scrambled[i], scrambled[j]] = [scrambled[j], scrambled[i]];
+    }
+    attempts++;
+  }
+  
+  renderWords(scrambled);
+  
+  const answerZone = document.getElementById('answerZone');
+  answerZone.innerHTML = '<span class="placeholder">คลิกคำด้านล่างเพื่อเรียงประโยค</span>';
+  answerZone.className = 'answer-zone';
+  
+  document.getElementById('feedback').classList.remove('show');
+  document.getElementById('feedback').className = 'feedback';
+  document.getElementById('btnCheck').style.display = 'inline-block';
+  document.getElementById('btnNext').style.display = 'none';
+  
+  // Start timer
+  startTimer();
+}
+
+function renderWords(words) {
+  const container = document.getElementById('wordsContainer');
+  container.innerHTML = words.map((word, i) => `
+    <button class="word-token" data-word="${escapeHtml(word)}" data-idx="${i}" onclick="addWord(this)">${escapeHtml(word)}</button>
+  `).join('');
+}
+
+function escapeHtml(text) {
+  const div = document.createElement('div');
+  div.textContent = text;
+  return div.innerHTML;
+}
+
+function addWord(btn) {
+  if (answered || btn.disabled) return;
+  playClickSound();
+  
+  currentAnswer.push({ word: btn.dataset.word, btn: btn });
+  btn.disabled = true;
+  updateAnswerZone();
+}
+
+function removeWord(index) {
+  if (answered) return;
+  playDropSound();
+  
+  const removed = currentAnswer.splice(index, 1)[0];
+  if (removed && removed.btn) {
+    removed.btn.disabled = false;
+  }
+  updateAnswerZone();
+}
+
+function updateAnswerZone() {
+  const answerZone = document.getElementById('answerZone');
+  if (currentAnswer.length === 0) {
+    answerZone.innerHTML = '<span class="placeholder">คลิกคำด้านล่างเพื่อเรียงประโยค</span>';
+    answerZone.classList.remove('active');
+  } else {
+    answerZone.classList.add('active');
+    answerZone.innerHTML = currentAnswer.map((item, i) => 
+      `<button class="answer-token" onclick="removeWord(${i})">${escapeHtml(item.word)}</button>`
+    ).join('');
+  }
+}
+
+function clearAnswer() {
+  if (answered) return;
+  currentAnswer.forEach(item => {
+    if (item.btn) item.btn.disabled = false;
+  });
+  currentAnswer = [];
+  updateAnswerZone();
+}
+
+function startTimer() {
+  timeLeft = 30;
+  updateTimerDisplay();
+  
+  if (timerInterval) clearInterval(timerInterval);
+  
+  timerInterval = setInterval(() => {
+    timeLeft--;
+    updateTimerDisplay();
+    
+    if (timeLeft <= 5) {
+      document.getElementById('timer').classList.add('danger');
+      playTickSound();
+    }
+    
+    if (timeLeft <= 0) {
+      clearInterval(timerInterval);
+      if (!answered) {
+        checkAnswer(true); // Auto submit
+      }
+    }
+  }, 1000);
+}
+
+function updateTimerDisplay() {
+  document.getElementById('timer').textContent = timeLeft;
+  if (timeLeft > 5) {
+    document.getElementById('timer').classList.remove('danger');
+  }
+}
+
+function checkAnswer(autoSubmit = false) {
+  if (answered) return;
+  
+  clearInterval(timerInterval);
+  answered = true;
+  
+  const q = questions[currentIndex];
+  const userAnswer = currentAnswer.map(a => a.word).join(' ');
+  const correctAnswer = currentWords.join(' ');
+  const isCorrect = userAnswer.toLowerCase() === correctAnswer.toLowerCase();
+  
+  const answerZone = document.getElementById('answerZone');
+  const feedback = document.getElementById('feedback');
+  
+  // Disable all word buttons
+  document.querySelectorAll('.word-token').forEach(b => b.disabled = true);
+  
+  if (isCorrect) {
+    playCorrectSound();
+    answerZone.classList.add('correct');
+    const bonus = Math.max(0, timeLeft);
+    const points = 10 + bonus;
+    score += points;
+    correctCount++;
+    feedback.innerHTML = `✅ ถูกต้อง! +${points} คะแนน (โบนัสเวลา +${bonus})`;
+    feedback.className = 'feedback show correct';
+  } else {
+    playWrongSound();
+    answerZone.classList.add('wrong');
+    wrongCount++;
+    feedback.innerHTML = `❌ ไม่ถูกต้อง<div class="correct-answer">🇬🇧 ${correctAnswer}</div>`;
+    feedback.className = 'feedback show wrong';
+  }
+  
+  document.getElementById('score').textContent = score;
+  document.getElementById('btnCheck').style.display = 'none';
+  document.getElementById('btnNext').style.display = 'inline-block';
+}
+
+function nextQuestion() {
+  currentIndex++;
+  
+  // Spin wheel for next player if multiplayer
+  if (students.length >= 2 && currentIndex < questions.length) {
+    document.getElementById('gameSection').classList.remove('active');
+    setTimeout(() => spinWheel(), 500);
+  } else {
+    loadQuestion();
+  }
+}
+
+function showResult() {
+  clearInterval(timerInterval);
+  playWinSound();
+  
+  // Save player score
+  if (currentPlayerName) {
+    playerScores[currentPlayerName] = (playerScores[currentPlayerName] || 0) + score;
+  }
+  
+  document.getElementById('questionCard').style.display = 'none';
+  document.getElementById('resultScreen').classList.add('active');
+  
+  document.getElementById('resultScore').textContent = score + ' คะแนน';
+  document.getElementById('totalCorrect').textContent = correctCount;
+  document.getElementById('totalWrong').textContent = wrongCount;
+  
+  const pct = questions.length > 0 ? Math.round(correctCount / questions.length * 100) : 0;
+  let emoji = '🎉', title = 'ยอดเยี่ยม!';
+  if (pct < 50) { emoji = '😢'; title = 'ลองใหม่นะ!'; }
+  else if (pct < 70) { emoji = '😊'; title = 'ดีมาก!'; }
+  else if (pct < 90) { emoji = '🌟'; title = 'เก่งมาก!'; }
+  
+  document.getElementById('resultEmoji').textContent = emoji;
+  document.getElementById('resultTitle').textContent = title;
+  
+  // Show leaderboard if multiplayer
+  if (Object.keys(playerScores).length > 1) {
+    const leaderboard = document.getElementById('leaderboard');
+    leaderboard.style.display = 'block';
+    
+    const sorted = Object.entries(playerScores).sort((a, b) => b[1] - a[1]);
+    document.getElementById('leaderboardList').innerHTML = sorted.map(([name, s], i) => `
+      <div class="leaderboard-item">
+        <span class="leaderboard-rank">${i + 1}.</span>
+        <span class="leaderboard-name">${escapeHtml(name)}</span>
+        <span class="leaderboard-score">${s} คะแนน</span>
+      </div>
+    `).join('');
+  }
+}
+
+function restartGame() {
+  document.getElementById('questionCard').style.display = 'block';
+  document.getElementById('resultScreen').classList.remove('active');
+  document.getElementById('gameSection').classList.remove('active');
+  document.getElementById('selectedStudent').classList.remove('show');
+  document.getElementById('score').textContent = '0';
+  
+  if (students.length >= 2) {
+    // Multiplayer - spin wheel
+    spinWheel();
+  } else {
+    // Single player
+    currentPlayerName = 'Player';
+    startGameWithPlayer('Player');
+  }
+}
+
+// Initial draw
+drawWheel();
+</script>
+{% endblock %}
