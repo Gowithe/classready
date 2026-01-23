@@ -1,131 +1,341 @@
 {% extends "base.html" %}
-
-{% block title %}Practice - {{ topic.name }}{% endblock %}
+{% block title %}Practice | {{ topic.name }}{% endblock %}
 
 {% block extra_css %}
 <style>
-  .practice-form{max-width:900px;margin:2rem auto;background:#fff;padding:2rem;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.1)}
-  .question-item{margin-bottom:1.25rem;padding:1.15rem;background:#f7fafc;border-radius:8px;border-left:4px solid #667eea}
-  .question-title{font-weight:800;margin-bottom:0.75rem}
-  .choice{display:flex;align-items:center;gap:.6rem;padding:.45rem .25rem}
-  .choice input{width:auto;margin:0}
-  .results{max-width:900px;margin:2rem auto;background:#fff;padding:2rem;border-radius:10px;box-shadow:0 4px 12px rgba(0,0,0,.1)}
-  .score-badge{font-size:3rem;font-weight:900;text-align:center;color:var(--success);margin-bottom:1rem}
-  .feedback-item{padding:1rem;margin-bottom:1rem;border-radius:8px;border-left:4px solid}
-  .feedback-item.correct{background:#c6f6d5;border-color:var(--success)}
-  .feedback-item.incorrect{background:#fed7d7;border-color:var(--danger)}
+  .wrap{max-width:1000px;margin:1.25rem auto;padding:0 1rem;}
+  .card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:16px;padding:16px;box-shadow:0 10px 24px rgba(0,0,0,.06);}
+  .h1{font-size:1.25rem;font-weight:900;margin-bottom:.25rem;}
+  .muted{color:#64748b;font-size:.95rem;}
+  
+  /* Student Info Form */
+  .student-form{
+    background: linear-gradient(135deg, #667eea15, #764ba215);
+    border:1px solid rgba(102,126,234,.2);
+    border-radius:14px;
+    padding:16px;
+    margin-bottom:16px;
+  }
+  .student-form h3{
+    margin:0 0 12px;
+    font-size:1rem;
+    color:#4338ca;
+  }
+  /* Adjusted grid for new fields */
+  .form-grid{
+    display:grid;
+    grid-template-columns: 1fr 1fr;
+    gap:12px;
+  }
+  @media(max-width:600px){ .form-grid{ grid-template-columns: 1fr; } }
+
+  .inp{
+    width:100%;
+    padding:10px 14px;
+    border:2px solid #e2e8f0;
+    border-radius:10px;
+    font-size:1rem;
+    outline:none;
+    transition:border-color .2s;
+  }
+  .inp:focus{border-color:#667eea;}
+
+  /* Timer Bar */
+  .timer-bar {
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    background: #ef4444;
+    color: white;
+    text-align: center;
+    padding: 10px;
+    font-weight: 800;
+    border-radius: 0 0 12px 12px;
+    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
+    margin-bottom: 20px;
+    display: none; /* Show if limit exists */
+    animation: pulse 1s infinite;
+  }
+  .timer-bar.safe { background: #667eea; animation: none; box-shadow: 0 4px 12px rgba(102,126,234,0.3); }
+
+  @keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.02); }
+    100% { transform: scale(1); }
+  }
+
+  /* Question List */
+  .q-list{display:flex;flex-direction:column;gap:16px;}
+  .q-card{
+    background:#fff;
+    border:1px solid #e2e8f0;
+    border-radius:12px;
+    padding:16px;
+    transition:transform .2s;
+  }
+  .q-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.05);}
+  .q-text{font-weight:700;font-size:1.05rem;margin-bottom:12px;color:#1e293b;}
+  
+  .choice-wrap{display:flex;flex-direction:column;gap:8px;}
+  .choice-lbl{
+    display:flex;align-items:center;gap:10px;
+    padding:10px 12px;
+    border:2px solid #e2e8f0;
+    border-radius:10px;
+    cursor:pointer;
+    transition:all .15s;
+  }
+  .choice-lbl:hover{background:#f8fafc;border-color:#cbd5e1;}
+  .choice-lbl:has(input:checked){border-color:#667eea;background:#eef2ff;}
+  input[type="radio"]{accent-color:#667eea;width:18px;height:18px;}
+
+  /* Submit */
+  .action-area{margin-top:24px;text-align:center;padding-bottom:40px;}
+  .btn-submit{
+    background:linear-gradient(135deg, #667eea, #764ba2);
+    color:#fff;
+    border:none;
+    padding:12px 40px;
+    border-radius:50px;
+    font-size:1.1rem;
+    font-weight:800;
+    cursor:pointer;
+    box-shadow:0 10px 20px rgba(102,126,234,.3);
+    transition:transform .2s;
+  }
+  .btn-submit:hover{transform:translateY(-2px);}
+  .btn-submit:disabled{opacity:0.6;cursor:not-allowed;}
+
+  /* Result */
+  .result-box{
+    text-align:center;
+    padding:40px 20px;
+    background:#fff;
+    border-radius:16px;
+    box-shadow:0 10px 40px rgba(0,0,0,.1);
+    display:none;
+  }
+  .score-display{font-size:3rem;font-weight:900;color:#667eea;line-height:1;}
+  .score-label{color:#64748b;font-weight:700;margin-top:4px;}
+  
+  .feedback{margin-top:8px;padding:10px;border-radius:8px;font-size:.9rem;display:none;}
+  .feedback.correct{background:#dcfce7;color:#166534;}
+  .feedback.wrong{background:#fee2ff;color:#991b1b;}
+
+  /* Completed State */
+  .completed-overlay {
+    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+    background: white; z-index: 999;
+    display: flex; flex-direction: column; align-items: center; justify-content: center;
+    text-align: center; display: none;
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<h2 style="margin-bottom: 0.5rem;">📝 {{ topic.name }} - Student Practice</h2>
-<div class="card" style="padding:14px;margin-bottom:1rem;">
-  <div style="font-weight:900;margin-bottom:6px;">กรอกชื่อก่อนเริ่มทำ</div>
-  <div style="color:#64748b;font-size:12px;">ลิงก์นี้เป็นแบบฝึกหัดสำหรับนักเรียน ไม่ต้องล็อกอิน</div>
+
+<div id="timerBar" class="timer-bar safe">
+  ⏳ เหลือเวลาอีก: <span id="timerDisplay">--:--</span>
 </div>
 
-{% if questions|length == 0 %}
-  <div class="card" style="padding:16px;">
-    <p>ยังไม่มีแบบฝึกหัดสำหรับหัวข้อนี้</p>
+<div id="completedScreen" class="completed-overlay">
+  <div style="font-size:4rem;">✅</div>
+  <h1 style="color:#1e293b;">คุณทำแบบทดสอบนี้ไปแล้ว</h1>
+  <p style="color:#64748b;">ระบบอนุญาตให้ส่งคำตอบได้เพียง 1 ครั้งเท่านั้น</p>
+</div>
+
+<div class="wrap" id="mainContainer">
+  <div class="card" style="margin-bottom:20px; border-top:5px solid #667eea;">
+    <h1 class="h1">{{ topic.name }}</h1>
+    <div class="muted">Practice Mode • {{ questions|length }} Questions</div>
   </div>
-{% else %}
 
-<div class="practice-form" id="practice-wrap">
-  <form id="practice-form">
-    <label style="font-weight:900;">Student name</label>
-    <input id="student_name" type="text" required placeholder="Type your name">
+  <form id="publicForm">
+    <div class="student-form">
+      <h3>👤 ข้อมูลผู้ทำแบบทดสอบ</h3>
+      <div class="form-grid">
+        <input class="inp" type="text" name="student_name" placeholder="ชื่อ-นามสกุล (Name)" required style="grid-column: span 2;">
+        
+        <input class="inp" type="text" name="student_no" placeholder="เลขที่ (No.)" required>
+        <input class="inp" type="text" name="student_id" placeholder="รหัสนักศึกษา (Student ID)" required>
+        
+        <input class="inp" type="text" name="classroom" placeholder="ชั้นเรียน (Class)" required>
+        <input class="inp" type="text" name="department" placeholder="แผนก/สาขา (Department)" required>
+      </div>
+    </div>
 
-    {% for q in questions %}
-      <div class="question-item">
-        <div class="question-title">{{ loop.index }}. {{ q.prompt }}</div>
+    <div class="q-list">
+      {% for q in questions %}
+      <div class="q-card q" data-qid="{{ q.id }}">
+        <div class="q-text">{{ loop.index }}. {{ q.prompt }}</div>
+        
         {% if q.choices %}
-          {% for c in q.choices %}
-            <label class="choice">
+          <div class="choice-wrap">
+            {% for c in q.choices %}
+            <label class="choice-lbl">
               <input type="radio" name="q{{ q.id }}" value="{{ c }}" required>
               <span>{{ c }}</span>
             </label>
-          {% endfor %}
+            {% endfor %}
+          </div>
         {% else %}
-          <input type="text" name="q{{ q.id }}" required placeholder="Type your answer">
+          <input type="text" class="inp" name="q{{ q.id }}" placeholder="Type answer..." required>
         {% endif %}
-      </div>
-    {% endfor %}
 
-    <button type="submit" style="width:100%; padding: 1rem; font-size: 1.1rem;">Submit & See Score</button>
+        <div class="feedback" id="fb{{ q.id }}"></div>
+      </div>
+      {% endfor %}
+    </div>
+
+    <div class="action-area">
+      <button type="submit" class="btn-submit" id="btnSubmit">ส่งคำตอบ (Submit)</button>
+    </div>
   </form>
+
+  <div class="result-box" id="resultBox">
+    <div class="score-display" id="resultPercent">0%</div>
+    <div class="score-label">Score: <span id="resultScore">0/0</span></div>
+    <h2 id="resultTitle" style="margin:16px 0;">Great Job!</h2>
+    <p id="resultMsg" style="color:#64748b;"></p>
+    </div>
+
 </div>
 
 <script>
-  const questions = {{ questions|tojson }};
-  const token = {{ token|tojson }};
+  // 1. One-Time Submission Check (Client-side)
+  const token = "{{ token }}";
+  const storageKey = "done_" + token;
+  
+  if (localStorage.getItem(storageKey)) {
+    document.getElementById("mainContainer").style.display = "none";
+    document.getElementById("completedScreen").style.display = "flex";
+    document.getElementById("timerBar").style.display = "none";
+  }
 
-  document.getElementById('practice-form').addEventListener('submit', async (e) => {
-    e.preventDefault();
+  // 2. Timer Logic
+  const urlParams = new URLSearchParams(window.location.search);
+  const timeLimitMins = parseInt(urlParams.get('limit')) || 0;
+  let timerInterval;
 
-    const studentName = document.getElementById('student_name').value.trim();
-    if(!studentName){
-      alert('Please enter your name');
-      return;
+  if (timeLimitMins > 0 && !localStorage.getItem(storageKey)) {
+    const timerBar = document.getElementById('timerBar');
+    const timerDisplay = document.getElementById('timerDisplay');
+    timerBar.style.display = 'block';
+
+    // เก็บเวลาเริ่มใน LocalStorage เพื่อป้องกันการ Refresh หน้าแล้วเวลาเริ่มใหม่
+    const startTimeKey = "start_" + token;
+    let endTime = localStorage.getItem(startTimeKey);
+    
+    if (!endTime) {
+      const now = new Date().getTime();
+      endTime = now + (timeLimitMins * 60 * 1000);
+      localStorage.setItem(startTimeKey, endTime);
     }
 
-    const answers = {};
-    for(const q of questions){
-      const name = 'q' + q.id;
-      const el = document.querySelector(`[name="${name}"]:checked`) || document.querySelector(`[name="${name}"]`);
-      answers[String(q.id)] = el ? el.value : '';
-    }
+    function updateTimer() {
+      const now = new Date().getTime();
+      let timeLeft = Math.floor((endTime - now) / 1000); // seconds
 
-    try{
-      const res = await fetch(`/api/p/${token}/submit`, {
-        method: 'POST',
-        headers: {'Content-Type':'application/json'},
-        body: JSON.stringify({ student_name: studentName, answers })
-      });
-      const result = await res.json();
-      if(result.error){
-        alert(result.error);
-        return;
+      if (timeLeft < 0) timeLeft = 0;
+
+      const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
+      const s = (timeLeft % 60).toString().padStart(2, '0');
+      timerDisplay.textContent = `${m}:${s}`;
+
+      if (timeLeft <= 60) { // Last minute warning
+        timerBar.classList.remove('safe');
       }
-      renderResults(studentName, result);
-    }catch(err){
-      alert('Error submitting practice: ' + err);
+
+      if (timeLeft <= 0) {
+        clearInterval(timerInterval);
+        if(document.getElementById("mainContainer").style.display !== "none"){
+            alert("หมดเวลาทำข้อสอบ! ระบบจะส่งคำตอบโดยอัตโนมัติ");
+            submitForm();
+        }
+      }
+    }
+
+    updateTimer();
+    timerInterval = setInterval(updateTimer, 1000);
+  }
+
+  // 3. Form Submission
+  const form = document.getElementById("publicForm");
+  const resultBox = document.getElementById("resultBox");
+  const btnSubmit = document.getElementById("btnSubmit");
+
+  form.addEventListener("submit", (e) => {
+    e.preventDefault();
+    if(confirm("ยืนยันการส่งคำตอบ? คุณสามารถทำได้เพียงครั้งเดียว")) {
+      submitForm();
     }
   });
 
-  function renderResults(studentName, result){
-    let html = `
-      <div class="results">
-        <div style="text-align:center;font-weight:900;margin-bottom:6px;">${escapeHtml(studentName)}</div>
-        <div class="score-badge">${result.score}/${result.total} (${Number(result.percentage).toFixed(1)}%)</div>
-        <h3 style="text-align:center; margin-bottom:1.5rem;">${result.percentage >= 70 ? '🎉 Great job!' : '💪 Keep practicing!'}</h3>
-    `;
+  async function submitForm() {
+    clearInterval(timerInterval); // Stop timer
+    document.getElementById("timerBar").style.display = 'none';
+    
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = "⏳ Sending...";
 
-    let idx = 1;
-    for(const q of questions){
-      const fb = result.feedback[String(q.id)];
-      html += `
-        <div class="feedback-item ${fb.is_correct ? 'correct' : 'incorrect'}">
-          <strong>Q${idx}: ${escapeHtml(q.prompt)}</strong><br>
-          Your answer: <strong>${escapeHtml(fb.user_answer || '-')}</strong><br>
-          Correct answer: <strong>${escapeHtml(fb.correct_answer || '-')}</strong>
-          ${fb.is_correct ? ' ✓' : ' ✗'}
-        </div>
-      `;
-      idx++;
+    const formData = new FormData(form);
+    const answers = {};
+    
+    // Collect answers
+    document.querySelectorAll(".q").forEach(q => {
+      const qid = q.getAttribute("data-qid");
+      answers[qid] = formData.get("q"+qid) || "";
+    });
+
+    const payload = {
+      student_name: formData.get("student_name"),
+      student_no: formData.get("student_no"),
+      student_id: formData.get("student_id"), // New
+      classroom: formData.get("classroom"),
+      department: formData.get("department"), // New
+      answers: answers
+    };
+
+    try {
+      // === แก้ไข URL ตรงนี้ให้ถูกต้อง (/api/p/<token>/submit) ===
+      const res = await fetch(`/api/p/${token}/submit`, { 
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify(payload)
+      });
+      
+      if(!res.ok) throw new Error("Submission failed (Status " + res.status + ")");
+      
+      const data = await res.json();
+      
+      // Mark as done in LocalStorage
+      localStorage.setItem(storageKey, "true");
+      // Clear timer
+      localStorage.removeItem("start_" + token);
+
+      // Hide form, Show Result
+      form.style.display = "none";
+      resultBox.style.display = "block";
+      
+      const pct = Math.round(data.percentage);
+      const isPass = pct >= 50;
+      
+      document.getElementById("resultTitle").textContent = isPass ? "🎉 ทำได้ดีมาก!" : "💪 พยายามต่อไปนะ!";
+      document.getElementById("resultScore").textContent = `${data.score}/${data.total}`;
+      document.getElementById("resultPercent").textContent = `${pct}%`;
+      document.getElementById("resultMsg").innerHTML = "คะแนนของคุณถูกบันทึกเรียบร้อยแล้ว ✅<br>(คุณไม่สามารถทำข้อสอบนี้ซ้ำได้)";
+
+      // Show feedback logic (if needed in result screen, currently hidden as form is hidden)
+      // If you want to show questions again with answers, you'd need to re-render questions in resultBox.
+      
+      window.scrollTo({ top: 0, behavior: "smooth" });
+
+    } catch(e) {
+      console.error(e);
+      alert("เกิดข้อผิดพลาดในการส่งคำตอบ: " + e.message);
+      btnSubmit.disabled = false;
+      btnSubmit.innerHTML = "ส่งคำตอบ (Submit)";
     }
-
-    html += `
-        <a href="/p/${token}" class="btn" style="display:block; text-align:center; margin-top: 1.5rem;">Try Again</a>
-      </div>
-    `;
-
-    document.getElementById('practice-wrap').innerHTML = html;
-  }
-
-  function escapeHtml(s){
-    return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;').replaceAll('"','&quot;').replaceAll("'",'&#039;');
   }
 </script>
-
-{% endif %}
 {% endblock %}
