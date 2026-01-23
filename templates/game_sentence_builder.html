@@ -123,6 +123,31 @@
   line-height: 1;
 }
 
+/* Settings Row */
+.settings-row {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  gap: 1rem;
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: #f8fafc;
+  border-radius: 12px;
+  border: 1px dashed #cbd5e1;
+}
+.settings-row label {
+  font-weight: 700;
+  color: #475569;
+}
+.settings-row select {
+  padding: 0.5rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #cbd5e1;
+  font-size: 1rem;
+  color: #1e293b;
+  cursor: pointer;
+}
+
 /* Wheel Canvas */
 .wheel-container {
   display: flex;
@@ -230,30 +255,48 @@
   margin-left: 0.5rem;
 }
 
-/* Thai Sentence */
-.thai-sentence {
-  font-size: 1.4rem;
+/* Question Sentence (Thai) */
+.question-sentence {
+  font-size: 1.5rem;
   font-weight: 700;
   color: #1e293b;
   text-align: center;
-  padding: 1.5rem;
-  background: linear-gradient(135deg, #fef3c7, #fde68a);
+  padding: 2rem 1.5rem;
+  background: linear-gradient(135deg, #e0e7ff, #c7d2fe);
   border-radius: 12px;
   margin-bottom: 1.5rem;
-  border: 2px solid #f59e0b;
+  border: 2px solid #818cf8;
+  box-shadow: 0 4px 6px rgba(99, 102, 241, 0.1);
+  position: relative;
 }
-.thai-sentence::before { content: '🇹🇭 '; }
+.question-label {
+  display: block;
+  font-size: 0.9rem;
+  color: #4338ca;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 1px;
+}
+.question-sentence::before {
+  content: '🇹🇭';
+  position: absolute;
+  top: 10px;
+  left: 10px;
+  font-size: 1.5rem;
+  opacity: 0.5;
+}
 
 /* Answer Zone */
 .answer-zone {
-  min-height: 70px;
+  min-height: 90px;
   border: 3px dashed #cbd5e1;
   border-radius: 16px;
   padding: 1rem;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
   display: flex;
   flex-wrap: wrap;
-  gap: 0.5rem;
+  gap: 0.8rem;
   align-items: center;
   justify-content: center;
   background: #fff;
@@ -262,10 +305,10 @@
 .answer-zone.active { border-color: var(--primary); background: #faf5ff; }
 .answer-zone.correct { border-color: var(--success); background: #dcfce7; border-style: solid; }
 .answer-zone.wrong { border-color: var(--danger); background: #fee2e2; border-style: solid; }
-.answer-zone .placeholder { color: #94a3b8; font-style: italic; }
+.answer-zone .placeholder { color: #94a3b8; font-style: italic; font-size: 1.1rem; }
 
 .answer-token {
-  padding: 0.5rem 1rem;
+  padding: 0.6rem 1.2rem;
   background: var(--primary);
   color: #fff;
   border: none;
@@ -273,32 +316,49 @@
   font-weight: 700;
   cursor: pointer;
   transition: all 0.15s;
-  font-size: 1rem;
+  font-size: 1.1rem;
+  box-shadow: 0 4px 6px rgba(139, 92, 246, 0.3);
 }
-.answer-token:hover { background: var(--danger); }
+.answer-token:hover { background: var(--danger); transform: translateY(-2px); }
 
 /* Word Pool */
 .words-container {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.75rem;
+  gap: 1rem;
   justify-content: center;
-  margin-bottom: 1.5rem;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  background: #f1f5f9;
+  border-radius: 16px;
+  border: 1px solid #e2e8f0;
 }
 .word-token {
-  padding: 0.75rem 1.25rem;
-  background: linear-gradient(135deg, var(--primary), var(--primary-dark));
-  color: #fff;
-  border: none;
+  padding: 0.7rem 1.4rem;
+  background: #fff;
+  color: #334155;
+  border: 2px solid #e2e8f0;
   border-radius: 12px;
   font-size: 1.1rem;
   font-weight: 700;
   cursor: pointer;
-  box-shadow: 0 4px 10px rgba(139,92,246,0.3);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
   transition: all 0.15s;
 }
-.word-token:hover:not(:disabled) { transform: translateY(-3px); box-shadow: 0 6px 15px rgba(139,92,246,0.4); }
-.word-token:disabled { opacity: 0.3; cursor: not-allowed; transform: none; }
+.word-token:hover:not(:disabled) { 
+  border-color: var(--primary);
+  color: var(--primary);
+  transform: translateY(-3px); 
+  box-shadow: 0 6px 12px rgba(139,92,246,0.15); 
+}
+.word-token:disabled { 
+  opacity: 0.4; 
+  cursor: not-allowed; 
+  transform: none; 
+  background: #cbd5e1;
+  border-color: transparent;
+  color: #64748b;
+}
 
 /* Action Buttons */
 .action-buttons {
@@ -327,16 +387,22 @@
 /* Feedback */
 .feedback {
   text-align: center;
-  padding: 1rem;
+  padding: 1.5rem;
   border-radius: 12px;
   margin-top: 1rem;
+  margin-bottom: 1rem;
   font-weight: 700;
   display: none;
+  animation: slideIn 0.3s ease-out;
+}
+@keyframes slideIn {
+  from { opacity: 0; transform: translateY(-10px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 .feedback.show { display: block; }
-.feedback.correct { background: #dcfce7; color: #166534; }
-.feedback.wrong { background: #fee2e2; color: #991b1b; }
-.correct-answer { margin-top: 0.5rem; font-weight: 600; }
+.feedback.correct { background: #dcfce7; color: #15803d; border: 2px solid #22c55e; }
+.feedback.wrong { background: #fee2e2; color: #b91c1c; border: 2px solid #ef4444; }
+.correct-answer { margin-top: 0.5rem; font-weight: 600; font-size: 1.3rem; color: #1e293b; }
 
 /* Result Screen */
 .result-screen {
@@ -405,25 +471,65 @@
   box-shadow: 0 4px 15px rgba(139,92,246,0.4);
   z-index: 100;
 }
+
+/* Editor Modal */
+.modal-backdrop{position:fixed;inset:0;background:rgba(15,23,42,.55);display:none;align-items:center;justify-content:center;z-index:200;}
+.modal-backdrop.show{display:flex;}
+.modal{
+  width:min(920px, 92vw);
+  max-height:84vh;
+  overflow:auto;
+  background:#fff;
+  border-radius:16px;
+  box-shadow:0 18px 60px rgba(0,0,0,.35);
+  border:1px solid rgba(0,0,0,.08);
+}
+.modal-header{
+  position:sticky;top:0;
+  background:linear-gradient(135deg, var(--primary), #a78bfa);
+  color:#fff;
+  padding:1rem 1.25rem;
+  display:flex;align-items:center;justify-content:space-between;gap:12px;
+  border-top-left-radius:16px;border-top-right-radius:16px;
+}
+.modal-header h3{margin:0;font-size:1.1rem;}
+.modal-body{padding:1.25rem;}
+.modal-actions{display:flex;gap:.75rem;flex-wrap:wrap;justify-content:flex-end;padding:0 1.25rem 1.25rem;}
+.editor-table{width:100%;border-collapse:separate;border-spacing:0 10px;}
+.editor-table th{font-size:.85rem;color:#64748b;text-align:left;padding:0 .5rem;}
+.editor-row{
+  background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;
+}
+.editor-row td{padding:.6rem .5rem;vertical-align:top;}
+.editor-input{
+  width:100%;
+  padding:.65rem .75rem;
+  border:2px solid #e2e8f0;
+  border-radius:10px;
+  font-size:1rem;
+}
+.editor-input:focus{outline:none;border-color:var(--primary);}
+.btn-danger{background:var(--danger);color:#fff;}
+.btn-danger:hover{background:#dc2626;}
+.small-note{color:#64748b;font-size:.9rem;margin:.25rem 0 1rem;}
+
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="game-container">
-  <!-- Nav -->
   <div class="nav-row">
     <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="nav-btn">← กลับ</a>
     <a href="{{ url_for('game', topic_id=topic.id) }}" class="nav-btn">🎯 Bamboozle</a>
     <a href="{{ url_for('game_memory', topic_id=topic.id) }}" class="nav-btn">🃏 Memory</a>
+    <a href="#" class="nav-btn" onclick="openEditor(); return false;">✏️ แก้ไขประโยค</a>
   </div>
 
-  <!-- Header -->
   <div class="game-header">
-    <h1>🏗️ Sentence Builder</h1>
+    <h1>🏗️ Sentence Builder (EN Words)</h1>
     <p>{{ topic.name }} • เรียงคำภาษาอังกฤษให้ถูกต้องตามประโยคภาษาไทย</p>
   </div>
 
-  <!-- Student Wheel Section -->
   <div class="wheel-section">
     <div class="wheel-header">
       <h3>🎡 วงล้อสุ่มนักเรียน</h3>
@@ -436,7 +542,17 @@
     </div>
     
     <div class="student-list" id="studentList">
-      <span style="color:#94a3b8;font-style:italic;">ยังไม่มีรายชื่อนักเรียน (เพิ่มอย่างน้อย 2 คนเพื่อใช้วงล้อ หรือกด "เริ่มเกมเลย" เพื่อเล่นคนเดียว)</span>
+      <span style="color:#94a3b8;font-style:italic;">ยังไม่มีรายชื่อนักเรียน</span>
+    </div>
+    
+    <div class="settings-row">
+      <label for="qCount">📝 จำนวนข้อ:</label>
+      <select id="qCount">
+        <option value="10" selected>10 ข้อ</option>
+        <option value="20">20 ข้อ</option>
+        <option value="30">30 ข้อ</option>
+        <option value="999">ทั้งหมด</option>
+      </select>
     </div>
     
     <div class="wheel-container">
@@ -453,9 +569,7 @@
     <div class="selected-student" id="selectedStudent"></div>
   </div>
 
-  <!-- Game Section -->
   <div class="game-section" id="gameSection">
-    <!-- Score Bar -->
     <div class="score-bar">
       <div class="score-item">
         <div class="score-value" id="currentQ">1</div>
@@ -471,17 +585,19 @@
       </div>
     </div>
 
-    <!-- Question Card -->
     <div class="question-card" id="questionCard">
       <div>
         <span class="question-number" id="questionNumber">Question 1</span>
         <span class="current-player" id="currentPlayer">👤 -</span>
       </div>
       
-      <div class="thai-sentence" id="thaiSentence">Loading...</div>
+      <div class="question-sentence">
+        <span class="question-label">🇹🇭 โจทย์ภาษาไทย</span>
+        <span id="questionText" style="display:block; margin-top:5px;">Loading...</span>
+      </div>
       
       <div class="answer-zone" id="answerZone">
-        <span class="placeholder">คลิกคำด้านล่างเพื่อเรียงประโยค</span>
+        <span class="placeholder">คลิกคำภาษาอังกฤษด้านล่างเพื่อเรียงให้ถูกต้อง</span>
       </div>
       
       <div class="words-container" id="wordsContainer"></div>
@@ -495,7 +611,6 @@
       </div>
     </div>
 
-    <!-- Result Screen -->
     <div class="result-screen" id="resultScreen">
       <div class="result-emoji" id="resultEmoji">🎉</div>
       <div class="result-title" id="resultTitle">จบเกม!</div>
@@ -524,25 +639,61 @@
   </div>
 </div>
 
+
+<!-- Sentence Editor Modal -->
+<div class="modal-backdrop" id="editorBackdrop" onclick="onBackdropClick(event)">
+  <div class="modal" onclick="event.stopPropagation()">
+    <div class="modal-header">
+      <h3>✏️ แก้ไขประโยค (โจทย์ไทย → เฉลยอังกฤษ)</h3>
+      <button class="btn btn-secondary" onclick="closeEditor()">ปิด</button>
+    </div>
+    <div class="modal-body">
+      <div class="small-note">
+        • ใส่ <b>ภาษาไทย</b> เป็นโจทย์ และ <b>ภาษาอังกฤษ</b> เป็นเฉลย (ระบบจะตัดคำอังกฤษเป็น Tokens ให้เอง)<br>
+        • ถ้าบรรทัดไหนว่างทั้งคู่ จะไม่ถูกบันทึก
+      </div>
+      <table class="editor-table">
+        <thead>
+          <tr>
+            <th style="width:48%;">โจทย์ภาษาไทย (TH)</th>
+            <th style="width:48%;">เฉลยภาษาอังกฤษ (EN)</th>
+            <th style="width:4%;">ลบ</th>
+          </tr>
+        </thead>
+        <tbody id="editorTbody"></tbody>
+      </table>
+      <div class="action-buttons" style="justify-content:flex-start; margin-top:.25rem;">
+        <button class="btn btn-primary" onclick="addEditorRow()">➕ เพิ่มบรรทัด</button>
+        <button class="btn btn-secondary" onclick="loadCustomSentences(true)">🔄 โหลดล่าสุด</button>
+      </div>
+    </div>
+    <div class="modal-actions">
+      <button class="btn btn-secondary" onclick="fillFromExamples()">✨ ดึงจาก Examples (ที่มีไทย) มาเป็นร่าง</button>
+      <button class="btn btn-success" onclick="saveCustomSentences()">💾 บันทึก</button>
+    </div>
+  </div>
+</div>
+
+
 <button class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔊</button>
 
 <script>
-// Game Data
+// Data
 const gameData = {{ game_data | tojson | safe }};
+let students = {{ students | tojson | safe }} || [];
+
+let customSentences = []; // [{th,en}] loaded from backend
 
 // Sound System
 let soundEnabled = true;
 let audioContext = null;
 
 function initAudio() {
-  if (!audioContext) {
-    audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  }
+  if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
   return audioContext;
 }
-
-function playTone(freq, dur, type = 'sine', vol = 0.3) {
-  if (!soundEnabled) return;
+function playTone(freq, dur, type='sine', vol=0.3) {
+  if(!soundEnabled) return;
   try {
     const ctx = initAudio();
     const osc = ctx.createOscillator();
@@ -555,52 +706,26 @@ function playTone(freq, dur, type = 'sine', vol = 0.3) {
     gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + dur);
     osc.start(ctx.currentTime);
     osc.stop(ctx.currentTime + dur);
-  } catch (e) {}
+  } catch(e){}
 }
-
 function playClickSound() { playTone(600, 0.08, 'sine', 0.2); }
 function playDropSound() { playTone(400, 0.1, 'sine', 0.25); }
-function playCorrectSound() {
-  playTone(523, 0.15, 'sine', 0.3);
-  setTimeout(() => playTone(659, 0.15, 'sine', 0.3), 100);
-  setTimeout(() => playTone(784, 0.2, 'sine', 0.3), 200);
-}
+function playCorrectSound() { playTone(523, 0.15); setTimeout(()=>playTone(659, 0.15), 100); setTimeout(()=>playTone(784, 0.2), 200); }
 function playWrongSound() { playTone(200, 0.4, 'square', 0.15); }
-function playSpinSound() {
-  let freq = 200;
-  for (let i = 0; i < 20; i++) {
-    setTimeout(() => playTone(freq + i * 30, 0.05, 'sine', 0.15), i * 50);
-  }
-}
-function playWinSound() {
-  const notes = [523, 659, 784, 1047];
-  notes.forEach((note, i) => {
-    setTimeout(() => playTone(note, 0.3, 'sine', 0.3), i * 150);
-  });
-}
+function playSpinSound() { let freq=200; for(let i=0;i<20;i++) setTimeout(()=>playTone(freq+i*30, 0.05, 'sine', 0.15), i*50); }
+function playWinSound() { const n=[523,659,784,1047]; n.forEach((x,i)=>setTimeout(()=>playTone(x,0.3), i*150)); }
 function playTickSound() { playTone(800, 0.05, 'sine', 0.1); }
+function toggleSound() { soundEnabled = !soundEnabled; document.getElementById('soundToggle').textContent = soundEnabled ? '🔊' : '🔇'; }
 
-function toggleSound() {
-  soundEnabled = !soundEnabled;
-  document.getElementById('soundToggle').textContent = soundEnabled ? '🔊' : '🔇';
-}
-
-// Student Management
-let students = [];
+// Student Wheel
 const colors = ['#8b5cf6', '#ec4899', '#06b6d4', '#22c55e', '#f59e0b', '#ef4444', '#6366f1', '#14b8a6', '#f97316', '#a855f7'];
-
-document.getElementById('studentNameInput').addEventListener('keypress', function(e) {
-  if (e.key === 'Enter') addStudent();
-});
+document.getElementById('studentNameInput').addEventListener('keypress', function(e) { if(e.key === 'Enter') addStudent(); });
 
 function addStudent() {
   const input = document.getElementById('studentNameInput');
   const name = input.value.trim();
-  if (!name) return;
-  if (students.includes(name)) {
-    alert('ชื่อนี้มีอยู่แล้ว');
-    return;
-  }
+  if(!name) return;
+  if(students.includes(name)) { alert('ชื่อนี้มีอยู่แล้ว'); return; }
   students.push(name);
   input.value = '';
   renderStudentList();
@@ -608,160 +733,91 @@ function addStudent() {
   document.getElementById('btnSpin').disabled = students.length < 2;
   playClickSound();
 }
-
 function removeStudent(index) {
   students.splice(index, 1);
   renderStudentList();
   drawWheel();
   document.getElementById('btnSpin').disabled = students.length < 2;
 }
-
 function clearStudents() {
   students = [];
   renderStudentList();
   drawWheel();
   document.getElementById('btnSpin').disabled = true;
 }
-
 function renderStudentList() {
   const list = document.getElementById('studentList');
-  if (students.length === 0) {
-    list.innerHTML = '<span style="color:#94a3b8;font-style:italic;">ยังไม่มีรายชื่อนักเรียน (เพิ่มอย่างน้อย 2 คนเพื่อใช้วงล้อ หรือกด "เริ่มเกมเลย" เพื่อเล่นคนเดียว)</span>';
-    return;
-  }
-  list.innerHTML = students.map((s, i) => `
-    <span class="student-tag">
-      ${escapeHtml(s)}
-      <button onclick="removeStudent(${i})">×</button>
-    </span>
-  `).join('');
+  if(students.length === 0) list.innerHTML = '<span style="color:#94a3b8;font-style:italic;">ยังไม่มีรายชื่อนักเรียน</span>';
+  else list.innerHTML = students.map((s, i) => `<span class="student-tag">${escapeHtml(s)} <button onclick="removeStudent(${i})">×</button></span>`).join('');
 }
 
-// Wheel Drawing
 const canvas = document.getElementById('wheelCanvas');
 const ctx = canvas.getContext('2d');
 let rotation = 0;
 let isSpinning = false;
 
 function drawWheel() {
-  const centerX = canvas.width / 2;
-  const centerY = canvas.height / 2;
-  const radius = Math.min(centerX, centerY) - 5;
-  
+  const cx = canvas.width / 2;
+  const cy = canvas.height / 2;
+  const r = Math.min(cx, cy) - 5;
   ctx.clearRect(0, 0, canvas.width, canvas.height);
-  
-  if (students.length === 0) {
-    ctx.beginPath();
-    ctx.arc(centerX, centerY, radius, 0, 2 * Math.PI);
-    ctx.fillStyle = '#f1f5f9';
-    ctx.fill();
-    ctx.strokeStyle = '#cbd5e1';
-    ctx.lineWidth = 3;
-    ctx.stroke();
-    
-    ctx.fillStyle = '#94a3b8';
-    ctx.font = '14px Prompt';
-    ctx.textAlign = 'center';
-    ctx.fillText('เพิ่มชื่อนักเรียน', centerX, centerY);
+  if(students.length === 0) {
+    ctx.beginPath(); ctx.arc(cx, cy, r, 0, 2*Math.PI); ctx.fillStyle='#f1f5f9'; ctx.fill(); ctx.stroke();
+    ctx.fillStyle='#94a3b8'; ctx.font='14px Prompt'; ctx.textAlign='center'; ctx.fillText('เพิ่มชื่อนักเรียน', cx, cy);
     return;
   }
-  
-  const sliceAngle = (2 * Math.PI) / students.length;
-  
-  students.forEach((student, i) => {
-    const startAngle = rotation + i * sliceAngle;
-    const endAngle = startAngle + sliceAngle;
-    
-    // Draw slice
-    ctx.beginPath();
-    ctx.moveTo(centerX, centerY);
-    ctx.arc(centerX, centerY, radius, startAngle, endAngle);
-    ctx.closePath();
-    ctx.fillStyle = colors[i % colors.length];
-    ctx.fill();
-    ctx.strokeStyle = '#fff';
-    ctx.lineWidth = 2;
-    ctx.stroke();
-    
-    // Draw text
-    ctx.save();
-    ctx.translate(centerX, centerY);
-    ctx.rotate(startAngle + sliceAngle / 2);
-    ctx.textAlign = 'right';
-    ctx.fillStyle = '#fff';
-    ctx.font = 'bold 12px Prompt';
-    const maxLen = 8;
-    const displayName = student.length > maxLen ? student.substring(0, maxLen) + '...' : student;
-    ctx.fillText(displayName, radius - 15, 4);
+  const slice = (2*Math.PI) / students.length;
+  students.forEach((s, i) => {
+    const start = rotation + i * slice;
+    ctx.beginPath(); ctx.moveTo(cx, cy); ctx.arc(cx, cy, r, start, start+slice); ctx.closePath();
+    ctx.fillStyle = colors[i % colors.length]; ctx.fill(); ctx.stroke();
+    ctx.save(); ctx.translate(cx, cy); ctx.rotate(start + slice/2); ctx.textAlign='right';
+    ctx.fillStyle='#fff'; ctx.font='bold 12px Prompt';
+    ctx.fillText(s.length > 8 ? s.substring(0,8)+'...' : s, r-15, 4);
     ctx.restore();
   });
-  
-  // Center circle
-  ctx.beginPath();
-  ctx.arc(centerX, centerY, 20, 0, 2 * Math.PI);
-  ctx.fillStyle = '#fff';
-  ctx.fill();
-  ctx.strokeStyle = '#8b5cf6';
-  ctx.lineWidth = 3;
-  ctx.stroke();
+  ctx.beginPath(); ctx.arc(cx, cy, 20, 0, 2*Math.PI); ctx.fillStyle='#fff'; ctx.fill(); ctx.stroke();
 }
 
 function spinWheel() {
-  if (isSpinning || students.length < 2) return;
-  
+  if(isSpinning || students.length < 2) return;
   isSpinning = true;
   document.getElementById('btnSpin').disabled = true;
   document.getElementById('selectedStudent').classList.remove('show');
-  
   playSpinSound();
   
   const spins = 5 + Math.random() * 5;
-  const targetRotation = rotation + spins * 2 * Math.PI;
-  const duration = 4000;
+  const target = rotation + spins * 2 * Math.PI;
+  const startRot = rotation;
   const startTime = performance.now();
-  const startRotation = rotation;
   
-  function animate(currentTime) {
-    const elapsed = currentTime - startTime;
-    const progress = Math.min(elapsed / duration, 1);
-    
-    // Ease out
-    const easeOut = 1 - Math.pow(1 - progress, 3);
-    rotation = startRotation + (targetRotation - startRotation) * easeOut;
-    
+  function animate(time) {
+    const p = Math.min((time - startTime) / 4000, 1);
+    const ease = 1 - Math.pow(1 - p, 3);
+    rotation = startRot + (target - startRot) * ease;
     drawWheel();
-    
-    if (progress < 1) {
-      if (Math.random() < 0.1) playTickSound();
-      requestAnimationFrame(animate);
-    } else {
+    if(p < 1) requestAnimationFrame(animate);
+    else {
       isSpinning = false;
       document.getElementById('btnSpin').disabled = false;
-      
-      // Determine winner
-      const sliceAngle = (2 * Math.PI) / students.length;
-      const normalizedRotation = ((rotation % (2 * Math.PI)) + 2 * Math.PI) % (2 * Math.PI);
-      const pointerAngle = (3 * Math.PI / 2 - normalizedRotation + 2 * Math.PI) % (2 * Math.PI);
-      const winnerIndex = Math.floor(pointerAngle / sliceAngle) % students.length;
-      
-      const winner = students[winnerIndex];
-      document.getElementById('selectedStudent').textContent = '🎉 ' + winner + ' 🎉';
-      document.getElementById('selectedStudent').classList.add('show');
-      
+      const slice = (2*Math.PI) / students.length;
+      const norm = ((rotation % (2*Math.PI)) + 2*Math.PI) % (2*Math.PI);
+      const ptr = (3*Math.PI/2 - norm + 2*Math.PI) % (2*Math.PI);
+      const winIdx = Math.floor(ptr / slice) % students.length;
+      const winner = students[winIdx];
+      const sel = document.getElementById('selectedStudent');
+      sel.textContent = '🎉 ' + winner + ' 🎉';
+      sel.classList.add('show');
       playWinSound();
-      
-      // Start game with this player
-      setTimeout(() => {
-        currentPlayerName = winner;
-        startGameWithPlayer(winner);
-      }, 1500);
+      setTimeout(() => { currentPlayerName = winner; startGameWithPlayer(winner); }, 1500);
     }
   }
-  
   requestAnimationFrame(animate);
 }
 
-// Game Logic
+// ==========================================
+// GAME LOGIC (TH Prompt -> EN Tokens)
+// ==========================================
 let questions = [];
 let currentIndex = 0;
 let score = 0;
@@ -775,40 +831,70 @@ let timerInterval = null;
 let timeLeft = 30;
 let playerScores = {};
 
+// ฟังก์ชันตัดคำภาษาอังกฤษให้เป็น Tokens (แยกตามช่องว่าง + เครื่องหมายวรรคตอน)
+// - เก็บเฉพาะคำ/ตัวเลข/อัญประกาศ '
+// - ลบเครื่องหมาย ? ! . , ; : ออกเพื่อให้เทียบคำตอบง่าย
+function splitEnglishTokens(text) {
+  if (!text) return [];
+  const cleaned = String(text)
+    .replace(/[“”]/g, '"')
+    .replace(/[’]/g, "'")
+    .replace(/[?!.,;:]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim();
+  if (!cleaned) return [];
+  return cleaned.split(' ').filter(Boolean);
+}
+
 function prepareQuestions() {
   const result = [];
+
+  // 0) Custom sentences (teacher-edited)
+  if (Array.isArray(customSentences) && customSentences.length > 0) {
+    customSentences.forEach(it => {
+      if (!it) return;
+      const th = (it.th || '').trim();
+      const en = (it.en || '').trim();
+      if (th && en && /[ก-๙]/.test(th)) {
+        result.push({
+          prompt: th,
+          target: en.replace(/\s+/g, ' ').trim(),
+          words: splitEnglishTokens(en)
+        });
+      }
+    });
+  }
+
+  // 1. ดึงจาก Examples
+
   
+  // 1. ดึงจาก Examples
   if (gameData.examples && gameData.examples.length > 0) {
     gameData.examples.forEach(ex => {
-      if (ex.en && ex.th && ex.en.split(' ').length >= 3) {
-        result.push({
-          thai: ex.th,
-          english: ex.en.replace(/[.!?]$/, ''),
-          words: ex.en.replace(/[.!?]$/, '').split(' ')
-        });
+      // ต้องมีทั้ง EN และ TH
+      if (ex.en && ex.th) {
+        // ตรวจสอบว่าเป็นภาษาไทยจริงๆ (กันกรณีข้อมูลขยะที่เป็นภาษาอังกฤษ)
+        const hasThaiChar = /[ก-๙]/.test(ex.th);
+        
+        if (hasThaiChar) {
+          result.push({
+            prompt: ex.th, // โจทย์ = ไทย
+            target: ex.en.replace(/\s+/g, ' ').trim(), // เฉลย = อังกฤษ
+            words: splitEnglishTokens(ex.en) // ตัดคำอังกฤษเป็น Tokens
+          });
+        }
       }
     });
   }
   
-  if (gameData.vocabulary && gameData.vocabulary.length > 0) {
-    gameData.vocabulary.forEach(v => {
-      if (v.example && v.meaning && v.example.split(' ').length >= 3) {
-        result.push({
-          thai: v.meaning,
-          english: v.example.replace(/[.!?]$/, ''),
-          words: v.example.replace(/[.!?]$/, '').split(' ')
-        });
-      }
-    });
-  }
-  
-  // Shuffle
+  // Shuffle โจทย์
   for (let i = result.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [result[i], result[j]] = [result[j], result[i]];
   }
   
-  return result.slice(0, 10);
+  const qLimit = parseInt(document.getElementById('qCount').value) || 10;
+  return result.slice(0, qLimit);
 }
 
 function startSoloGame() {
@@ -821,9 +907,12 @@ function startGameWithPlayer(playerName) {
   document.getElementById('currentPlayer').textContent = '👤 ' + playerName;
   
   questions = prepareQuestions();
+  
   if (questions.length === 0) {
-    document.getElementById('thaiSentence').textContent = 'ไม่มีข้อมูลสำหรับเกมนี้ (ต้อง Generate Slides ก่อน)';
+    document.getElementById('questionText').innerHTML = '<span style="color:red;">ไม่พบประโยคที่มีคำแปลภาษาไทยใน Topic นี้</span>';
     return;
+  } else {
+    document.getElementById('questionText').style.color = '#1e293b';
   }
   
   currentIndex = 0;
@@ -844,32 +933,30 @@ function loadQuestion() {
   currentAnswer = [];
   const q = questions[currentIndex];
   
+  // Update UI
   document.getElementById('currentQ').textContent = currentIndex + 1;
-  document.getElementById('questionNumber').textContent = 'Question ' + (currentIndex + 1) + '/' + questions.length;
+  document.getElementById('questionNumber').textContent = `Question ${currentIndex + 1}/${questions.length}`;
   
-  document.getElementById('thaiSentence').textContent = q.thai;
+  // แสดงโจทย์ภาษาไทย
+  document.getElementById('questionText').textContent = q.prompt;
   
+  // เตรียมคำศัพท์อังกฤษ & Shuffle
   currentWords = [...q.words];
-  const scrambled = [...currentWords];
-  // Shuffle
-  for (let i = scrambled.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [scrambled[i], scrambled[j]] = [scrambled[j], scrambled[i]];
-  }
-  // Make sure it's different
+  let scrambled = [...currentWords];
   let attempts = 0;
-  while (scrambled.join(' ') === currentWords.join(' ') && scrambled.length > 2 && attempts < 10) {
+  do {
     for (let i = scrambled.length - 1; i > 0; i--) {
       const j = Math.floor(Math.random() * (i + 1));
       [scrambled[i], scrambled[j]] = [scrambled[j], scrambled[i]];
     }
     attempts++;
-  }
+  } while (scrambled.join(' ') === currentWords.join(' ') && scrambled.length > 1 && attempts < 10);
   
   renderWords(scrambled);
   
+  // Reset Answer Zone
   const answerZone = document.getElementById('answerZone');
-  answerZone.innerHTML = '<span class="placeholder">คลิกคำด้านล่างเพื่อเรียงประโยค</span>';
+  answerZone.innerHTML = '<span class="placeholder">คลิกคำภาษาอังกฤษด้านล่างเพื่อเรียงให้ถูกต้อง</span>';
   answerZone.className = 'answer-zone';
   
   document.getElementById('feedback').classList.remove('show');
@@ -877,14 +964,15 @@ function loadQuestion() {
   document.getElementById('btnCheck').style.display = 'inline-block';
   document.getElementById('btnNext').style.display = 'none';
   
-  // Start timer
   startTimer();
 }
 
 function renderWords(words) {
   const container = document.getElementById('wordsContainer');
   container.innerHTML = words.map((word, i) => `
-    <button class="word-token" data-word="${escapeHtml(word)}" data-idx="${i}" onclick="addWord(this)">${escapeHtml(word)}</button>
+    <button class="word-token" data-word="${escapeHtml(word)}" data-idx="${i}" onclick="addWord(this)">
+      ${escapeHtml(word)}
+    </button>
   `).join('');
 }
 
@@ -897,7 +985,6 @@ function escapeHtml(text) {
 function addWord(btn) {
   if (answered || btn.disabled) return;
   playClickSound();
-  
   currentAnswer.push({ word: btn.dataset.word, btn: btn });
   btn.disabled = true;
   updateAnswerZone();
@@ -906,18 +993,15 @@ function addWord(btn) {
 function removeWord(index) {
   if (answered) return;
   playDropSound();
-  
   const removed = currentAnswer.splice(index, 1)[0];
-  if (removed && removed.btn) {
-    removed.btn.disabled = false;
-  }
+  if (removed && removed.btn) removed.btn.disabled = false;
   updateAnswerZone();
 }
 
 function updateAnswerZone() {
   const answerZone = document.getElementById('answerZone');
   if (currentAnswer.length === 0) {
-    answerZone.innerHTML = '<span class="placeholder">คลิกคำด้านล่างเพื่อเรียงประโยค</span>';
+    answerZone.innerHTML = '<span class="placeholder">คลิกคำภาษาอังกฤษด้านล่างเพื่อเรียงให้ถูกต้อง</span>';
     answerZone.classList.remove('active');
   } else {
     answerZone.classList.add('active');
@@ -929,59 +1013,52 @@ function updateAnswerZone() {
 
 function clearAnswer() {
   if (answered) return;
-  currentAnswer.forEach(item => {
-    if (item.btn) item.btn.disabled = false;
-  });
+  currentAnswer.forEach(item => { if(item.btn) item.btn.disabled = false; });
   currentAnswer = [];
   updateAnswerZone();
 }
 
 function startTimer() {
-  timeLeft = 30;
+  timeLeft = 30; 
   updateTimerDisplay();
-  
   if (timerInterval) clearInterval(timerInterval);
-  
   timerInterval = setInterval(() => {
     timeLeft--;
     updateTimerDisplay();
-    
-    if (timeLeft <= 5) {
-      document.getElementById('timer').classList.add('danger');
-      playTickSound();
-    }
-    
-    if (timeLeft <= 0) {
-      clearInterval(timerInterval);
-      if (!answered) {
-        checkAnswer(true); // Auto submit
-      }
-    }
+    if (timeLeft <= 5) { document.getElementById('timer').classList.add('danger'); playTickSound(); }
+    if (timeLeft <= 0) { clearInterval(timerInterval); if (!answered) checkAnswer(true); }
   }, 1000);
 }
-
 function updateTimerDisplay() {
   document.getElementById('timer').textContent = timeLeft;
-  if (timeLeft > 5) {
-    document.getElementById('timer').classList.remove('danger');
-  }
+  if (timeLeft > 5) document.getElementById('timer').classList.remove('danger');
+}
+
+function normalizeEnglish(text) {
+  return String(text || '')
+    .replace(/[“”]/g, '"')
+    .replace(/[’]/g, "'")
+    .replace(/[?!.,;:]/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+    .toLowerCase();
 }
 
 function checkAnswer(autoSubmit = false) {
   if (answered) return;
-  
   clearInterval(timerInterval);
   answered = true;
   
   const q = questions[currentIndex];
-  const userAnswer = currentAnswer.map(a => a.word).join(' ');
-  const correctAnswer = currentWords.join(' ');
-  const isCorrect = userAnswer.toLowerCase() === correctAnswer.toLowerCase();
+  // สร้างประโยคจากคำตอบผู้ใช้ (ภาษาอังกฤษเว้นวรรค)
+  const userAnswer = currentAnswer.map(a => a.word).join(' ').trim();
+  const correctAnswer = normalizeEnglish(q.target);
+  
+  // Compare (ไม่สนใจตัวพิมพ์เล็ก/ใหญ่ และช่องว่างซ้ำ)
+  const isCorrect = normalizeEnglish(userAnswer) === correctAnswer;
   
   const answerZone = document.getElementById('answerZone');
   const feedback = document.getElementById('feedback');
-  
-  // Disable all word buttons
   document.querySelectorAll('.word-token').forEach(b => b.disabled = true);
   
   if (isCorrect) {
@@ -991,13 +1068,13 @@ function checkAnswer(autoSubmit = false) {
     const points = 10 + bonus;
     score += points;
     correctCount++;
-    feedback.innerHTML = `✅ ถูกต้อง! +${points} คะแนน (โบนัสเวลา +${bonus})`;
+    feedback.innerHTML = `✅ ถูกต้อง! +${points} คะแนน`;
     feedback.className = 'feedback show correct';
   } else {
     playWrongSound();
     answerZone.classList.add('wrong');
     wrongCount++;
-    feedback.innerHTML = `❌ ไม่ถูกต้อง<div class="correct-answer">🇬🇧 ${correctAnswer}</div>`;
+    feedback.innerHTML = `❌ เฉลย: <div class="correct-answer">${escapeHtml(q.target)}</div>`;
     feedback.className = 'feedback show wrong';
   }
   
@@ -1008,8 +1085,6 @@ function checkAnswer(autoSubmit = false) {
 
 function nextQuestion() {
   currentIndex++;
-  
-  // Spin wheel for next player if multiplayer
   if (students.length >= 2 && currentIndex < questions.length) {
     document.getElementById('gameSection').classList.remove('active');
     setTimeout(() => spinWheel(), 500);
@@ -1021,41 +1096,24 @@ function nextQuestion() {
 function showResult() {
   clearInterval(timerInterval);
   playWinSound();
-  
-  // Save player score
-  if (currentPlayerName) {
-    playerScores[currentPlayerName] = (playerScores[currentPlayerName] || 0) + score;
-  }
+  if (currentPlayerName) playerScores[currentPlayerName] = (playerScores[currentPlayerName] || 0) + score;
   
   document.getElementById('questionCard').style.display = 'none';
   document.getElementById('resultScreen').classList.add('active');
-  
   document.getElementById('resultScore').textContent = score + ' คะแนน';
   document.getElementById('totalCorrect').textContent = correctCount;
   document.getElementById('totalWrong').textContent = wrongCount;
   
-  const pct = questions.length > 0 ? Math.round(correctCount / questions.length * 100) : 0;
-  let emoji = '🎉', title = 'ยอดเยี่ยม!';
-  if (pct < 50) { emoji = '😢'; title = 'ลองใหม่นะ!'; }
-  else if (pct < 70) { emoji = '😊'; title = 'ดีมาก!'; }
-  else if (pct < 90) { emoji = '🌟'; title = 'เก่งมาก!'; }
-  
-  document.getElementById('resultEmoji').textContent = emoji;
-  document.getElementById('resultTitle').textContent = title;
-  
-  // Show leaderboard if multiplayer
   if (Object.keys(playerScores).length > 1) {
     const leaderboard = document.getElementById('leaderboard');
     leaderboard.style.display = 'block';
-    
     const sorted = Object.entries(playerScores).sort((a, b) => b[1] - a[1]);
-    document.getElementById('leaderboardList').innerHTML = sorted.map(([name, s], i) => `
-      <div class="leaderboard-item">
-        <span class="leaderboard-rank">${i + 1}.</span>
-        <span class="leaderboard-name">${escapeHtml(name)}</span>
-        <span class="leaderboard-score">${s} คะแนน</span>
-      </div>
-    `).join('');
+    document.getElementById('leaderboardList').innerHTML = sorted.map(([name, s], i) => 
+      `<div class="leaderboard-item">
+         <span class="leaderboard-rank">${i+1}.</span>
+         <span class="leaderboard-name">${escapeHtml(name)}</span>
+         <span class="leaderboard-score">${s} คะแนน</span>
+       </div>`).join('');
   }
 }
 
@@ -1065,18 +1123,117 @@ function restartGame() {
   document.getElementById('gameSection').classList.remove('active');
   document.getElementById('selectedStudent').classList.remove('show');
   document.getElementById('score').textContent = '0';
-  
-  if (students.length >= 2) {
-    // Multiplayer - spin wheel
-    spinWheel();
-  } else {
-    // Single player
-    currentPlayerName = 'Player';
-    startGameWithPlayer('Player');
-  }
+  if (students.length >= 2) spinWheel();
+  else { currentPlayerName = 'Player'; startGameWithPlayer('Player'); }
 }
 
-// Initial draw
+
+// ===============================
+// Editor Modal (CRUD custom sentences)
+// ===============================
+const TOPIC_ID = {{ topic.id }};
+function openEditor(){
+  document.getElementById('editorBackdrop').classList.add('show');
+  loadCustomSentences(false);
+}
+function closeEditor(){
+  document.getElementById('editorBackdrop').classList.remove('show');
+}
+function onBackdropClick(e){
+  closeEditor();
+}
+function addEditorRow(thVal='', enVal=''){
+  const tb = document.getElementById('editorTbody');
+  const tr = document.createElement('tr');
+  tr.className = 'editor-row';
+  tr.innerHTML = `
+    <td><textarea class="editor-input" rows="2" placeholder="เช่น: เช็คเอาท์กี่โมงครับ/คะ">${escapeHtml(thVal)}</textarea></td>
+    <td><textarea class="editor-input" rows="2" placeholder="e.g. What time is checkout?">${escapeHtml(enVal)}</textarea></td>
+    <td style="text-align:center;">
+      <button class="btn btn-danger" style="padding:.55rem .8rem;" onclick="this.closest('tr').remove()">×</button>
+    </td>
+  `;
+  tb.appendChild(tr);
+}
+async function loadCustomSentences(showToast){
+  try{
+    const res = await fetch(`/api/topic/${TOPIC_ID}/sentence-builder/custom`, {headers:{'Accept':'application/json'}});
+    const data = await res.json();
+    customSentences = (data.items || []);
+    const tb = document.getElementById('editorTbody');
+    tb.innerHTML = '';
+    if(customSentences.length === 0){
+      addEditorRow('', '');
+      addEditorRow('', '');
+      addEditorRow('', '');
+    }else{
+      customSentences.forEach(it => addEditorRow(it.th||'', it.en||''));
+    }
+    if(showToast) alert('โหลดข้อมูลล่าสุดแล้ว');
+  }catch(e){
+    alert('โหลดข้อมูลไม่สำเร็จ');
+  }
+}
+function collectEditorRows(){
+  const rows = Array.from(document.querySelectorAll('#editorTbody tr'));
+  const items = [];
+  rows.forEach(r=>{
+    const tds = r.querySelectorAll('textarea');
+    const th = (tds[0]?.value || '').trim();
+    const en = (tds[1]?.value || '').trim();
+    if(th || en) items.push({th, en});
+  });
+  return items;
+}
+async function saveCustomSentences(){
+  const items = collectEditorRows();
+  try{
+    const res = await fetch(`/api/topic/${TOPIC_ID}/sentence-builder/custom`, {
+      method:'POST',
+      headers:{'Content-Type':'application/json','Accept':'application/json'},
+      body: JSON.stringify({items})
+    });
+    const data = await res.json();
+    if(!data.ok) throw new Error('not ok');
+    customSentences = data.items || [];
+    alert('บันทึกแล้ว ✅');
+    closeEditor();
+  }catch(e){
+    alert('บันทึกไม่สำเร็จ');
+  }
+}
+function fillFromExamples(){
+  const existing = new Set((collectEditorRows()||[]).map(it => (it.th||'').trim() + '||' + (it.en||'').trim()));
+  const toAdd = [];
+  if (gameData.examples && Array.isArray(gameData.examples)){
+    gameData.examples.forEach(ex=>{
+      if(!ex || !ex.en || !ex.th) return;
+      const th = String(ex.th).trim();
+      const en = String(ex.en).trim();
+      if(!th || !en) return;
+      if(!/[ก-๙]/.test(th)) return;
+      const key = th + '||' + en;
+      if(!existing.has(key)){
+        existing.add(key);
+        toAdd.push({th, en});
+      }
+    });
+  }
+  toAdd.forEach(it=>addEditorRow(it.th, it.en));
+  alert('เพิ่มร่างจาก Examples แล้ว');
+}
+
+// Load custom sentences silently on page load (so game uses them immediately)
+(async ()=>{ 
+  try{ 
+    const r=await fetch(`/api/topic/${TOPIC_ID}/sentence-builder/custom`,{headers:{'Accept':'application/json'}}); 
+    const d=await r.json(); 
+    customSentences = (d.items||[]); 
+  }catch(e){} 
+})();
+
+renderStudentList();
 drawWheel();
+if (students.length < 2) document.getElementById('btnSpin').disabled = true;
 </script>
 {% endblock %}
