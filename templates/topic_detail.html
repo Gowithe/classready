@@ -46,10 +46,7 @@
     pointer-events: none;
   }
 
-  /* =========================
-     Dropdown Menu (FIXED)
-     - เปลี่ยนจาก hover -> click
-     ========================= */
+  /* Dropdown Menu */
   .dropdown {
     position: relative;
     display: inline-block;
@@ -67,7 +64,6 @@
     align-items: center;
     gap: 0.5rem;
     transition: all 0.2s;
-    user-select: none;
   }
   .dropdown-btn:hover {
     background: #f0f4ff;
@@ -75,14 +71,7 @@
   .dropdown-btn.slides { background: #667eea; color: white; }
   .dropdown-btn.games { background: #ec4899; color: white; }
   .dropdown-btn.activities { background: #06b6d4; color: white; }
-
-  .dropdown-btn.disabled,
-  .dropdown-btn:disabled {
-    background: #e2e8f0 !important;
-    color: #94a3b8 !important;
-    cursor: not-allowed !important;
-  }
-
+  .dropdown-btn.disabled { background: #e2e8f0; color: #94a3b8; cursor: not-allowed; }
   .dropdown-content {
     display: none;
     position: absolute;
@@ -93,15 +82,13 @@
     box-shadow: 0 8px 24px rgba(0,0,0,0.15);
     border-radius: 8px;
     z-index: 100;
-    margin-top: 6px;
+    margin-top: 4px;
     overflow: hidden;
   }
-
-  /* ✅ เปิดเมื่อมี class open */
-  .dropdown.open .dropdown-content {
+  .dropdown:hover .dropdown-content,
+  .dropdown-content:hover {
     display: block;
   }
-
   .dropdown-content a {
     display: flex;
     align-items: center;
@@ -113,7 +100,6 @@
     transition: background 0.15s;
     border-radius: 0;
     background: white;
-    white-space: nowrap;
   }
   .dropdown-content a:hover {
     background: #f1f5f9;
@@ -270,7 +256,7 @@
   <div class="topic-nav">
     <!-- Slides Dropdown -->
     <div class="dropdown">
-      <button class="dropdown-btn slides" type="button">🎬 Slides ▼</button>
+      <button class="dropdown-btn slides">🎬 Slides ▼</button>
       <div class="dropdown-content">
         <a href="{{ url_for('view_slides', topic_id=topic.id) }}">👁️ View Slides</a>
         {% if is_owner or is_admin %}
@@ -285,16 +271,15 @@
         {% endif %}
       </div>
     </div>
-
+    
     <!-- Games Dropdown -->
     <div class="dropdown">
-      <button class="dropdown-btn games {% if not has_game %}disabled{% endif %}" type="button" {% if not has_game %}disabled{% endif %}>
-        🎮 Games ▼
-      </button>
+      <button class="dropdown-btn games {% if not has_game %}disabled{% endif %}">🎮 Games ▼</button>
       <div class="dropdown-content">
         {% if has_game %}
         <a href="{{ url_for('game', topic_id=topic.id) }}">🎯 Bamboozle</a>
         <a href="{{ url_for('game_memory', topic_id=topic.id) }}">🃏 Memory Match</a>
+        <a href="{{ url_for('game_sentence_builder', topic_id=topic.id) }}">🏗️ Sentence Builder</a>
         {% if has_practice %}
         <a href="{{ url_for('game_millionaire', topic_id=topic.id) }}">🏆 Millionaire</a>
         {% endif %}
@@ -303,19 +288,17 @@
         {% endif %}
       </div>
     </div>
-
+    
     <!-- Activities Dropdown -->
     <div class="dropdown">
-      <button class="dropdown-btn activities {% if not has_practice %}disabled{% endif %}" type="button" {% if not has_practice %}disabled{% endif %}>
-        📝 Activities ▼
-      </button>
+      <button class="dropdown-btn activities {% if not has_practice %}disabled{% endif %}">📝 Activities ▼</button>
       <div class="dropdown-content">
         {% if has_practice %}
         <a href="{{ url_for('practice', topic_id=topic.id) }}">📝 Multiple Choice (MCQ)</a>
         <a href="{{ url_for('practice_fill_blanks', topic_id=topic.id) }}">✍️ Fill in the Blanks</a>
         <a href="{{ url_for('practice_unscramble', topic_id=topic.id) }}">🔀 Sentence Unscramble</a>
         <div class="dropdown-divider"></div>
-        <a href="{{ url_for('practice_scores', topic_id=topic.id) }}">📊 View All Scores</a>
+        <a href="{{ url_for('practice_all_scores', topic_id=topic.id) }}">📊 View All Scores</a>
         {% else %}
         <a class="disabled">กรุณา Generate Practice ก่อน</a>
         {% endif %}
@@ -395,7 +378,6 @@
   const modalMessage = document.getElementById('modalMessage');
 
   function setStatus(msg){
-    if(!statusbar) return;
     statusbar.textContent = msg;
     statusbar.classList.add('show');
   }
@@ -407,22 +389,25 @@
     } else if (mode === 'practice') {
       message = 'Generating Practice from PDF...';
     }
-    if(modalMessage) modalMessage.textContent = message;
-    if(modal) modal.classList.add('show');
+    modalMessage.textContent = message;
+    modal.classList.add('show');
   }
 
   function hideModal() {
-    if(modal) modal.classList.remove('show');
+    modal.classList.remove('show');
   }
 
   async function readJsonSafely(res){
     const ct = (res.headers.get('content-type') || '').toLowerCase();
+
     if(!ct.includes('application/json')){
       const text = await res.text();
       const preview = (text || '').slice(0, 200);
       throw new Error(`Server returned non-JSON (status ${res.status}). Preview: ${preview}`);
     }
-    return await res.json();
+
+    const data = await res.json();
+    return data;
   }
 
   async function callGenerate(mode){
@@ -441,6 +426,7 @@
     ];
     buttons.forEach(b => { if(b) b.disabled = true; });
 
+    // Show modal popup
     showModal(mode);
 
     try{
@@ -470,6 +456,7 @@
       }else if(mode === 'practice'){
         window.location.href = `/topic/${topicId}/practice`;
       }else{
+        // Reload หน้าเพื่ออัปเดตสถานะปุ่ม
         window.location.reload();
       }
 
@@ -490,48 +477,5 @@
   if(btnAll) btnAll.addEventListener('click', () => callGenerate('all'));
   if(btnGame) btnGame.addEventListener('click', () => callGenerate('game'));
   if(btnPractice) btnPractice.addEventListener('click', () => callGenerate('practice'));
-
-  /* =========================
-     ✅ Dropdown click-to-open (แก้เด้ง)
-     ========================= */
-  (function initDropdowns(){
-    const dropdowns = Array.from(document.querySelectorAll('.dropdown'));
-
-    function closeAll(except=null){
-      dropdowns.forEach(d => { if(d !== except) d.classList.remove('open'); });
-    }
-
-    dropdowns.forEach(d => {
-      const btn = d.querySelector('.dropdown-btn');
-      const menu = d.querySelector('.dropdown-content');
-      if(!btn) return;
-
-      // disabled -> ไม่ให้เปิด
-      if(btn.classList.contains('disabled') || btn.disabled) return;
-
-      btn.addEventListener('click', (e) => {
-        e.preventDefault();
-        e.stopPropagation();
-        const isOpen = d.classList.contains('open');
-        closeAll();
-        d.classList.toggle('open', !isOpen);
-      });
-
-      if(menu){
-        // คลิกในเมนู ไม่ให้ปิดทันที
-        menu.addEventListener('click', (e) => {
-          e.stopPropagation();
-        });
-      }
-    });
-
-    // คลิกที่อื่น = ปิดหมด
-    document.addEventListener('click', () => closeAll());
-
-    // ESC = ปิดหมด
-    document.addEventListener('keydown', (e) => {
-      if(e.key === 'Escape') closeAll();
-    });
-  })();
 </script>
 {% endblock %}
