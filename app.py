@@ -2,6 +2,7 @@
 # FILE: app.py
 # Teacher Platform MVP (Flask + SQLite)
 # UPDATED: Classroom Management + Assignments + Game Sessions + Practice Export
+# FIXED: Sentence Builder Syntax Error
 # ==============================================================================
 
 import os
@@ -10,6 +11,7 @@ import secrets
 import traceback
 import base64
 import csv
+import re
 from io import BytesIO, StringIO
 from functools import wraps
 from datetime import datetime
@@ -791,6 +793,101 @@ def game_millionaire(topic_id):
 
 
 # ==============================================================================
+# Sentence Builder: Helpers & Logic
+# ==============================================================================
+def _topic_slides_obj(topic):
+    """Parse topic['slides_json'] into dict. Always returns dict."""
+    try:
+        raw = topic.get("slides_json") or ""
+        obj = json.loads(raw) if raw else {}
+        if isinstance(obj, list):
+            # legacy list of slides
+            return {"slides": obj}
+        if isinstance(obj, dict):
+            return obj
+    except Exception:
+        pass
+    return {"slides": []}
+
+def _topic_get_sentence_builder_custom(topic):
+    obj = _topic_slides_obj(topic)
+    items = obj.get("sentence_builder_custom") or []
+    out = []
+    if isinstance(items, list):
+        for it in items:
+            if isinstance(it, dict):
+                th = (it.get("th") or "").strip()
+                en = (it.get("en") or "").strip()
+                if th or en:
+                    out.append({"th": th, "en": en})
+    return out
+
+def _topic_save_sentence_builder_custom(topic_id, items):
+    topic = Topic.get_by_id(topic_id)
+    if not topic:
+        return False
+    obj = _topic_slides_obj(topic)
+    cleaned = []
+    if isinstance(items, list):
+        for it in items:
+            if not isinstance(it, dict):
+                continue
+            th = (it.get("th") or "").strip()
+            en = (it.get("en") or "").strip()
+            if not th and not en:
+                continue
+            cleaned.append({"th": th[:500], "en": en[:500]})
+    obj["sentence_builder_custom"] = cleaned
+    Topic.update(topic_id, topic["name"], topic.get("description") or "", json.dumps(obj, ensure_ascii=False), topic.get("pdf_file"))
+    return True
+
+# ==============================================================================
+# Sentence Builder Game
+# ==============================================================================
+
+# API: Save custom sentences
+@app.route("/api/topic/<int:topic_id>/sentence-builder/custom", methods=["GET", "POST"])
+@login_required
+def api_sentence_builder_custom(topic_id):
+    topic = _get_topic_or_404(topic_id)
+    if request.method == "GET":
+        return jsonify({"ok": True, "items": _topic_get_sentence_builder_custom(topic)})
+    data = request.get_json(silent=True) or {}
+    items = data.get("items") or []
+    ok = _topic_save_sentence_builder_custom(topic_id, items)
+    return jsonify({"ok": bool(ok), "items": _topic_get_sentence_builder_custom(Topic.get_by_id(topic_id))})
+
+# Main View
+@app.route("/topic/<int:topic_id>/game/sentence-builder")
+@login_required
+def game_sentence_builder(topic_id):
+    """Game: เรียงประโยคภาษาอังกฤษจากประโยคภาษาไทย"""
+    topic = _get_topic_or_404(topic_id)
+    game_data = _get_practice_data_from_slides(topic)
+    game_data = _sentence_builder_enrich_game_data_with_th(topic, game_data)
+    
+    # Get students from classroom if linked
+    students = []
+    # Try to get students from classroom assignments
+    conn = get_db()
+    c = conn.cursor()
+    # ดึงข้อมูลจาก classroom_students โดยตรง และ join กับ assignments
+    c.execute("""
+        SELECT DISTINCT cs.student_name 
+        FROM classroom_students cs
+        JOIN assignments a ON a.classroom_id = cs.classroom_id
+        WHERE a.topic_id = ?
+        ORDER BY cs.student_no, cs.student_name
+    """, (topic_id,))
+    rows = c.fetchall()
+    conn.close()
+    
+    students = [r["student_name"] for r in rows] if rows else []
+    
+    return render_template("game_sentence_builder.html", topic=topic, game_data=game_data, students=students)
+
+
+# ==============================================================================
 # Practice Helpers
 # ==============================================================================
 def _normalize_practice_questions(rows):
@@ -902,6 +999,148 @@ def _get_practice_data_from_slides(topic):
     return data
 
 
+# ------------------------------------------------------------------------------
+# Sentence Builder helpers (Auto-generate Thai translations from slides if missing)
+# ------------------------------------------------------------------------------
+def _extract_first_json_array(s: str):
+    """Best-effort: extract first JSON array from a string."""
+    if not s:
+        return None
+    s = s.strip()
+    # already json
+    if s.startswith('[') and s.endswith(']'):
+        try:
+            return json.loads(s)
+        except Exception:
+            pass
+    # find first [...]
+    start = s.find('[')
+    if start == -1:
+        return None
+    depth = 0
+    for i in range(start, len(s)):
+        ch = s[i]
+        if ch == '[':
+            depth += 1
+        elif ch == ']':
+            depth -= 1
+            if depth == 0:
+                chunk = s[start:i+1]
+                try:
+                    return json.loads(chunk)
+                except Exception:
+                    return None
+    return None
+
+def _ai_translate_en_to_th(sentences, model="gpt-4o-mini"):
+    """Translate a list of short English sentences to Thai (returns list of dicts: {en, th})."""
+    api_key = os.environ.get("OPENAI_API_KEY") or os.environ.get("OPENAI_APIKEY") or os.environ.get("OPENAI_KEY")
+    if not api_key:
+        return []
+    try:
+        from openai import OpenAI
+        client = OpenAI(api_key=api_key)
+    except Exception:
+        return []
+
+    # Keep it strict JSON to parse reliably
+    sys = (
+        "You translate English teaching examples into natural Thai. "
+        "Return ONLY valid JSON array. No markdown. No extra text."
+    )
+    user = {
+        "task": "translate_en_to_th",
+        "rules": [
+            "Keep meaning faithful and natural for Thai students.",
+            "Do not add explanations.",
+            "Do not number items.",
+            "Return format: [{\"en\":...,\"th\":...}, ...] in same order."
+        ],
+        "sentences": sentences[:40]  # safety cap
+    }
+    try:
+        # Compatible with OpenAI Python SDK 1.x
+        resp = client.chat.completions.create(
+            model=model,
+            messages=[
+                {"role": "system", "content": sys},
+                {"role": "user", "content": json.dumps(user, ensure_ascii=False)}
+            ],
+            temperature=0.2,
+        )
+        content = (resp.choices[0].message.content or "").strip()
+    except Exception:
+        # Fallback: newer responses API if present
+        try:
+            resp = client.responses.create(
+                model=model,
+                input=[
+                    {"role": "system", "content": sys},
+                    {"role": "user", "content": json.dumps(user, ensure_ascii=False)}
+                ],
+                temperature=0.2,
+            )
+            content = (resp.output_text or "").strip()
+        except Exception:
+            return []
+
+    arr = _extract_first_json_array(content)
+    if not isinstance(arr, list):
+        return []
+    out = []
+    for it in arr:
+        if isinstance(it, dict) and it.get("en") and it.get("th"):
+            out.append({"en": str(it["en"]).strip(), "th": str(it["th"]).strip()})
+    return out
+
+def _sentence_builder_enrich_game_data_with_th(topic, game_data):
+    """Ensure examples contain Thai prompts for Sentence Builder."""
+    if not game_data:
+        return game_data
+
+    examples = (game_data.get("examples") or [])
+    if not isinstance(examples, list) or not examples:
+        return game_data
+
+    # Collect EN sentences that are missing Thai (or Thai is not actually Thai characters)
+    need_en = []
+    for ex in examples:
+        if not isinstance(ex, dict):
+            continue
+        en = (ex.get("en") or "").strip()
+        th = (ex.get("th") or "").strip()
+        has_thai = bool(th and re.search(r"[ก-๙]", th))
+        if en and not has_thai:
+            if en not in need_en:
+                need_en.append(en)
+
+    # Nothing to translate
+    if not need_en:
+        return game_data
+
+    translated = _ai_translate_en_to_th(need_en)
+    if not translated:
+        return game_data
+
+    mapping = {str(t.get("en") or "").strip(): str(t.get("th") or "").strip()
+               for t in translated if isinstance(t, dict)}
+
+    new_examples = []
+    for ex in examples:
+        if isinstance(ex, dict) and ex.get("en"):
+            en = str(ex.get("en") or "").strip()
+            th = str(ex.get("th") or "").strip()
+            has_thai = bool(th and re.search(r"[ก-๙]", th))
+            if (not has_thai) and en in mapping and mapping[en]:
+                th = mapping[en]
+            new_examples.append({"en": en, "th": th})
+        else:
+            new_examples.append(ex)
+
+    game_data["examples"] = new_examples
+    return game_data
+
+
 @app.route("/topic/<int:topic_id>/practice/fill-blanks")
 @login_required
 def practice_fill_blanks(topic_id):
@@ -956,11 +1195,13 @@ def api_public_fill_blanks_submit(token):
     if not link or not link["is_active"]:
         return _json_error("Invalid link", 404)
     data = request.get_json() or {}
-    name = (data.get("name") or "Anonymous").strip()[:100]
+    student_name = (data.get("student_name") or data.get("name") or "Anonymous").strip()[:100]
+    student_no = (data.get("student_no") or "").strip()[:20]
+    classroom = (data.get("classroom") or "").strip()[:30]
     score = int(data.get("score", 0))
     total = int(data.get("total", 0))
     pct = (score/total*100) if total else 0
-    PracticeSubmission.create(link["id"], name, "", score, total, pct, json.dumps(data.get("answers", {})))
+    PracticeSubmission.create(link["id"], student_name, student_no, classroom, json.dumps(data.get("answers", {})), score, total, pct)
     return jsonify({"ok": True, "score": score, "total": total, "percentage": pct})
 
 
@@ -1018,11 +1259,13 @@ def api_public_unscramble_submit(token):
     if not link or not link["is_active"]:
         return _json_error("Invalid link", 404)
     data = request.get_json() or {}
-    name = (data.get("name") or "Anonymous").strip()[:100]
+    student_name = (data.get("student_name") or data.get("name") or "Anonymous").strip()[:100]
+    student_no = (data.get("student_no") or "").strip()[:20]
+    classroom = (data.get("classroom") or "").strip()[:30]
     score = int(data.get("score", 0))
     total = int(data.get("total", 0))
     pct = (score/total*100) if total else 0
-    PracticeSubmission.create(link["id"], name, "", score, total, pct, json.dumps(data.get("answers", {})))
+    PracticeSubmission.create(link["id"], student_name, student_no, classroom, json.dumps(data.get("answers", {})), score, total, pct)
     return jsonify({"ok": True, "score": score, "total": total, "percentage": pct})
 
 @app.route("/api/practice/<int:topic_id>/submit", methods=["POST"])
@@ -1121,6 +1364,84 @@ def practice_scores_excel(topic_id):
     wb.save(buf)
     buf.seek(0)
     return Response(buf.getvalue(), mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f"attachment; filename=scores_{topic_id}.xlsx"})
+
+
+@app.route("/topic/<int:topic_id>/practice/all-scores")
+@login_required
+def practice_all_scores(topic_id):
+    """ดูคะแนนรวมทุกแบบฝึกหัด (MCQ, Fill Blanks, Unscramble)"""
+    topic = _get_topic_or_404(topic_id)
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("""
+        SELECT ps.*, pl.token FROM practice_submissions ps 
+        JOIN practice_links pl ON ps.link_id=pl.id 
+        WHERE pl.topic_id=? 
+        ORDER BY ps.id DESC LIMIT 1000
+    """, (topic_id,))
+    rows = c.fetchall()
+    conn.close()
+    
+    # Add practice_type based on the link token/url pattern
+    all_submissions = []
+    for r in rows:
+        s = dict(r)
+        # Determine type - we'll mark based on submission data
+        # For now, default to 'mcq', you can enhance this with a practice_type column
+        s['practice_type'] = 'mcq'  # default
+        all_submissions.append(s)
+    
+    classrooms = sorted(set(s.get("classroom") or "" for s in all_submissions if s.get("classroom")))
+    return render_template("practice_all_scores.html", topic=topic, all_submissions=all_submissions, classrooms=classrooms)
+
+
+@app.route("/topic/<int:topic_id>/practice/all-scores/excel")
+@login_required
+def practice_all_scores_excel(topic_id):
+    """Export คะแนนรวมทุกแบบฝึกหัดเป็น Excel"""
+    topic = _get_topic_or_404(topic_id)
+    try:
+        from openpyxl import Workbook
+        from openpyxl.styles import Font, PatternFill, Border, Side
+    except:
+        return redirect(url_for("practice_scores_csv", topic_id=topic_id))
+    
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("""
+        SELECT ps.* FROM practice_submissions ps 
+        JOIN practice_links pl ON ps.link_id=pl.id 
+        WHERE pl.topic_id=? 
+        ORDER BY ps.classroom, ps.student_no
+    """, (topic_id,))
+    rows = c.fetchall()
+    conn.close()
+    
+    wb = Workbook()
+    ws = wb.active
+    ws.title = "All Scores"
+    hf = Font(bold=True, color="FFFFFF")
+    hfill = PatternFill("solid", fgColor="667eea")
+    bd = Border(left=Side('thin'), right=Side('thin'), top=Side('thin'), bottom=Side('thin'))
+    
+    ws.merge_cells('A1:H1')
+    ws['A1'] = f"Practice Scores (All Types): {topic['name']}"
+    ws['A1'].font = Font(bold=True, size=14)
+    
+    headers = ["#", "Name", "No", "Class", "Score", "Total", "%", "Time"]
+    for col, h in enumerate(headers, 1):
+        cell = ws.cell(3, col, h)
+        cell.font, cell.fill, cell.border = hf, hfill, bd
+    
+    for i, r in enumerate(rows, 1):
+        for col, v in enumerate([i, r["student_name"], r["student_no"] or "", r["classroom"] or "", r["score"], r["total"], f"{r['percentage']:.0f}%", str(r["created_at"])[:19]], 1):
+            cell = ws.cell(i+3, col, v)
+            cell.border = bd
+    
+    buf = BytesIO()
+    wb.save(buf)
+    buf.seek(0)
+    return Response(buf.getvalue(), mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f"attachment; filename=all_scores_{topic_id}.xlsx"})
 
 
 # ==============================================================================
