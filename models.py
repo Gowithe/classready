@@ -1,529 +1,967 @@
-{% extends "base.html" %}
-{% block title %}Fill in the Blanks | {{ topic.name }}{% endblock %}
+# ==============================================================================
+# FILE: models.py
+# SQLite models (no ORM) for Teacher Platform MVP
+# UPDATED: Classroom, ClassroomStudent, Assignment + GameSession + Practice
+# ==============================================================================
+import os
+import sqlite3
+from datetime import datetime
+from typing import Optional, List, Dict, Any
 
-{% block extra_css %}
-<style>
-  .wrap{max-width:1000px;margin:1.25rem auto;padding:0 1rem;}
-  .card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:16px;padding:16px;box-shadow:0 10px 24px rgba(0,0,0,.06);}
-  .h1{font-size:1.25rem;font-weight:900;margin-bottom:.25rem;}
-  .muted{color:#64748b;font-size:.95rem;}
-  
-  /* Student Info Form */
-  .student-form{
-    background: linear-gradient(135deg, #06b6d415, #0891b215);
-    border:1px solid rgba(6,182,212,.2);
-    border-radius:14px;
-    padding:16px;
-    margin-bottom:16px;
-  }
-  .student-form h3{ margin:0 0 12px; font-size:1rem; color:#0e7490; }
-  
-  /* Grid 5 Fields */
-  .form-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
-  @media(max-width:600px){ .form-grid{ grid-template-columns: 1fr; } }
+from werkzeug.security import generate_password_hash
 
-  .inp{
-    width:100%; padding:10px 14px;
-    border:2px solid #e2e8f0; border-radius:10px;
-    font-size:1rem; outline:none; transition:border-color .2s;
-  }
-  .inp:focus{border-color:#06b6d4;}
-  .inp.error{border-color:#ef4444; background:#fef2f2;}
+BASE_DIR = os.path.dirname(__file__)
 
-  /* Timer Bar */
-  .timer-bar {
-    position: sticky; top: 0; z-index: 100;
-    background: #ef4444; color: white;
-    text-align: center; padding: 10px;
-    font-weight: 800; border-radius: 0 0 12px 12px;
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-    margin-bottom: 20px; display: none;
-    animation: pulse 1s infinite;
-  }
-  .timer-bar.safe { background: #06b6d4; animation: none; box-shadow: 0 4px 12px rgba(6,182,212,0.3); }
-  @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
+# -----------------------------------------------------------------------------
+# Persistent SQLite on Render Disk (or any mounted volume)
+#
+# Set env var SQLITE_PATH to a FILE path, e.g.
+#   SQLITE_PATH=/var/data/teacher_platform.db
+#
+# If SQLITE_PATH points to a directory, we will create teacher_platform.db inside it.
+# -----------------------------------------------------------------------------
+_raw_sqlite_path = os.environ.get("SQLITE_PATH", "").strip()
+if _raw_sqlite_path:
+    # If user gives a directory path, place db file inside it
+    if _raw_sqlite_path.endswith(os.sep) or os.path.isdir(_raw_sqlite_path) or (not _raw_sqlite_path.lower().endswith(".db")):
+        DB_PATH = os.path.join(_raw_sqlite_path.rstrip("/\") , "teacher_platform.db")
+    else:
+        DB_PATH = _raw_sqlite_path
+else:
+    DB_PATH = os.path.join(BASE_DIR, "teacher_platform.db")
 
-  /* Completed Overlay */
-  .completed-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: white; z-index: 999;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; display: none;
-  }
+# Ensure folder exists (important for Render Disk mount path)
+_db_dir = os.path.dirname(DB_PATH)
+if _db_dir:
+    os.makedirs(_db_dir, exist_ok=True)
 
-  /* Progress & Question Styles */
-  .progress-bar{ height:6px; background:#e2e8f0; border-radius:3px; margin-top:12px; overflow:hidden; }
-  .progress-bar .fill{ height:100%; background: linear-gradient(90deg, #06b6d4, #0891b2); transition: width .3s ease; }
-  .progress-text{ font-size:.85rem; color:#64748b; margin-top:6px; text-align:right; }
-  
-  .q{ margin-top:14px; padding:14px; border-radius:14px; border:1px solid rgba(0,0,0,.08); background:#f8fafc; transition: border-color .2s; }
-  .q.answered{ border-color:#22c55e; background:#f0fdf4; }
-  .q strong{display:block;margin-bottom:10px;font-size:1.02rem;}
-  
-  .sentence-display{ font-size:1.15rem; line-height:1.8; margin-bottom:1rem; text-align:center; padding:1rem; background:#fff; border-radius:10px; }
-  .blank-slot{ display:inline-block; min-width:80px; padding:.2rem .5rem; border-bottom:3px solid #06b6d4; background:#ecfeff; border-radius:6px 6px 0 0; font-weight:700; color:#0891b2; }
-  .blank-slot.correct{background:#dcfce7;border-color:#22c55e;color:#166534;}
-  .blank-slot.wrong{background:#fee2e2;border-color:#ef4444;color:#991b1b;}
-  
-  .choices{display:flex;flex-wrap:wrap;gap:8px;justify-content:center;}
-  .choice{ display:flex; gap:10px; align-items:center; padding:12px 18px; border-radius:12px; border:2px solid rgba(0,0,0,.08); background:#fff; cursor:pointer; transition: all .15s; font-weight:600; }
-  .choice:hover:not(.disabled){ border-color:#06b6d4; background:rgba(6,182,212,.04); }
-  .choice.selected{ border-color:#06b6d4; background:rgba(6,182,212,.08); }
-  .choice.correct{ border-color:#22c55e; background:#22c55e; color:#fff; }
-  .choice.wrong{ border-color:#ef4444; background:#ef4444; color:#fff; }
-  .choice.disabled{ opacity:.6; cursor:not-allowed; }
-  
-  .feedback{ margin-top:8px; font-size:.9rem; padding:8px 10px; border-radius:8px; display:none; text-align:center; }
-  .feedback.show{display:block;}
-  .feedback.correct{background:#dcfce7;color:#166534;}
-  .feedback.wrong{background:#fef2f2;color:#991b1b;}
-  
-  /* Buttons */
-  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; border:0; border-radius:12px; padding:.85rem 1.5rem; font-weight:900; font-size:1rem; cursor:pointer; transition: all .2s; }
-  .btn-primary{ background: linear-gradient(135deg, #06b6d4, #0891b2); color:#fff; box-shadow: 0 4px 14px rgba(6,182,212,.35); }
-  .btn-primary:hover{ transform: translateY(-2px); box-shadow: 0 6px 20px rgba(6,182,212,.45); }
-  .btn-primary:disabled{ opacity:.6; cursor:not-allowed; transform:none; }
-  .btn-secondary{ background:#e2e8f0; color:#0f172a; }
-  .btn-secondary:hover{ background:#cbd5e1; }
-  .bar{ display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; padding-top:16px; border-top:1px solid rgba(0,0,0,.08); justify-content:center; }
-  
-  /* Result */
-  .result{ margin-top:16px; padding:16px; border-radius:14px; display:none; text-align:center; }
-  .result.show{display:block;}
-  .result.success{ background: linear-gradient(135deg, #dcfce7, #bbf7d0); border:1px solid #22c55e; }
-  .result.fail{ background: linear-gradient(135deg, #fef2f2, #fecaca); border:1px solid #ef4444; }
-  .result h3{margin:0 0 8px;font-size:1.1rem;}
-  .result .score{font-size:2.5rem;font-weight:900;margin:8px 0;}
-  
-  /* Sound Toggle */
-  .sound-toggle{ position:fixed; bottom:15px; right:15px; width:45px; height:45px; border-radius:50%; background:#06b6d4; color:#fff; border:none; font-size:1.3rem; cursor:pointer; box-shadow:0 4px 12px rgba(6,182,212,.4); }
-</style>
-{% endblock %}
 
-{% block content %}
+def get_db() -> sqlite3.Connection:
+    """
+    SQLite connection with pragmas tuned for web apps:
+    - WAL mode: better concurrency for reads/writes
+    - busy_timeout: wait a bit instead of 'database is locked'
+    - foreign_keys: enforce FK constraints
+    """
+    conn = sqlite3.connect(
+        DB_PATH,
+        timeout=30,
+        check_same_thread=False,  # Flask can use threads depending on server
+    )
+    conn.row_factory = sqlite3.Row
 
-<div id="timerBar" class="timer-bar safe">
-  ⏳ เหลือเวลาอีก: <span id="timerDisplay">--:--</span>
-</div>
+    try:
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        conn.execute("PRAGMA foreign_keys=ON;")
+        conn.execute("PRAGMA busy_timeout=5000;")
+        conn.execute("PRAGMA temp_store=MEMORY;")
+    except Exception:
+        # If PRAGMA fails for any reason, still return a usable connection
+        pass
 
-<div id="completedScreen" class="completed-overlay">
-  <div style="font-size:4rem;">✅</div>
-  <h1 style="color:#1e293b;">คุณทำแบบทดสอบนี้ไปแล้ว</h1>
-  <p style="color:#64748b;">ระบบอนุญาตให้ส่งคำตอบได้เพียง 1 ครั้งเท่านั้น</p>
-</div>
+    return conn
+def _column_exists(conn: sqlite3.Connection, table: str, column: str) -> bool:
+    c = conn.cursor()
+    c.execute(f"PRAGMA table_info({table})")
+    cols = [r[1] for r in c.fetchall()]
+    return column in cols
 
-<div class="wrap" id="mainContainer">
-  <div class="card">
-    <div class="h1">✍️ Fill in the Blanks</div>
-    <div class="muted">{{ topic.name }} • เติมคำในช่องว่างให้ถูกต้อง</div>
 
-    <div class="student-form">
-      <h3>👤 ข้อมูลผู้ทำแบบทดสอบ</h3>
-      
-      {% if students %}
-      <div class="form-group" style="margin-bottom:12px;">
-        <label style="font-weight:700; color:#0e7490; display:block; margin-bottom:6px;">
-          เลือกชื่อของคุณ <span style="color:#ef4444">*</span>
-        </label>
-        <select class="inp" id="studentSelect" onchange="autoFillStudent()">
-          <option value="">-- ค้นหาหรือเลือกชื่อ --</option>
-          {% for s in students %}
-          <option value="{{ s.id }}" 
-                  data-no="{{ s.student_no }}" 
-                  data-name="{{ s.student_name }}" 
-                  data-code="{{ s.student_id or '' }}"
-                  data-class="{{ classroom.name if classroom else '' }}"
-                  data-dept="{{ s.department or '' }}">
-            {{ s.student_no }} {{ s.student_name }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-      
-      <div class="form-grid" style="opacity:0.8; margin-top:10px;">
-        <input class="inp" id="studentName" placeholder="ชื่อ-นามสกุล" readonly style="background:#f1f5f9; grid-column: span 2;">
-        <input class="inp" id="studentNo" placeholder="เลขที่" readonly style="background:#f1f5f9;">
-        <input class="inp" id="studentId" placeholder="รหัสนักศึกษา" readonly style="background:#f1f5f9;">
-        <input class="inp" id="classroom" placeholder="ชั้นเรียน" readonly style="background:#f1f5f9;">
-        <input class="inp" id="department" placeholder="แผนก" readonly style="background:#f1f5f9;">
-      </div>
-      <input type="hidden" id="realStudentId" value="">
+def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
+    c = conn.cursor()
+    c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table,))
+    return c.fetchone() is not None
 
-      {% else %}
-      <div class="form-grid">
-        <input class="inp" id="studentName" placeholder="ชื่อ-นามสกุล (Name)" style="grid-column: span 2;">
-        <input class="inp" id="studentNo" placeholder="เลขที่ (No.)">
-        <input class="inp" id="studentId" placeholder="รหัสนักศึกษา (Student ID)">
-        <input class="inp" id="classroom" placeholder="ชั้นเรียน (Class)">
-        <input class="inp" id="department" placeholder="แผนก/สาขา (Department)">
-      </div>
-      <input type="hidden" id="realStudentId" value="">
-      {% endif %}
-    </div>
 
-    <div class="progress-bar">
-      <div class="fill" id="progressFill" style="width:0%"></div>
-    </div>
-    <div class="progress-text" id="progressText">ตอบแล้ว 0 / 0 ข้อ</div>
+def init_db() -> None:
+    conn = get_db()
+    c = conn.cursor()
 
-    <div id="questionsContainer"></div>
+    # ---------------- users ----------------
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS users (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      email TEXT UNIQUE NOT NULL,
+      password_hash TEXT NOT NULL,
+      role TEXT NOT NULL DEFAULT 'teacher',
+      created_at TEXT NOT NULL
+    )
+    """)
 
-    <div class="bar">
-      <button class="btn btn-primary" id="btnSubmit">📤 ส่งคำตอบ</button>
-    </div>
+    # ---------------- topics ----------------
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS topics (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      owner_id INTEGER NOT NULL DEFAULT 1,
+      name TEXT NOT NULL,
+      description TEXT,
+      slides_json TEXT,
+      topic_type TEXT NOT NULL DEFAULT 'manual',
+      pdf_file TEXT,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(owner_id) REFERENCES users(id)
+    )
+    """)
 
-    <div class="result" id="resultBox">
-      <h3 id="resultTitle">ผลการทำแบบฝึกหัด</h3>
-      <div class="score" id="resultScore">0/0</div>
-      <div class="muted" id="resultPercent">0%</div>
-      <div id="resultMsg" style="margin-top:10px;"></div>
-    </div>
-  </div>
-</div>
+    # ---------------- game_questions ----------------
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS game_questions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      topic_id INTEGER NOT NULL,
+      set_no INTEGER NOT NULL,
+      tile_no INTEGER NOT NULL DEFAULT 0,
+      question TEXT NOT NULL,
+      answer TEXT NOT NULL,
+      points INTEGER NOT NULL DEFAULT 10,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(topic_id) REFERENCES topics(id)
+    )
+    """)
 
-<button class="sound-toggle" id="soundToggle" onclick="toggleSound()">🔊</button>
+    # ---------------- practice_questions ----------------
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS practice_questions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      topic_id INTEGER NOT NULL,
+      type TEXT NOT NULL DEFAULT 'multiple_choice',
+      question TEXT NOT NULL,
+      correct_answer TEXT NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(topic_id) REFERENCES topics(id)
+    )
+    """)
 
-<script>
-const practiceData = {{ practice_data | tojson | safe }};
-const token = "{{ token }}";
-const storageKey = "done_" + token;
+    # ---------------- attempt_history ----------------
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS attempt_history (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER NOT NULL,
+      topic_id INTEGER NOT NULL,
+      score INTEGER NOT NULL,
+      total INTEGER NOT NULL,
+      percentage REAL NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(user_id) REFERENCES users(id),
+      FOREIGN KEY(topic_id) REFERENCES topics(id)
+    )
+    """)
 
-// --- Auto Fill Logic ---
-function autoFillStudent() {
-  const select = document.getElementById('studentSelect');
-  if (!select) return;
-  const option = select.options[select.selectedIndex];
-  
-  if (option.value) {
-    document.getElementById('realStudentId').value = option.value;
-    document.getElementById('studentName').value = option.dataset.name;
-    document.getElementById('studentNo').value = option.dataset.no;
-    document.getElementById('studentId').value = option.dataset.code;
-    document.getElementById('classroom').value = option.dataset.class;
-    document.getElementById('department').value = option.dataset.dept;
-  } else {
-    // Clear fields
-    ['realStudentId', 'studentName', 'studentNo', 'studentId', 'classroom', 'department'].forEach(id => {
-      const el = document.getElementById(id);
-      if(el) el.value = '';
-    });
-  }
-}
+    # ---------------- practice_links ----------------
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS practice_links (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      topic_id INTEGER NOT NULL,
+      created_by INTEGER NOT NULL,
+      token TEXT UNIQUE NOT NULL,
+      is_active INTEGER NOT NULL DEFAULT 1,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(topic_id) REFERENCES topics(id),
+      FOREIGN KEY(created_by) REFERENCES users(id)
+    )
+    """)
 
-// --- 1. One-Time Submission Check ---
-if (localStorage.getItem(storageKey)) {
-  document.getElementById("mainContainer").style.display = "none";
-  document.getElementById("completedScreen").style.display = "flex";
-  document.getElementById("timerBar").style.display = "none";
-}
+    # ---------------- practice_submissions ----------------
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS practice_submissions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      link_id INTEGER NOT NULL,
+      student_name TEXT NOT NULL,
+      student_no TEXT DEFAULT '',
+      classroom TEXT DEFAULT '',
+      answers_json TEXT NOT NULL,
+      score INTEGER NOT NULL,
+      total INTEGER NOT NULL,
+      percentage REAL NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(link_id) REFERENCES practice_links(id)
+    )
+    """)
 
-// --- 2. Timer Logic ---
-const urlParams = new URLSearchParams(window.location.search);
-const timeLimitMins = parseInt(urlParams.get('limit')) || 0;
-let timerInterval;
+    # ---------------- game_sessions ----------------
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS game_sessions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      topic_id INTEGER NOT NULL,
+      created_by INTEGER NOT NULL,
+      title TEXT NOT NULL DEFAULT 'Classroom Session',
+      settings_json TEXT DEFAULT '{}',
+      state_json TEXT DEFAULT '{}',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY(topic_id) REFERENCES topics(id),
+      FOREIGN KEY(created_by) REFERENCES users(id)
+    )
+    """)
 
-if (timeLimitMins > 0 && !localStorage.getItem(storageKey)) {
-  const timerBar = document.getElementById('timerBar');
-  const timerDisplay = document.getElementById('timerDisplay');
-  timerBar.style.display = 'block';
+    # ---------------- classrooms (NEW!) ----------------
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS classrooms (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      owner_id INTEGER NOT NULL,
+      name TEXT NOT NULL,
+      grade_level TEXT DEFAULT '',
+      academic_year TEXT DEFAULT '',
+      description TEXT DEFAULT '',
+      student_count INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(owner_id) REFERENCES users(id)
+    )
+    """)
 
-  const startTimeKey = "start_" + token;
-  let endTime = localStorage.getItem(startTimeKey);
-  
-  if (!endTime) {
-    const now = new Date().getTime();
-    endTime = now + (timeLimitMins * 60 * 1000);
-    localStorage.setItem(startTimeKey, endTime);
-  }
+    # ---------------- classroom_students (NEW!) ----------------
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS classroom_students (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      classroom_id INTEGER NOT NULL,
+      student_no TEXT NOT NULL,
+      student_name TEXT NOT NULL,
+      nickname TEXT DEFAULT '',
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(classroom_id) REFERENCES classrooms(id)
+    )
+    """)
 
-  function updateTimer() {
-    const now = new Date().getTime();
-    let timeLeft = Math.floor((endTime - now) / 1000); 
+    # ---------------- assignments (NEW!) ----------------
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS assignments (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      classroom_id INTEGER NOT NULL,
+      topic_id INTEGER NOT NULL,
+      practice_link_id INTEGER,
+      title TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      due_date TEXT,
+      is_active INTEGER DEFAULT 1,
+      created_by INTEGER NOT NULL,
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(classroom_id) REFERENCES classrooms(id),
+      FOREIGN KEY(topic_id) REFERENCES topics(id),
+      FOREIGN KEY(practice_link_id) REFERENCES practice_links(id),
+      FOREIGN KEY(created_by) REFERENCES users(id)
+    )
+    """)
 
-    if (timeLeft < 0) timeLeft = 0;
 
-    const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-    const s = (timeLeft % 60).toString().padStart(2, '0');
-    timerDisplay.textContent = `${m}:${s}`;
+# ---------------- indexes (performance) ----------------
+c.execute("CREATE INDEX IF NOT EXISTS idx_topics_owner_id ON topics(owner_id)")
+c.execute("CREATE INDEX IF NOT EXISTS idx_game_questions_topic_set ON game_questions(topic_id, set_no, tile_no)")
+c.execute("CREATE INDEX IF NOT EXISTS idx_practice_questions_topic ON practice_questions(topic_id)")
+c.execute("CREATE INDEX IF NOT EXISTS idx_attempt_history_user ON attempt_history(user_id, created_at)")
+c.execute("CREATE INDEX IF NOT EXISTS idx_practice_links_topic_user ON practice_links(topic_id, created_by, is_active)")
+c.execute("CREATE INDEX IF NOT EXISTS idx_practice_links_token ON practice_links(token)")
+c.execute("CREATE INDEX IF NOT EXISTS idx_practice_submissions_link ON practice_submissions(link_id, created_at)")
+c.execute("CREATE INDEX IF NOT EXISTS idx_classroom_students_classroom ON classroom_students(classroom_id, student_no)")
+c.execute("CREATE INDEX IF NOT EXISTS idx_assignments_classroom ON assignments(classroom_id, created_at)")
+    conn.commit()
 
-    if (timeLeft <= 60) { timerBar.classList.remove('safe'); }
+    # =======================
+    # ✅ MIGRATIONS (safe)
+    # =======================
+    if not _column_exists(conn, "topics", "owner_id"):
+        c.execute("ALTER TABLE topics ADD COLUMN owner_id INTEGER NOT NULL DEFAULT 1")
+        conn.commit()
 
-    if (timeLeft <= 0) {
-      clearInterval(timerInterval);
-      if(document.getElementById("mainContainer").style.display !== "none"){
-          alert("หมดเวลา! ระบบจะส่งคำตอบโดยอัตโนมัติ");
-          handleSubmit(true); // Force submit
-      }
-    }
-  }
-  updateTimer();
-  timerInterval = setInterval(updateTimer, 1000);
-}
+    if not _column_exists(conn, "practice_submissions", "student_no"):
+        c.execute("ALTER TABLE practice_submissions ADD COLUMN student_no TEXT DEFAULT ''")
+        conn.commit()
 
-// --- Audio System ---
-let soundEnabled = true;
-let audioContext = null;
-function initAudio() {
-  if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  return audioContext;
-}
-function playTone(freq, dur, type = 'sine', vol = 0.3) {
-  if (!soundEnabled) return;
-  try {
-    const ctx = initAudio();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.value = freq; osc.type = type;
-    gain.gain.setValueAtTime(vol, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + dur);
-    osc.start(ctx.currentTime); osc.stop(ctx.currentTime + dur);
-  } catch (e) {}
-}
-function playCorrectSound() { playTone(523, 0.15); setTimeout(() => playTone(659, 0.15), 100); setTimeout(() => playTone(784, 0.2), 200); }
-function playWrongSound() { playTone(200, 0.3, 'square', 0.15); }
-function toggleSound() {
-  soundEnabled = !soundEnabled;
-  document.getElementById('soundToggle').textContent = soundEnabled ? '🔊' : '🔇';
-}
+    if not _column_exists(conn, "practice_submissions", "classroom"):
+        c.execute("ALTER TABLE practice_submissions ADD COLUMN classroom TEXT DEFAULT ''")
+        conn.commit()
 
-// --- Game Logic ---
-let questions = [];
-let userAnswers = {};
+    conn.close()
 
-function init() {
-  questions = prepareQuestions();
-  if (questions.length === 0) {
-    document.getElementById('questionsContainer').innerHTML = '<p style="text-align:center;color:#64748b;padding:2rem;">ไม่มีข้อมูลสำหรับแบบฝึกหัดนี้</p>';
-    return;
-  }
-  renderQuestions();
-  updateProgress();
-}
 
-function prepareQuestions() {
-  const result = [];
-  if (practiceData.mcq_questions && practiceData.mcq_questions.length > 0) {
-    practiceData.mcq_questions.forEach((q, i) => {
-      if (q.prompt && q.choices && q.correct_answer) {
-        result.push({ id: i, sentence: q.prompt, answer: q.correct_answer, choices: q.choices });
-      }
-    });
-  }
-  if (practiceData.vocabulary && practiceData.vocabulary.length > 0) {
-    practiceData.vocabulary.forEach((v, i) => {
-      if (v.word && v.example) {
-        const blank = v.example.replace(new RegExp('\\b' + v.word + '\\b', 'i'), '_____');
-        if (blank !== v.example) {
-          result.push({ id: 100 + i, sentence: blank, answer: v.word, choices: null });
+# =============================================================================
+# User Model
+# =============================================================================
+class User:
+    @staticmethod
+    def create(email: str, password: str, role: str = "teacher") -> Dict[str, Any]:
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        password_hash = generate_password_hash(password)
+        c.execute("""
+            INSERT INTO users (email, password_hash, role, created_at)
+            VALUES (?, ?, ?, ?)
+        """, (email.lower(), password_hash, role, now))
+        conn.commit()
+        user_id = c.lastrowid
+        conn.close()
+        return User.get_by_id(user_id)
+
+    @staticmethod
+    def get_by_id(user_id: int) -> Optional[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM users WHERE id = ?", (user_id,))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    @staticmethod
+    def get_by_email(email: str) -> Optional[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM users WHERE email = ?", (email.lower(),))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+
+# =============================================================================
+# Topic Model
+# =============================================================================
+class Topic:
+    @staticmethod
+    def create(owner_id: int, name: str, description: str, slides_json: str, topic_type: str, pdf_file: Optional[str] = None) -> Dict[str, Any]:
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        c.execute("""
+            INSERT INTO topics (owner_id, name, description, slides_json, topic_type, pdf_file, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (owner_id, name, description, slides_json, topic_type, pdf_file, now))
+        conn.commit()
+        topic_id = c.lastrowid
+        conn.close()
+        return Topic.get_by_id(topic_id)
+
+    @staticmethod
+    def update(topic_id: int, name: str, description: str, slides_json: str, pdf_file: Optional[str]) -> None:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("UPDATE topics SET name = ?, description = ?, slides_json = ?, pdf_file = ? WHERE id = ?",
+                  (name, description, slides_json, pdf_file, topic_id))
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def update_owner(topic_id: int, owner_id: int) -> None:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("UPDATE topics SET owner_id = ? WHERE id = ?", (owner_id, topic_id))
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def delete(topic_id: int) -> None:
+        GameQuestion.delete_by_topic(topic_id)
+        PracticeQuestion.delete_by_topic(topic_id)
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("DELETE FROM topics WHERE id = ?", (topic_id,))
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def get_by_id(topic_id: int) -> Optional[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM topics WHERE id = ?", (topic_id,))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    @staticmethod
+    def get_all() -> List[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM topics ORDER BY id DESC")
+        rows = c.fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+
+    @staticmethod
+    def get_by_owner(owner_id: int) -> List[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM topics WHERE owner_id = ? ORDER BY id DESC", (owner_id,))
+        rows = c.fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+
+
+# =============================================================================
+# GameQuestion Model
+# =============================================================================
+class GameQuestion:
+    @staticmethod
+    def create(topic_id: int, set_no: int, tile_no: int, question: str, answer: str, points: int = 10) -> Dict[str, Any]:
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        c.execute("""
+            INSERT INTO game_questions (topic_id, set_no, tile_no, question, answer, points, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (topic_id, set_no, tile_no, question, answer, points, now))
+        conn.commit()
+        q_id = c.lastrowid
+        conn.close()
+        return GameQuestion.get_by_id(q_id)
+
+    @staticmethod
+    def get_by_id(q_id: int) -> Optional[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM game_questions WHERE id = ?", (q_id,))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    @staticmethod
+    def get_by_topic_and_set(topic_id: int, set_no: int) -> List[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM game_questions WHERE topic_id = ? AND set_no = ? ORDER BY tile_no, id", (topic_id, set_no))
+        rows = c.fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+
+    @staticmethod
+    def delete_by_topic(topic_id: int) -> None:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("DELETE FROM game_questions WHERE topic_id = ?", (topic_id,))
+        conn.commit()
+        conn.close()
+
+
+# =============================================================================
+# PracticeQuestion Model
+# =============================================================================
+class PracticeQuestion:
+    @staticmethod
+    def create(topic_id: int, q_type: str, question: str, correct_answer: str) -> Dict[str, Any]:
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        c.execute("""
+            INSERT INTO practice_questions (topic_id, type, question, correct_answer, created_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (topic_id, q_type, question, correct_answer, now))
+        conn.commit()
+        q_id = c.lastrowid
+        conn.close()
+        return PracticeQuestion.get_by_id(q_id)
+
+    @staticmethod
+    def get_by_id(q_id: int) -> Optional[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM practice_questions WHERE id = ?", (q_id,))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    @staticmethod
+    def get_by_topic(topic_id: int) -> List[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM practice_questions WHERE topic_id = ? ORDER BY id", (topic_id,))
+        rows = c.fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+
+    @staticmethod
+    def delete_by_topic(topic_id: int) -> None:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("DELETE FROM practice_questions WHERE topic_id = ?", (topic_id,))
+        conn.commit()
+        conn.close()
+
+
+# =============================================================================
+# AttemptHistory Model
+# =============================================================================
+class AttemptHistory:
+    @staticmethod
+    def create(user_id: int, topic_id: int, score: int, total: int, percentage: float) -> None:
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        c.execute("""
+            INSERT INTO attempt_history (user_id, topic_id, score, total, percentage, created_at)
+            VALUES (?, ?, ?, ?, ?, ?)
+        """, (user_id, topic_id, score, total, percentage, now))
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def track_view(user_id: int, topic_id: int) -> None:
+        AttemptHistory.create(user_id, topic_id, 0, 0, 0)
+
+    @staticmethod
+    def get_recent_by_user(user_id: int, limit: int = 5) -> List[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("""
+            SELECT DISTINCT ah.topic_id, t.name, MAX(ah.created_at) as last_access
+            FROM attempt_history ah
+            JOIN topics t ON ah.topic_id = t.id
+            WHERE ah.user_id = ?
+            GROUP BY ah.topic_id
+            ORDER BY last_access DESC
+            LIMIT ?
+        """, (user_id, limit))
+        rows = c.fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+
+
+# =============================================================================
+# Practice Links + Submissions
+# =============================================================================
+class PracticeLink:
+    @staticmethod
+    def create(topic_id: int, created_by: int, token: str) -> Dict[str, Any]:
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        c.execute("INSERT INTO practice_links (topic_id, created_by, token, is_active, created_at) VALUES (?, ?, ?, 1, ?)",
+                  (topic_id, created_by, token, now))
+        conn.commit()
+        link_id = c.lastrowid
+        conn.close()
+        return PracticeLink.get_by_id(link_id)
+
+    @staticmethod
+    def get_by_id(link_id: int) -> Optional[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM practice_links WHERE id = ?", (link_id,))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    @staticmethod
+    def get_by_token(token: str) -> Optional[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM practice_links WHERE token = ?", (token,))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    @staticmethod
+    def get_latest_active_by_topic_and_user(topic_id: int, created_by: int) -> Optional[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM practice_links WHERE topic_id = ? AND created_by = ? AND is_active = 1 ORDER BY id DESC LIMIT 1",
+                  (topic_id, created_by))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    @staticmethod
+    def deactivate(link_id: int) -> None:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("UPDATE practice_links SET is_active = 0 WHERE id = ?", (link_id,))
+        conn.commit()
+        conn.close()
+
+
+class PracticeSubmission:
+    @staticmethod
+    def create(link_id: int, student_name: str, student_no: str, classroom: str, answers_json: str, score: int, total: int, percentage: float) -> Dict[str, Any]:
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        c.execute("""
+            INSERT INTO practice_submissions (link_id, student_name, student_no, classroom, answers_json, score, total, percentage, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+        """, (link_id, student_name, student_no or '', classroom or '', answers_json, score, total, percentage, now))
+        conn.commit()
+        sub_id = c.lastrowid
+        conn.close()
+        return PracticeSubmission.get_by_id(sub_id)
+
+    @staticmethod
+    def get_by_id(sub_id: int) -> Optional[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM practice_submissions WHERE id = ?", (sub_id,))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    @staticmethod
+    def get_by_link(link_id: int, limit: int = 500) -> List[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM practice_submissions WHERE link_id = ? ORDER BY id DESC LIMIT ?", (link_id, limit))
+        rows = c.fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+
+    @staticmethod
+    def get_by_topic(topic_id: int, limit: int = 1000) -> List[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("""
+            SELECT ps.*, pl.topic_id
+            FROM practice_submissions ps
+            JOIN practice_links pl ON ps.link_id = pl.id
+            WHERE pl.topic_id = ?
+            ORDER BY ps.id DESC LIMIT ?
+        """, (topic_id, limit))
+        rows = c.fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+
+
+# =============================================================================
+# GameSession Model
+# =============================================================================
+class GameSession:
+    @staticmethod
+    def create(topic_id: int, created_by: int, title: str, settings_json: str = "{}", state_json: str = "{}") -> Dict[str, Any]:
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        c.execute("""
+            INSERT INTO game_sessions (topic_id, created_by, title, settings_json, state_json, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (topic_id, created_by, title, settings_json, state_json, now, now))
+        conn.commit()
+        session_id = c.lastrowid
+        conn.close()
+        return GameSession.get_by_id(session_id)
+
+    @staticmethod
+    def get_by_id(session_id: int) -> Optional[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM game_sessions WHERE id = ?", (session_id,))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    @staticmethod
+    def get_by_topic(topic_id: int, limit: int = 50) -> List[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM game_sessions WHERE topic_id = ? ORDER BY updated_at DESC LIMIT ?", (topic_id, limit))
+        rows = c.fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+
+    @staticmethod
+    def get_latest_by_topic_and_user(topic_id: int, created_by: int) -> Optional[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM game_sessions WHERE topic_id = ? AND created_by = ? ORDER BY updated_at DESC LIMIT 1",
+                  (topic_id, created_by))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    @staticmethod
+    def update(session_id: int, title: str, settings_json: str, state_json: str) -> None:
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        c.execute("UPDATE game_sessions SET title = ?, settings_json = ?, state_json = ?, updated_at = ? WHERE id = ?",
+                  (title, settings_json, state_json, now, session_id))
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def delete(session_id: int) -> None:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("DELETE FROM game_sessions WHERE id = ?", (session_id,))
+        conn.commit()
+        conn.close()
+
+
+# =============================================================================
+# Classroom Model (NEW!)
+# =============================================================================
+class Classroom:
+    @staticmethod
+    def create(owner_id: int, name: str, grade_level: str = "", academic_year: str = "", description: str = "") -> Dict[str, Any]:
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        c.execute("""
+            INSERT INTO classrooms (owner_id, name, grade_level, academic_year, description, student_count, created_at)
+            VALUES (?, ?, ?, ?, ?, 0, ?)
+        """, (owner_id, name, grade_level, academic_year, description, now))
+        conn.commit()
+        classroom_id = c.lastrowid
+        conn.close()
+        return Classroom.get_by_id(classroom_id)
+
+    @staticmethod
+    def get_by_id(classroom_id: int) -> Optional[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM classrooms WHERE id = ?", (classroom_id,))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    @staticmethod
+    def get_by_owner(owner_id: int) -> List[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM classrooms WHERE owner_id = ? ORDER BY name", (owner_id,))
+        rows = c.fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+
+    @staticmethod
+    def update(classroom_id: int, name: str, grade_level: str, academic_year: str, description: str) -> None:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("UPDATE classrooms SET name = ?, grade_level = ?, academic_year = ?, description = ? WHERE id = ?",
+                  (name, grade_level, academic_year, description, classroom_id))
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def update_student_count(classroom_id: int) -> None:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM classroom_students WHERE classroom_id = ?", (classroom_id,))
+        count = c.fetchone()[0]
+        c.execute("UPDATE classrooms SET student_count = ? WHERE id = ?", (count, classroom_id))
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def delete(classroom_id: int) -> None:
+        conn = get_db()
+        c = conn.cursor()
+        # Delete students first
+        c.execute("DELETE FROM classroom_students WHERE classroom_id = ?", (classroom_id,))
+        # Delete assignments
+        c.execute("DELETE FROM assignments WHERE classroom_id = ?", (classroom_id,))
+        # Delete classroom
+        c.execute("DELETE FROM classrooms WHERE id = ?", (classroom_id,))
+        conn.commit()
+        conn.close()
+
+
+# =============================================================================
+# ClassroomStudent Model (NEW!)
+# =============================================================================
+class ClassroomStudent:
+    @staticmethod
+    def create(classroom_id: int, student_no: str, student_name: str, nickname: str = "") -> Dict[str, Any]:
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        c.execute("""
+            INSERT INTO classroom_students (classroom_id, student_no, student_name, nickname, created_at)
+            VALUES (?, ?, ?, ?, ?)
+        """, (classroom_id, student_no, student_name, nickname, now))
+        conn.commit()
+        student_id = c.lastrowid
+        conn.close()
+        # Update count
+        Classroom.update_student_count(classroom_id)
+        return ClassroomStudent.get_by_id(student_id)
+
+    @staticmethod
+    def get_by_id(student_id: int) -> Optional[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM classroom_students WHERE id = ?", (student_id,))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    @staticmethod
+    def get_by_classroom(classroom_id: int) -> List[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM classroom_students WHERE classroom_id = ? ORDER BY CAST(student_no AS INTEGER), student_no", (classroom_id,))
+        rows = c.fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+
+    @staticmethod
+    def update(student_id: int, student_no: str, student_name: str, nickname: str) -> None:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("UPDATE classroom_students SET student_no = ?, student_name = ?, nickname = ? WHERE id = ?",
+                  (student_no, student_name, nickname, student_id))
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def delete(student_id: int) -> None:
+        conn = get_db()
+        c = conn.cursor()
+        # Get classroom_id first
+        c.execute("SELECT classroom_id FROM classroom_students WHERE id = ?", (student_id,))
+        row = c.fetchone()
+        classroom_id = row[0] if row else None
+        # Delete
+        c.execute("DELETE FROM classroom_students WHERE id = ?", (student_id,))
+        conn.commit()
+        conn.close()
+        # Update count
+        if classroom_id:
+            Classroom.update_student_count(classroom_id)
+
+    @staticmethod
+    def delete_by_classroom(classroom_id: int) -> None:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("DELETE FROM classroom_students WHERE classroom_id = ?", (classroom_id,))
+        conn.commit()
+        conn.close()
+        Classroom.update_student_count(classroom_id)
+
+    @staticmethod
+    def bulk_create(classroom_id: int, students: List[Dict[str, str]]) -> int:
+        """Create multiple students at once. Returns count of created."""
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        count = 0
+        for s in students:
+            student_no = (s.get("student_no") or "").strip()
+            student_name = (s.get("student_name") or "").strip()
+            nickname = (s.get("nickname") or "").strip()
+            if student_name:
+                c.execute("""
+                    INSERT INTO classroom_students (classroom_id, student_no, student_name, nickname, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (classroom_id, student_no, student_name, nickname, now))
+                count += 1
+        conn.commit()
+        conn.close()
+        Classroom.update_student_count(classroom_id)
+        return count
+
+
+# =============================================================================
+# Assignment Model (NEW!)
+# =============================================================================
+class Assignment:
+    @staticmethod
+    def create(classroom_id: int, topic_id: int, practice_link_id: int, title: str, description: str, due_date: str, created_by: int) -> Dict[str, Any]:
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        c.execute("""
+            INSERT INTO assignments (classroom_id, topic_id, practice_link_id, title, description, due_date, is_active, created_by, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, 1, ?, ?)
+        """, (classroom_id, topic_id, practice_link_id, title, description, due_date, created_by, now))
+        conn.commit()
+        assignment_id = c.lastrowid
+        conn.close()
+        return Assignment.get_by_id(assignment_id)
+
+    @staticmethod
+    def get_by_id(assignment_id: int) -> Optional[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM assignments WHERE id = ?", (assignment_id,))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    @staticmethod
+    def get_by_classroom(classroom_id: int) -> List[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("""
+            SELECT a.*, t.name as topic_name
+            FROM assignments a
+            JOIN topics t ON a.topic_id = t.id
+            WHERE a.classroom_id = ?
+            ORDER BY a.created_at DESC
+        """, (classroom_id,))
+        rows = c.fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+
+    @staticmethod
+    def get_by_owner(owner_id: int) -> List[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("""
+            SELECT a.*, t.name as topic_name, c.name as classroom_name
+            FROM assignments a
+            JOIN topics t ON a.topic_id = t.id
+            JOIN classrooms c ON a.classroom_id = c.id
+            WHERE a.created_by = ?
+            ORDER BY a.created_at DESC
+        """, (owner_id,))
+        rows = c.fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+
+    @staticmethod
+    def update(assignment_id: int, title: str, description: str, due_date: str, is_active: int) -> None:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("UPDATE assignments SET title = ?, description = ?, due_date = ?, is_active = ? WHERE id = ?",
+                  (title, description, due_date, is_active, assignment_id))
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def delete(assignment_id: int) -> None:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("DELETE FROM assignments WHERE id = ?", (assignment_id,))
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def get_submissions_status(assignment_id: int) -> Dict[str, Any]:
+        """Get submission status for an assignment"""
+        assignment = Assignment.get_by_id(assignment_id)
+        if not assignment:
+            return {"submitted": [], "not_submitted": [], "total": 0}
+
+        classroom_id = assignment["classroom_id"]
+        practice_link_id = assignment.get("practice_link_id")
+
+        # Get all students in classroom
+        students = ClassroomStudent.get_by_classroom(classroom_id)
+
+        if not practice_link_id:
+            return {"submitted": [], "not_submitted": students, "total": len(students)}
+
+        # Get submissions for this practice link
+        submissions = PracticeSubmission.get_by_link(practice_link_id)
+        submitted_names = set()
+        submitted_nos = set()
+        for sub in submissions:
+            submitted_names.add((sub.get("student_name") or "").strip().lower())
+            submitted_nos.add((sub.get("student_no") or "").strip())
+
+        submitted = []
+        not_submitted = []
+
+        for student in students:
+            name_match = (student.get("student_name") or "").strip().lower() in submitted_names
+            no_match = (student.get("student_no") or "").strip() in submitted_nos
+            if name_match or no_match:
+                # Find the submission
+                for sub in submissions:
+                    if ((sub.get("student_name") or "").strip().lower() == (student.get("student_name") or "").strip().lower() or
+                        (sub.get("student_no") or "").strip() == (student.get("student_no") or "").strip()):
+                        student["submission"] = sub
+                        break
+                submitted.append(student)
+            else:
+                not_submitted.append(student)
+
+        return {
+            "submitted": submitted,
+            "not_submitted": not_submitted,
+            "total": len(students),
+            "submissions": submissions
         }
-      }
-    });
-  }
-  shuffleArray(result);
-  return result.slice(0, 15);
-}
-
-function shuffleArray(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-}
-
-function generateChoices(q) {
-  if (q.choices && q.choices.length >= 4) {
-    const c = [...q.choices];
-    shuffleArray(c);
-    return c;
-  }
-  const choices = [q.answer];
-  const others = questions.map(x => x.answer).filter(a => a !== q.answer);
-  shuffleArray(others);
-  for (let i = 0; i < 3 && i < others.length; i++) {
-    if (!choices.includes(others[i])) choices.push(others[i]);
-  }
-  const fillers = ['the', 'is', 'are', 'have', 'has', 'do', 'does'];
-  while (choices.length < 4) {
-    const f = fillers[Math.floor(Math.random() * fillers.length)];
-    if (!choices.includes(f)) choices.push(f);
-  }
-  shuffleArray(choices);
-  return choices.slice(0, 4);
-}
-
-function renderQuestions() {
-  const container = document.getElementById('questionsContainer');
-  container.innerHTML = questions.map((q, idx) => {
-    const choices = generateChoices(q);
-    let displayText = q.sentence;
-    if (!displayText.includes('_____')) {
-      displayText = displayText + ` <span class="blank-slot" id="blank${q.id}">?</span>`;
-    } else {
-      displayText = displayText.replace('_____', `<span class="blank-slot" id="blank${q.id}">?</span>`);
-    }
-    
-    return `
-      <div class="q" id="q${q.id}" data-qid="${q.id}">
-        <strong>${idx + 1}. เติมคำในช่องว่าง</strong>
-        <div class="sentence-display">${displayText}</div>
-        <div class="choices" id="choices${q.id}">
-          ${choices.map(c => `
-            <div class="choice" data-answer="${escapeHtml(c)}" onclick="selectChoice(${q.id}, this, '${escapeHtml(c).replace(/'/g, "\\'")}')">${escapeHtml(c)}</div>
-          `).join('')}
-        </div>
-        <div class="feedback" id="fb${q.id}"></div>
-      </div>
-    `;
-  }).join('');
-}
-
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-function selectChoice(qid, el, answer) {
-  const q = questions.find(x => x.id === qid);
-  if (!q) return;
-  if (document.getElementById('btnSubmit').disabled) return;
-  
-  playTone(400, 0.1, 'sine', 0.2);
-  
-  const container = document.getElementById('choices' + qid);
-  container.querySelectorAll('.choice').forEach(c => c.classList.remove('selected'));
-  el.classList.add('selected');
-  
-  userAnswers[qid] = answer;
-  const blank = document.getElementById('blank' + qid);
-  if (blank) blank.textContent = answer;
-  
-  document.getElementById('q' + qid).classList.add('answered');
-  updateProgress();
-}
-
-function updateProgress() {
-  const answered = Object.keys(userAnswers).length;
-  const total = questions.length;
-  const pct = total > 0 ? (answered / total * 100) : 0;
-  document.getElementById('progressFill').style.width = pct + '%';
-  document.getElementById('progressText').textContent = `ตอบแล้ว ${answered} / ${total} ข้อ`;
-}
-
-// --- Submission Logic ---
-document.getElementById('btnSubmit').addEventListener('click', () => handleSubmit(false));
-
-async function handleSubmit(force = false) {
-  const studentName = (document.getElementById('studentName').value || '').trim();
-  const studentNo = (document.getElementById('studentNo').value || '').trim();
-  const studentId = (document.getElementById('studentId').value || '').trim();
-  const classroom = (document.getElementById('classroom').value || '').trim();
-  const department = (document.getElementById('department').value || '').trim();
-  
-  if (!studentName && !force) {
-    alert('กรุณากรอกชื่อ-สกุลก่อนส่ง');
-    document.getElementById('studentName').classList.add('error');
-    document.getElementById('studentName').focus();
-    return;
-  }
-  document.getElementById('studentName').classList.remove('error');
-  
-  const unanswered = questions.length - Object.keys(userAnswers).length;
-  if (unanswered > 0 && !force) {
-    if (!confirm(`ยังมี ${unanswered} ข้อที่ยังไม่ได้ตอบ\nต้องการส่งเลยหรือไม่?`)) {
-      return;
-    }
-  }
-  
-  if(!force && !confirm("ยืนยันการส่งคำตอบ? คุณสามารถทำได้เพียงครั้งเดียว")) return;
-
-  clearInterval(timerInterval);
-  document.getElementById("timerBar").style.display = 'none';
-
-  const btnSubmit = document.getElementById('btnSubmit');
-  btnSubmit.disabled = true;
-  btnSubmit.innerHTML = '⏳ กำลังส่ง...';
-  
-  // Calculate score locally for UI feedback
-  let score = 0;
-  questions.forEach(q => {
-    const userAns = userAnswers[q.id] || '';
-    const isCorrect = userAns.toLowerCase().trim() === q.answer.toLowerCase().trim();
-    
-    const blank = document.getElementById('blank' + q.id);
-    const fb = document.getElementById('fb' + q.id);
-    const container = document.getElementById('choices' + q.id);
-    
-    container.querySelectorAll('.choice').forEach(c => {
-      c.classList.add('disabled');
-      if (c.dataset.answer.toLowerCase().trim() === q.answer.toLowerCase().trim()) {
-        c.classList.add('correct');
-      }
-    });
-    
-    if (isCorrect) {
-      score++;
-      if (blank) blank.classList.add('correct');
-      fb.className = 'feedback show correct';
-      fb.innerHTML = '✅ ถูกต้อง!';
-    } else {
-      playWrongSound();
-      if (blank) {
-        blank.textContent = q.answer;
-        blank.classList.add('wrong');
-      }
-      const selectedChoice = container.querySelector('.choice.selected');
-      if (selectedChoice) selectedChoice.classList.add('wrong');
-      fb.className = 'feedback show wrong';
-      fb.innerHTML = `❌ ผิด — คำตอบที่ถูกคือ: <strong>${q.answer}</strong>`;
-    }
-  });
-  
-  if (score > 0) playCorrectSound();
-  
-  // Submit to server
-  try {
-    await fetch(`/api/public/fill/${token}/submit`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        // ส่ง student_db_id ถ้าเลือกจาก dropdown
-        student_db_id: document.getElementById('realStudentId') ? document.getElementById('realStudentId').value : null,
-        student_name: studentName,
-        student_no: studentNo,
-        student_id: studentId,
-        classroom: classroom,
-        department: department,
-        score: score,
-        total: questions.length,
-        answers: userAnswers
-      })
-    });
-    
-    // Mark as done
-    localStorage.setItem(storageKey, "true");
-    localStorage.removeItem("start_" + token);
-
-  } catch (e) {
-    console.error(e);
-  }
-  
-  // Show result
-  const pct = Math.round(score / questions.length * 100);
-  const isPass = pct >= 50;
-  
-  const resultBox = document.getElementById('resultBox');
-  resultBox.classList.add('show', isPass ? 'success' : 'fail');
-  document.getElementById('resultTitle').textContent = isPass ? '🎉 ทำได้ดีมาก!' : '💪 พยายามต่อไปนะ!';
-  document.getElementById('resultScore').textContent = `${score}/${questions.length}`;
-  document.getElementById('resultPercent').textContent = `${pct}%`;
-  document.getElementById('resultMsg').innerHTML = 'คะแนนถูกบันทึกเรียบร้อยแล้ว ✅<br>(คุณไม่สามารถทำซ้ำได้)';
-  
-  resultBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
-  btnSubmit.innerHTML = '✅ ส่งแล้ว';
-}
-
-init();
-</script>
-{% endblock %}
