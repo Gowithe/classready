@@ -119,15 +119,46 @@
 
     <div class="student-form">
       <h3>👤 ข้อมูลผู้ทำแบบทดสอบ</h3>
+      
+      {% if students %}
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:700; color:#0e7490; display:block; margin-bottom:6px;">
+          เลือกชื่อของคุณ <span style="color:#ef4444">*</span>
+        </label>
+        <select class="inp" id="studentSelect" onchange="autoFillStudent()">
+          <option value="">-- ค้นหาหรือเลือกชื่อ --</option>
+          {% for s in students %}
+          <option value="{{ s.id }}" 
+                  data-no="{{ s.student_no }}" 
+                  data-name="{{ s.student_name }}" 
+                  data-code="{{ s.student_id or '' }}"
+                  data-class="{{ classroom.name if classroom else '' }}"
+                  data-dept="{{ s.department or '' }}">
+            {{ s.student_no }} {{ s.student_name }}
+          </option>
+          {% endfor %}
+        </select>
+      </div>
+      
+      <div class="form-grid" style="opacity:0.8; margin-top:10px;">
+        <input class="inp" id="studentName" placeholder="ชื่อ-นามสกุล" readonly style="background:#f1f5f9; grid-column: span 2;">
+        <input class="inp" id="studentNo" placeholder="เลขที่" readonly style="background:#f1f5f9;">
+        <input class="inp" id="studentId" placeholder="รหัสนักศึกษา" readonly style="background:#f1f5f9;">
+        <input class="inp" id="classroom" placeholder="ชั้นเรียน" readonly style="background:#f1f5f9;">
+        <input class="inp" id="department" placeholder="แผนก/สาขา" readonly style="background:#f1f5f9;">
+      </div>
+      <input type="hidden" id="realStudentId" value="">
+
+      {% else %}
       <div class="form-grid">
         <input class="inp" id="studentName" placeholder="ชื่อ-นามสกุล (Name)" style="grid-column: span 2;">
-        
         <input class="inp" id="studentNo" placeholder="เลขที่ (No.)">
         <input class="inp" id="studentId" placeholder="รหัสนักศึกษา (Student ID)">
-        
         <input class="inp" id="classroom" placeholder="ชั้นเรียน (Class)">
         <input class="inp" id="department" placeholder="แผนก/สาขา (Department)">
       </div>
+      <input type="hidden" id="realStudentId" value="">
+      {% endif %}
     </div>
 
     <div class="progress-bar">
@@ -139,7 +170,7 @@
 
     <div class="bar">
       <button class="btn btn-primary" id="btnSubmit">📤 ส่งคำตอบ</button>
-      </div>
+    </div>
 
     <div class="result" id="resultBox">
       <h3 id="resultTitle">ผลการทำแบบฝึกหัด</h3>
@@ -156,6 +187,28 @@
 const practiceData = {{ practice_data | tojson | safe }};
 const token = "{{ token }}";
 const storageKey = "done_" + token;
+
+// --- Auto Fill Logic ---
+function autoFillStudent() {
+  const select = document.getElementById('studentSelect');
+  if (!select) return;
+  const option = select.options[select.selectedIndex];
+  
+  if (option.value) {
+    document.getElementById('realStudentId').value = option.value;
+    document.getElementById('studentName').value = option.dataset.name;
+    document.getElementById('studentNo').value = option.dataset.no;
+    document.getElementById('studentId').value = option.dataset.code;
+    document.getElementById('classroom').value = option.dataset.class;
+    document.getElementById('department').value = option.dataset.dept;
+  } else {
+    // Clear fields
+    ['realStudentId', 'studentName', 'studentNo', 'studentId', 'classroom', 'department'].forEach(id => {
+      const el = document.getElementById(id);
+      if(el) el.value = '';
+    });
+  }
+}
 
 // --- 1. One-Time Submission Check ---
 if (localStorage.getItem(storageKey)) {
@@ -358,8 +411,6 @@ function updateProgress() {
   document.getElementById('progressText').textContent = `ตอบแล้ว ${answered} / ${total} ข้อ`;
 }
 
-// Removed resetAll function logic since button is gone
-
 // --- Submission Logic ---
 document.getElementById('btnSubmit').addEventListener('click', () => handleSubmit(false));
 
@@ -437,6 +488,8 @@ async function handleSubmit(force = false) {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' },
       body: JSON.stringify({
+        // ส่ง student_db_id ถ้าเลือกจาก dropdown
+        student_db_id: document.getElementById('realStudentId') ? document.getElementById('realStudentId').value : null,
         student_name: studentName,
         student_no: studentNo,
         student_id: studentId,
