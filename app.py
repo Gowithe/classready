@@ -37,6 +37,13 @@ from reportlab.lib.utils import simpleSplit
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-prod")
 
+# -----------------------------------------------------------------------------
+# SQLite on Render Persistent Disk (recommended for now)
+# - Add a Disk on Render (e.g., mount path: /var/data)
+# - Set env var SQLITE_PATH=/var/data/teacher_platform.db
+# The database file will then persist across deploys/restarts.
+# -----------------------------------------------------------------------------
+
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
