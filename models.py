@@ -11,15 +11,56 @@ from typing import Optional, List, Dict, Any
 from werkzeug.security import generate_password_hash
 
 BASE_DIR = os.path.dirname(__file__)
-DB_PATH = os.environ.get("SQLITE_PATH", os.path.join(BASE_DIR, "teacher_platform.db"))
+
+# -----------------------------------------------------------------------------
+# Persistent SQLite on Render Disk (or any mounted volume)
+#
+# Set env var SQLITE_PATH to a FILE path, e.g.
+#   SQLITE_PATH=/var/data/teacher_platform.db
+#
+# If SQLITE_PATH points to a directory, we will create teacher_platform.db inside it.
+# -----------------------------------------------------------------------------
+_raw_sqlite_path = os.environ.get("SQLITE_PATH", "").strip()
+if _raw_sqlite_path:
+    # If user gives a directory path, place db file inside it
+    if _raw_sqlite_path.endswith(os.sep) or os.path.isdir(_raw_sqlite_path) or (not _raw_sqlite_path.lower().endswith(".db")):
+        DB_PATH = os.path.join(_raw_sqlite_path.rstrip("/\") , "teacher_platform.db")
+    else:
+        DB_PATH = _raw_sqlite_path
+else:
+    DB_PATH = os.path.join(BASE_DIR, "teacher_platform.db")
+
+# Ensure folder exists (important for Render Disk mount path)
+_db_dir = os.path.dirname(DB_PATH)
+if _db_dir:
+    os.makedirs(_db_dir, exist_ok=True)
 
 
 def get_db() -> sqlite3.Connection:
-    conn = sqlite3.connect(DB_PATH)
+    """
+    SQLite connection with pragmas tuned for web apps:
+    - WAL mode: better concurrency for reads/writes
+    - busy_timeout: wait a bit instead of 'database is locked'
+    - foreign_keys: enforce FK constraints
+    """
+    conn = sqlite3.connect(
+        DB_PATH,
+        timeout=30,
+        check_same_thread=False,  # Flask can use threads depending on server
+    )
     conn.row_factory = sqlite3.Row
+
+    try:
+        conn.execute("PRAGMA journal_mode=WAL;")
+        conn.execute("PRAGMA synchronous=NORMAL;")
+        conn.execute("PRAGMA foreign_keys=ON;")
+        conn.execute("PRAGMA busy_timeout=5000;")
+        conn.execute("PRAGMA temp_store=MEMORY;")
+    except Exception:
+        # If PRAGMA fails for any reason, still return a usable connection
+        pass
+
     return conn
-
-
 def _column_exists(conn: sqlite3.Connection, table: str, column: str) -> bool:
     c = conn.cursor()
     c.execute(f"PRAGMA table_info({table})")
@@ -201,6 +242,17 @@ def init_db() -> None:
     )
     """)
 
+
+# ---------------- indexes (performance) ----------------
+c.execute("CREATE INDEX IF NOT EXISTS idx_topics_owner_id ON topics(owner_id)")
+c.execute("CREATE INDEX IF NOT EXISTS idx_game_questions_topic_set ON game_questions(topic_id, set_no, tile_no)")
+c.execute("CREATE INDEX IF NOT EXISTS idx_practice_questions_topic ON practice_questions(topic_id)")
+c.execute("CREATE INDEX IF NOT EXISTS idx_attempt_history_user ON attempt_history(user_id, created_at)")
+c.execute("CREATE INDEX IF NOT EXISTS idx_practice_links_topic_user ON practice_links(topic_id, created_by, is_active)")
+c.execute("CREATE INDEX IF NOT EXISTS idx_practice_links_token ON practice_links(token)")
+c.execute("CREATE INDEX IF NOT EXISTS idx_practice_submissions_link ON practice_submissions(link_id, created_at)")
+c.execute("CREATE INDEX IF NOT EXISTS idx_classroom_students_classroom ON classroom_students(classroom_id, student_no)")
+c.execute("CREATE INDEX IF NOT EXISTS idx_assignments_classroom ON assignments(classroom_id, created_at)")
     conn.commit()
 
     # =======================
