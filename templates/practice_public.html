@@ -21,7 +21,8 @@
     font-size:1rem;
     color:#4338ca;
   }
-  /* Adjusted grid for new fields */
+  
+  /* Adjusted grid */
   .form-grid{
     display:grid;
     grid-template-columns: 1fr 1fr;
@@ -42,18 +43,12 @@
 
   /* Timer Bar */
   .timer-bar {
-    position: sticky;
-    top: 0;
-    z-index: 100;
-    background: #ef4444;
-    color: white;
-    text-align: center;
-    padding: 10px;
-    font-weight: 800;
-    border-radius: 0 0 12px 12px;
+    position: sticky; top: 0; z-index: 100;
+    background: #ef4444; color: white;
+    text-align: center; padding: 10px;
+    font-weight: 800; border-radius: 0 0 12px 12px;
     box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-    margin-bottom: 20px;
-    display: none; /* Show if limit exists */
+    margin-bottom: 20px; display: none;
     animation: pulse 1s infinite;
   }
   .timer-bar.safe { background: #667eea; animation: none; box-shadow: 0 4px 12px rgba(102,126,234,0.3); }
@@ -153,15 +148,44 @@
   <form id="publicForm">
     <div class="student-form">
       <h3>👤 ข้อมูลผู้ทำแบบทดสอบ</h3>
-      <div class="form-grid">
-        <input class="inp" type="text" name="student_name" placeholder="ชื่อ-นามสกุล (Name)" required style="grid-column: span 2;">
-        
-        <input class="inp" type="text" name="student_no" placeholder="เลขที่ (No.)" required>
-        <input class="inp" type="text" name="student_id" placeholder="รหัสนักศึกษา (Student ID)" required>
-        
-        <input class="inp" type="text" name="classroom" placeholder="ชั้นเรียน (Class)" required>
-        <input class="inp" type="text" name="department" placeholder="แผนก/สาขา (Department)" required>
+      
+      {% if students %}
+      <div class="form-group" style="margin-bottom:12px;">
+        <label style="font-weight:700; color:#4338ca; display:block; margin-bottom:6px;">
+          เลือกชื่อของคุณ <span style="color:#ef4444">*</span>
+        </label>
+        <select class="inp" id="studentSelect" onchange="autoFillStudent()" required>
+          <option value="">-- ค้นหาหรือเลือกชื่อ --</option>
+          {% for s in students %}
+          <option value="{{ s.id }}" 
+                  data-no="{{ s.student_no }}" 
+                  data-name="{{ s.student_name }}" 
+                  data-code="{{ s.student_id or '' }}"
+                  data-class="{{ classroom.name if classroom else '' }}"
+                  data-dept="{{ s.department or '' }}">
+            {{ s.student_no }} {{ s.student_name }}
+          </option>
+          {% endfor %}
+        </select>
       </div>
+      
+      <div class="form-grid" style="opacity:0.8; margin-top:10px;">
+        <input class="inp" id="studentName" placeholder="ชื่อ-นามสกุล" readonly style="background:#f1f5f9; grid-column: span 2;">
+        <input class="inp" id="studentNo" placeholder="เลขที่" readonly style="background:#f1f5f9;">
+        <input class="inp" id="studentId" placeholder="รหัสนักศึกษา" readonly style="background:#f1f5f9;">
+        <input class="inp" id="classroom" placeholder="ชั้นเรียน" readonly style="background:#f1f5f9;">
+        <input class="inp" id="department" placeholder="แผนก" readonly style="background:#f1f5f9;">
+      </div>
+      <input type="hidden" id="realStudentId" value=""> {% else %}
+      <div class="form-grid">
+        <input class="inp" id="studentName" placeholder="ชื่อ-นามสกุล (Name)" required style="grid-column: span 2;">
+        <input class="inp" id="studentNo" placeholder="เลขที่ (No.)" required>
+        <input class="inp" id="studentId" placeholder="รหัสนักศึกษา (Student ID)" required>
+        <input class="inp" id="classroom" placeholder="ชั้นเรียน (Class)" required>
+        <input class="inp" id="department" placeholder="แผนก/สาขา (Department)" required>
+      </div>
+      <input type="hidden" id="realStudentId" value="">
+      {% endif %}
     </div>
 
     <div class="q-list">
@@ -202,7 +226,28 @@
 </div>
 
 <script>
-  // 1. One-Time Submission Check (Client-side)
+  // --- Auto Fill Logic ---
+  function autoFillStudent() {
+    const select = document.getElementById('studentSelect');
+    if (!select) return;
+    const option = select.options[select.selectedIndex];
+    
+    if (option.value) {
+      document.getElementById('realStudentId').value = option.value;
+      document.getElementById('studentName').value = option.dataset.name;
+      document.getElementById('studentNo').value = option.dataset.no;
+      document.getElementById('studentId').value = option.dataset.code;
+      document.getElementById('classroom').value = option.dataset.class;
+      document.getElementById('department').value = option.dataset.dept;
+    } else {
+      ['realStudentId', 'studentName', 'studentNo', 'studentId', 'classroom', 'department'].forEach(id => {
+        const el = document.getElementById(id);
+        if(el) el.value = '';
+      });
+    }
+  }
+
+  // 1. One-Time Submission Check
   const token = "{{ token }}";
   const storageKey = "done_" + token;
   
@@ -222,7 +267,6 @@
     const timerDisplay = document.getElementById('timerDisplay');
     timerBar.style.display = 'block';
 
-    // เก็บเวลาเริ่มใน LocalStorage เพื่อป้องกันการ Refresh หน้าแล้วเวลาเริ่มใหม่
     const startTimeKey = "start_" + token;
     let endTime = localStorage.getItem(startTimeKey);
     
@@ -234,7 +278,7 @@
 
     function updateTimer() {
       const now = new Date().getTime();
-      let timeLeft = Math.floor((endTime - now) / 1000); // seconds
+      let timeLeft = Math.floor((endTime - now) / 1000); 
 
       if (timeLeft < 0) timeLeft = 0;
 
@@ -242,9 +286,7 @@
       const s = (timeLeft % 60).toString().padStart(2, '0');
       timerDisplay.textContent = `${m}:${s}`;
 
-      if (timeLeft <= 60) { // Last minute warning
-        timerBar.classList.remove('safe');
-      }
+      if (timeLeft <= 60) { timerBar.classList.remove('safe'); }
 
       if (timeLeft <= 0) {
         clearInterval(timerInterval);
@@ -272,7 +314,7 @@
   });
 
   async function submitForm() {
-    clearInterval(timerInterval); // Stop timer
+    clearInterval(timerInterval);
     document.getElementById("timerBar").style.display = 'none';
     
     btnSubmit.disabled = true;
@@ -281,39 +323,36 @@
     const formData = new FormData(form);
     const answers = {};
     
-    // Collect answers
     document.querySelectorAll(".q").forEach(q => {
       const qid = q.getAttribute("data-qid");
       answers[qid] = formData.get("q"+qid) || "";
     });
 
     const payload = {
-      student_name: formData.get("student_name"),
-      student_no: formData.get("student_no"),
-      student_id: formData.get("student_id"), // New
-      classroom: formData.get("classroom"),
-      department: formData.get("department"), // New
+      // ส่ง ID นักเรียนไปด้วย (ถ้ามี)
+      student_db_id: document.getElementById('realStudentId') ? document.getElementById('realStudentId').value : null,
+      student_name: document.getElementById('studentName').value,
+      student_no: document.getElementById('studentNo').value,
+      student_id: document.getElementById('studentId').value,
+      classroom: document.getElementById('classroom').value,
+      department: document.getElementById('department').value,
       answers: answers
     };
 
     try {
-      // === แก้ไข URL ตรงนี้ให้ถูกต้อง (/api/p/<token>/submit) ===
       const res = await fetch(`/api/p/${token}/submit`, { 
         method: "POST",
         headers: { "Content-Type": "application/json" },
         body: JSON.stringify(payload)
       });
       
-      if(!res.ok) throw new Error("Submission failed (Status " + res.status + ")");
+      if(!res.ok) throw new Error("Submission failed");
       
       const data = await res.json();
       
-      // Mark as done in LocalStorage
       localStorage.setItem(storageKey, "true");
-      // Clear timer
       localStorage.removeItem("start_" + token);
 
-      // Hide form, Show Result
       form.style.display = "none";
       resultBox.style.display = "block";
       
@@ -325,9 +364,6 @@
       document.getElementById("resultPercent").textContent = `${pct}%`;
       document.getElementById("resultMsg").innerHTML = "คะแนนของคุณถูกบันทึกเรียบร้อยแล้ว ✅<br>(คุณไม่สามารถทำข้อสอบนี้ซ้ำได้)";
 
-      // Show feedback logic (if needed in result screen, currently hidden as form is hidden)
-      // If you want to show questions again with answers, you'd need to re-render questions in resultBox.
-      
       window.scrollTo({ top: 0, behavior: "smooth" });
 
     } catch(e) {
