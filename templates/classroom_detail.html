@@ -117,7 +117,6 @@
     <div class="tab" onclick="switchTab('assignments')">📋 งานที่มอบหมาย</div>
   </div>
 
-  <!-- Tab: Students -->
   <div class="tab-content active" id="tab-students">
     <div class="card">
       <div class="card-header">
@@ -160,6 +159,7 @@
               <td><strong>{{ s.student_no or '-' }}</strong></td>
               <td>{{ s.student_name }}</td>
               <td style="color:#64748b;">{{ s.nickname or '-' }}</td>
+              
               {% for a in assignments %}
               {% set sc = ss.get('assignments', {}).get(a.id) %}
               <td class="score-cell">
@@ -171,6 +171,7 @@
                 {% endif %}
               </td>
               {% endfor %}
+              
               <td class="score-cell total-cell">
                 {% if possible > 0 %}
                 <span class="total-score">{{ total }}/{{ possible }}</span>
@@ -180,8 +181,17 @@
                 {% endif %}
               </td>
               <td class="student-actions">
-                <button class="btn-sm-edit" onclick="editStudent({{ s|tojson|e }})">✏️</button>
-                <button class="btn-sm-del" onclick="deleteStudent({{ s.id }}, '{{ s.student_name }}')">🗑️</button>
+                <button class="btn-sm-edit" 
+                  data-id="{{ s.id }}"
+                  data-no="{{ s.student_no or '' }}"
+                  data-name="{{ s.student_name }}"
+                  data-nickname="{{ s.nickname or '' }}"
+                  onclick="editStudent(this)">✏️</button>
+                  
+                <button class="btn-sm-del" 
+                  data-id="{{ s.id }}"
+                  data-name="{{ s.student_name }}"
+                  onclick="deleteStudent(this)">🗑️</button>
               </td>
             </tr>
             {% endfor %}
@@ -215,7 +225,6 @@
     </div>
   </div>
 
-  <!-- Tab: Assignments -->
   <div class="tab-content" id="tab-assignments">
     <div class="card">
       <div class="card-header">
@@ -253,7 +262,6 @@
   </div>
 </div>
 
-<!-- Student Modal -->
 <div class="modal-overlay" id="studentModal">
   <div class="modal-box">
     <div class="modal-header">
@@ -264,7 +272,7 @@
       <div class="modal-body">
         <input type="hidden" id="studentId" name="student_id">
         <div class="form-row">
-          <div class="form-group"><label>เลขที่</label><input type="text" id="studentNo" name="student_no"></div>
+          <div class="form-group"><label>เลขที่</label><input type="text" id="studentNoModal" name="student_no"></div>
           <div class="form-group"><label>ชื่อเล่น</label><input type="text" id="studentNickname" name="nickname"></div>
         </div>
         <div class="form-group"><label>ชื่อ-สกุล *</label><input type="text" id="studentName" name="student_name" required></div>
@@ -277,7 +285,6 @@
   </div>
 </div>
 
-<!-- Import Modal -->
 <div class="modal-overlay" id="importModal">
   <div class="modal-box">
     <div class="modal-header">
@@ -301,7 +308,6 @@
   </div>
 </div>
 
-<!-- Assign Modal -->
 <div class="modal-overlay" id="assignModal">
   <div class="modal-box">
     <div class="modal-header">
@@ -331,13 +337,57 @@
 
 <script>
 function switchTab(t){document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));document.querySelector(`.tab[onclick="switchTab('${t}')"]`).classList.add('active');document.getElementById(`tab-${t}`).classList.add('active');}
-const studentModal=document.getElementById('studentModal'),studentForm=document.getElementById('studentForm');
-function openAddStudentModal(){document.getElementById('studentModalTitle').textContent='เพิ่มนักเรียน';studentForm.action="{{ url_for('classroom_add_student', classroom_id=classroom.id) }}";studentForm.reset();studentModal.classList.add('show');}
-function editStudent(s){document.getElementById('studentModalTitle').textContent='แก้ไข';studentForm.action=`/classroom/student/${s.id}/edit`;document.getElementById('studentNo').value=s.student_no||'';document.getElementById('studentName').value=s.student_name||'';document.getElementById('studentNickname').value=s.nickname||'';studentModal.classList.add('show');}
+
+// --- Student Management (Updated) ---
+const studentModal=document.getElementById('studentModal');
+const studentForm=document.getElementById('studentForm');
+
+function openAddStudentModal(){
+  document.getElementById('studentModalTitle').textContent='เพิ่มนักเรียน';
+  studentForm.action="{{ url_for('classroom_add_student', classroom_id=classroom.id) }}";
+  studentForm.reset();
+  document.getElementById('studentId').value = "";
+  studentModal.classList.add('show');
+}
+
+// Function Edit แบบใหม่ (ใช้ dataset)
+function editStudent(btn){
+  const id = btn.dataset.id;
+  const no = btn.dataset.no;
+  const name = btn.dataset.name;
+  const nickname = btn.dataset.nickname;
+
+  document.getElementById('studentModalTitle').textContent = 'แก้ไขข้อมูลนักเรียน';
+  // เปลี่ยน URL Action ไปยัง Route สำหรับ Edit
+  studentForm.action = `/classroom/student/${id}/edit`;
+  
+  document.getElementById('studentId').value = id;
+  document.getElementById('studentNoModal').value = no;
+  document.getElementById('studentName').value = name;
+  document.getElementById('studentNickname').value = nickname;
+  
+  studentModal.classList.add('show');
+}
+
+function deleteStudent(btn){
+  const id = btn.dataset.id;
+  const name = btn.dataset.name;
+  if(!confirm(`ต้องการลบ "${name}" ใช่หรือไม่?`)) return;
+  
+  const f=document.createElement('form');
+  f.method='POST';
+  f.action=`/classroom/student/${id}/delete`;
+  document.body.appendChild(f);
+  f.submit();
+}
+
 function closeStudentModal(){studentModal.classList.remove('show');}
-function deleteStudent(id,name){if(!confirm(`ลบ "${name}"?`))return;const f=document.createElement('form');f.method='POST';f.action=`/classroom/student/${id}/delete`;document.body.appendChild(f);f.submit();}
+
+// --- Import & Assign ---
 const importModal=document.getElementById('importModal');function openImportModal(){importModal.classList.add('show');}function closeImportModal(){importModal.classList.remove('show');}
 const assignModal=document.getElementById('assignModal');function openAssignModal(){assignModal.classList.add('show');}function closeAssignModal(){assignModal.classList.remove('show');}
+
+// Close Events
 [studentModal,importModal,assignModal].forEach(m=>m.addEventListener('click',e=>{if(e.target===m)m.classList.remove('show');}));
 document.addEventListener('keydown',e=>{if(e.key==='Escape'){closeStudentModal();closeImportModal();closeAssignModal();}});
 </script>
