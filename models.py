@@ -24,7 +24,7 @@ _raw_sqlite_path = os.environ.get("SQLITE_PATH", "").strip()
 if _raw_sqlite_path:
     # If user gives a directory path, place db file inside it
     if _raw_sqlite_path.endswith(os.sep) or os.path.isdir(_raw_sqlite_path) or (not _raw_sqlite_path.lower().endswith(".db")):
-        DB_PATH = os.path.join(_raw_sqlite_path.rstrip("/\") , "teacher_platform.db")
+        DB_PATH = os.path.join(_raw_sqlite_path.rstrip("/\\") , "teacher_platform.db")
     else:
         DB_PATH = _raw_sqlite_path
 else:
