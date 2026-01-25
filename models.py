@@ -14,15 +14,9 @@ BASE_DIR = os.path.dirname(__file__)
 
 # -----------------------------------------------------------------------------
 # Persistent SQLite on Render Disk (or any mounted volume)
-#
-# Set env var SQLITE_PATH to a FILE path, e.g.
-#   SQLITE_PATH=/var/data/teacher_platform.db
-#
-# If SQLITE_PATH points to a directory, we will create teacher_platform.db inside it.
 # -----------------------------------------------------------------------------
 _raw_sqlite_path = os.environ.get("SQLITE_PATH", "").strip()
 if _raw_sqlite_path:
-    # If user gives a directory path, place db file inside it
     if _raw_sqlite_path.endswith(os.sep) or os.path.isdir(_raw_sqlite_path) or (not _raw_sqlite_path.lower().endswith(".db")):
         DB_PATH = os.path.join(_raw_sqlite_path.rstrip("/\\") , "teacher_platform.db")
     else:
@@ -30,26 +24,18 @@ if _raw_sqlite_path:
 else:
     DB_PATH = os.path.join(BASE_DIR, "teacher_platform.db")
 
-# Ensure folder exists (important for Render Disk mount path)
 _db_dir = os.path.dirname(DB_PATH)
 if _db_dir:
     os.makedirs(_db_dir, exist_ok=True)
 
 
 def get_db() -> sqlite3.Connection:
-    """
-    SQLite connection with pragmas tuned for web apps:
-    - WAL mode: better concurrency for reads/writes
-    - busy_timeout: wait a bit instead of 'database is locked'
-    - foreign_keys: enforce FK constraints
-    """
     conn = sqlite3.connect(
         DB_PATH,
         timeout=30,
-        check_same_thread=False,  # Flask can use threads depending on server
+        check_same_thread=False,
     )
     conn.row_factory = sqlite3.Row
-
     try:
         conn.execute("PRAGMA journal_mode=WAL;")
         conn.execute("PRAGMA synchronous=NORMAL;")
@@ -57,22 +43,19 @@ def get_db() -> sqlite3.Connection:
         conn.execute("PRAGMA busy_timeout=5000;")
         conn.execute("PRAGMA temp_store=MEMORY;")
     except Exception:
-        # If PRAGMA fails for any reason, still return a usable connection
         pass
-
     return conn
+
 def _column_exists(conn: sqlite3.Connection, table: str, column: str) -> bool:
     c = conn.cursor()
     c.execute(f"PRAGMA table_info({table})")
     cols = [r[1] for r in c.fetchall()]
     return column in cols
 
-
 def _table_exists(conn: sqlite3.Connection, table: str) -> bool:
     c = conn.cursor()
     c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name=?", (table,))
     return c.fetchone() is not None
-
 
 def init_db() -> None:
     conn = get_db()
@@ -194,7 +177,7 @@ def init_db() -> None:
     )
     """)
 
-    # ---------------- classrooms (NEW!) ----------------
+    # ---------------- classrooms ----------------
     c.execute("""
     CREATE TABLE IF NOT EXISTS classrooms (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -209,7 +192,7 @@ def init_db() -> None:
     )
     """)
 
-    # ---------------- classroom_students (NEW!) ----------------
+    # ---------------- classroom_students ----------------
     c.execute("""
     CREATE TABLE IF NOT EXISTS classroom_students (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -222,7 +205,7 @@ def init_db() -> None:
     )
     """)
 
-    # ---------------- assignments (NEW!) ----------------
+    # ---------------- assignments ----------------
     c.execute("""
     CREATE TABLE IF NOT EXISTS assignments (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -242,22 +225,21 @@ def init_db() -> None:
     )
     """)
 
-
-# ---------------- indexes (performance) ----------------
-c.execute("CREATE INDEX IF NOT EXISTS idx_topics_owner_id ON topics(owner_id)")
-c.execute("CREATE INDEX IF NOT EXISTS idx_game_questions_topic_set ON game_questions(topic_id, set_no, tile_no)")
-c.execute("CREATE INDEX IF NOT EXISTS idx_practice_questions_topic ON practice_questions(topic_id)")
-c.execute("CREATE INDEX IF NOT EXISTS idx_attempt_history_user ON attempt_history(user_id, created_at)")
-c.execute("CREATE INDEX IF NOT EXISTS idx_practice_links_topic_user ON practice_links(topic_id, created_by, is_active)")
-c.execute("CREATE INDEX IF NOT EXISTS idx_practice_links_token ON practice_links(token)")
-c.execute("CREATE INDEX IF NOT EXISTS idx_practice_submissions_link ON practice_submissions(link_id, created_at)")
-c.execute("CREATE INDEX IF NOT EXISTS idx_classroom_students_classroom ON classroom_students(classroom_id, student_no)")
-c.execute("CREATE INDEX IF NOT EXISTS idx_assignments_classroom ON assignments(classroom_id, created_at)")
+    # ---------------- indexes (performance) ----------------
+    # แก้ไขการย่อหน้า (Indentation) ให้ถูกต้อง
+    c.execute("CREATE INDEX IF NOT EXISTS idx_topics_owner_id ON topics(owner_id)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_game_questions_topic_set ON game_questions(topic_id, set_no, tile_no)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_practice_questions_topic ON practice_questions(topic_id)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_attempt_history_user ON attempt_history(user_id, created_at)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_practice_links_topic_user ON practice_links(topic_id, created_by, is_active)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_practice_links_token ON practice_links(token)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_practice_submissions_link ON practice_submissions(link_id, created_at)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_classroom_students_classroom ON classroom_students(classroom_id, student_no)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_assignments_classroom ON assignments(classroom_id, created_at)")
+    
     conn.commit()
 
-    # =======================
     # ✅ MIGRATIONS (safe)
-    # =======================
     if not _column_exists(conn, "topics", "owner_id"):
         c.execute("ALTER TABLE topics ADD COLUMN owner_id INTEGER NOT NULL DEFAULT 1")
         conn.commit()
@@ -274,8 +256,9 @@ c.execute("CREATE INDEX IF NOT EXISTS idx_assignments_classroom ON assignments(c
 
 
 # =============================================================================
-# User Model
+# Models (User, Topic, GameQuestion, etc.)
 # =============================================================================
+
 class User:
     @staticmethod
     def create(email: str, password: str, role: str = "teacher") -> Dict[str, Any]:
@@ -311,9 +294,6 @@ class User:
         return dict(row) if row else None
 
 
-# =============================================================================
-# Topic Model
-# =============================================================================
 class Topic:
     @staticmethod
     def create(owner_id: int, name: str, description: str, slides_json: str, topic_type: str, pdf_file: Optional[str] = None) -> Dict[str, Any]:
@@ -335,24 +315,6 @@ class Topic:
         c = conn.cursor()
         c.execute("UPDATE topics SET name = ?, description = ?, slides_json = ?, pdf_file = ? WHERE id = ?",
                   (name, description, slides_json, pdf_file, topic_id))
-        conn.commit()
-        conn.close()
-
-    @staticmethod
-    def update_owner(topic_id: int, owner_id: int) -> None:
-        conn = get_db()
-        c = conn.cursor()
-        c.execute("UPDATE topics SET owner_id = ? WHERE id = ?", (owner_id, topic_id))
-        conn.commit()
-        conn.close()
-
-    @staticmethod
-    def delete(topic_id: int) -> None:
-        GameQuestion.delete_by_topic(topic_id)
-        PracticeQuestion.delete_by_topic(topic_id)
-        conn = get_db()
-        c = conn.cursor()
-        c.execute("DELETE FROM topics WHERE id = ?", (topic_id,))
         conn.commit()
         conn.close()
 
@@ -383,10 +345,17 @@ class Topic:
         conn.close()
         return [dict(r) for r in rows]
 
+    @staticmethod
+    def delete(topic_id: int) -> None:
+        GameQuestion.delete_by_topic(topic_id)
+        PracticeQuestion.delete_by_topic(topic_id)
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("DELETE FROM topics WHERE id = ?", (topic_id,))
+        conn.commit()
+        conn.close()
 
-# =============================================================================
-# GameQuestion Model
-# =============================================================================
+
 class GameQuestion:
     @staticmethod
     def create(topic_id: int, set_no: int, tile_no: int, question: str, answer: str, points: int = 10) -> Dict[str, Any]:
@@ -429,9 +398,6 @@ class GameQuestion:
         conn.close()
 
 
-# =============================================================================
-# PracticeQuestion Model
-# =============================================================================
 class PracticeQuestion:
     @staticmethod
     def create(topic_id: int, q_type: str, question: str, correct_answer: str) -> Dict[str, Any]:
@@ -446,15 +412,6 @@ class PracticeQuestion:
         q_id = c.lastrowid
         conn.close()
         return PracticeQuestion.get_by_id(q_id)
-
-    @staticmethod
-    def get_by_id(q_id: int) -> Optional[Dict[str, Any]]:
-        conn = get_db()
-        c = conn.cursor()
-        c.execute("SELECT * FROM practice_questions WHERE id = ?", (q_id,))
-        row = c.fetchone()
-        conn.close()
-        return dict(row) if row else None
 
     @staticmethod
     def get_by_topic(topic_id: int) -> List[Dict[str, Any]]:
@@ -473,10 +430,16 @@ class PracticeQuestion:
         conn.commit()
         conn.close()
 
+    @staticmethod
+    def get_by_id(q_id: int) -> Optional[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM practice_questions WHERE id = ?", (q_id,))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
 
-# =============================================================================
-# AttemptHistory Model
-# =============================================================================
+
 class AttemptHistory:
     @staticmethod
     def create(user_id: int, topic_id: int, score: int, total: int, percentage: float) -> None:
@@ -512,9 +475,6 @@ class AttemptHistory:
         return [dict(r) for r in rows]
 
 
-# =============================================================================
-# Practice Links + Submissions
-# =============================================================================
 class PracticeLink:
     @staticmethod
     def create(topic_id: int, created_by: int, token: str) -> Dict[str, Any]:
@@ -614,9 +574,6 @@ class PracticeSubmission:
         return [dict(r) for r in rows]
 
 
-# =============================================================================
-# GameSession Model
-# =============================================================================
 class GameSession:
     @staticmethod
     def create(topic_id: int, created_by: int, title: str, settings_json: str = "{}", state_json: str = "{}") -> Dict[str, Any]:
@@ -679,9 +636,6 @@ class GameSession:
         conn.close()
 
 
-# =============================================================================
-# Classroom Model (NEW!)
-# =============================================================================
 class Classroom:
     @staticmethod
     def create(owner_id: int, name: str, grade_level: str = "", academic_year: str = "", description: str = "") -> Dict[str, Any]:
@@ -738,19 +692,13 @@ class Classroom:
     def delete(classroom_id: int) -> None:
         conn = get_db()
         c = conn.cursor()
-        # Delete students first
         c.execute("DELETE FROM classroom_students WHERE classroom_id = ?", (classroom_id,))
-        # Delete assignments
         c.execute("DELETE FROM assignments WHERE classroom_id = ?", (classroom_id,))
-        # Delete classroom
         c.execute("DELETE FROM classrooms WHERE id = ?", (classroom_id,))
         conn.commit()
         conn.close()
 
 
-# =============================================================================
-# ClassroomStudent Model (NEW!)
-# =============================================================================
 class ClassroomStudent:
     @staticmethod
     def create(classroom_id: int, student_no: str, student_name: str, nickname: str = "") -> Dict[str, Any]:
@@ -764,7 +712,6 @@ class ClassroomStudent:
         conn.commit()
         student_id = c.lastrowid
         conn.close()
-        # Update count
         Classroom.update_student_count(classroom_id)
         return ClassroomStudent.get_by_id(student_id)
 
@@ -799,30 +746,17 @@ class ClassroomStudent:
     def delete(student_id: int) -> None:
         conn = get_db()
         c = conn.cursor()
-        # Get classroom_id first
         c.execute("SELECT classroom_id FROM classroom_students WHERE id = ?", (student_id,))
         row = c.fetchone()
         classroom_id = row[0] if row else None
-        # Delete
         c.execute("DELETE FROM classroom_students WHERE id = ?", (student_id,))
         conn.commit()
         conn.close()
-        # Update count
         if classroom_id:
             Classroom.update_student_count(classroom_id)
 
     @staticmethod
-    def delete_by_classroom(classroom_id: int) -> None:
-        conn = get_db()
-        c = conn.cursor()
-        c.execute("DELETE FROM classroom_students WHERE classroom_id = ?", (classroom_id,))
-        conn.commit()
-        conn.close()
-        Classroom.update_student_count(classroom_id)
-
-    @staticmethod
     def bulk_create(classroom_id: int, students: List[Dict[str, str]]) -> int:
-        """Create multiple students at once. Returns count of created."""
         conn = get_db()
         c = conn.cursor()
         now = datetime.utcnow().isoformat()
@@ -843,9 +777,6 @@ class ClassroomStudent:
         return count
 
 
-# =============================================================================
-# Assignment Model (NEW!)
-# =============================================================================
 class Assignment:
     @staticmethod
     def create(classroom_id: int, topic_id: int, practice_link_id: int, title: str, description: str, due_date: str, created_by: int) -> Dict[str, Any]:
@@ -902,15 +833,6 @@ class Assignment:
         return [dict(r) for r in rows]
 
     @staticmethod
-    def update(assignment_id: int, title: str, description: str, due_date: str, is_active: int) -> None:
-        conn = get_db()
-        c = conn.cursor()
-        c.execute("UPDATE assignments SET title = ?, description = ?, due_date = ?, is_active = ? WHERE id = ?",
-                  (title, description, due_date, is_active, assignment_id))
-        conn.commit()
-        conn.close()
-
-    @staticmethod
     def delete(assignment_id: int) -> None:
         conn = get_db()
         c = conn.cursor()
@@ -920,27 +842,20 @@ class Assignment:
 
     @staticmethod
     def get_submissions_status(assignment_id: int) -> Dict[str, Any]:
-        """Get submission status for an assignment"""
         assignment = Assignment.get_by_id(assignment_id)
         if not assignment:
             return {"submitted": [], "not_submitted": [], "total": 0}
 
         classroom_id = assignment["classroom_id"]
         practice_link_id = assignment.get("practice_link_id")
-
-        # Get all students in classroom
         students = ClassroomStudent.get_by_classroom(classroom_id)
 
         if not practice_link_id:
             return {"submitted": [], "not_submitted": students, "total": len(students)}
 
-        # Get submissions for this practice link
         submissions = PracticeSubmission.get_by_link(practice_link_id)
-        submitted_names = set()
-        submitted_nos = set()
-        for sub in submissions:
-            submitted_names.add((sub.get("student_name") or "").strip().lower())
-            submitted_nos.add((sub.get("student_no") or "").strip())
+        submitted_names = set((sub.get("student_name") or "").strip().lower() for sub in submissions)
+        submitted_nos = set((sub.get("student_no") or "").strip() for sub in submissions)
 
         submitted = []
         not_submitted = []
@@ -949,7 +864,6 @@ class Assignment:
             name_match = (student.get("student_name") or "").strip().lower() in submitted_names
             no_match = (student.get("student_no") or "").strip() in submitted_nos
             if name_match or no_match:
-                # Find the submission
                 for sub in submissions:
                     if ((sub.get("student_name") or "").strip().lower() == (student.get("student_name") or "").strip().lower() or
                         (sub.get("student_no") or "").strip() == (student.get("student_no") or "").strip()):
