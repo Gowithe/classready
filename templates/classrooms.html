@@ -255,7 +255,6 @@
 
 {% block content %}
 <div class="wrap">
-  <!-- Header -->
   <div class="page-header">
     <div>
       <div class="page-title">🏫 My Classrooms</div>
@@ -267,7 +266,6 @@
     </div>
   </div>
 
-  <!-- Stats -->
   <div class="stats-row">
     <div class="stat-card">
       <div class="stat-icon">🏫</div>
@@ -286,7 +284,6 @@
     </div>
   </div>
 
-  <!-- Classroom Grid -->
   {% if classrooms %}
   <div class="classroom-grid">
     {% for cls in classrooms %}
@@ -311,7 +308,15 @@
         </div>
         <div class="classroom-actions">
           <a href="{{ url_for('classroom_detail', classroom_id=cls.id) }}" class="btn btn-primary">📂 เปิด</a>
-          <button class="btn btn-secondary" onclick="openEditModal({{ cls|tojson|e }})">✏️</button>
+          
+          <button class="btn btn-secondary" 
+            data-id="{{ cls.id }}"
+            data-name="{{ cls.name }}"
+            data-grade="{{ cls.grade_level or '' }}"
+            data-year="{{ cls.academic_year or '' }}"
+            data-desc="{{ cls.description or '' }}"
+            onclick="openEditModal(this)">✏️</button>
+            
           <button class="btn btn-secondary" onclick="deleteClassroom({{ cls.id }}, '{{ cls.name }}')" style="color:#ef4444;">🗑️</button>
         </div>
       </div>
@@ -328,7 +333,6 @@
   {% endif %}
 </div>
 
-<!-- Create/Edit Modal -->
 <div class="modal-overlay" id="classroomModal">
   <div class="modal-box">
     <div class="modal-header">
@@ -341,7 +345,7 @@
         
         <div class="form-group">
           <label>ชื่อห้อง <span style="color:#ef4444">*</span></label>
-          <input type="text" id="classroomName" name="name" required placeholder="เช่น ม.1/1, ป.6/2">
+          <input type="text" id="classroomName" name="name" required placeholder="เช่น ม.1/1, ปวช.2 คอมฯ">
         </div>
         
         <div class="form-row">
@@ -349,18 +353,41 @@
             <label>ระดับชั้น</label>
             <select id="gradeLevel" name="grade_level">
               <option value="">-- เลือก --</option>
-              <option value="ป.1">ป.1</option>
-              <option value="ป.2">ป.2</option>
-              <option value="ป.3">ป.3</option>
-              <option value="ป.4">ป.4</option>
-              <option value="ป.5">ป.5</option>
-              <option value="ป.6">ป.6</option>
-              <option value="ม.1">ม.1</option>
-              <option value="ม.2">ม.2</option>
-              <option value="ม.3">ม.3</option>
-              <option value="ม.4">ม.4</option>
-              <option value="ม.5">ม.5</option>
-              <option value="ม.6">ม.6</option>
+              <optgroup label="ประถมศึกษา">
+                <option value="ป.1">ป.1</option>
+                <option value="ป.2">ป.2</option>
+                <option value="ป.3">ป.3</option>
+                <option value="ป.4">ป.4</option>
+                <option value="ป.5">ป.5</option>
+                <option value="ป.6">ป.6</option>
+              </optgroup>
+              <optgroup label="มัธยมศึกษา">
+                <option value="ม.1">ม.1</option>
+                <option value="ม.2">ม.2</option>
+                <option value="ม.3">ม.3</option>
+                <option value="ม.4">ม.4</option>
+                <option value="ม.5">ม.5</option>
+                <option value="ม.6">ม.6</option>
+              </optgroup>
+              <optgroup label="อาชีวศึกษา (ปวช./ปวส.)">
+                <option value="ปวช.1">ปวช.1</option>
+                <option value="ปวช.2">ปวช.2</option>
+                <option value="ปวช.3">ปวช.3</option>
+                <option value="ปวส.1">ปวส.1</option>
+                <option value="ปวส.2">ปวส.2</option>
+              </optgroup>
+              <optgroup label="อุดมศึกษา (ปริญญา)">
+                <option value="ปี 1">ปี 1</option>
+                <option value="ปี 2">ปี 2</option>
+                <option value="ปี 3">ปี 3</option>
+                <option value="ปี 4">ปี 4</option>
+                <option value="ปี 5">ปี 5</option>
+                <option value="ปี 6">ปี 6</option>
+                <option value="บัณฑิตศึกษา">บัณฑิตศึกษา (ป.โท/เอก)</option>
+              </optgroup>
+              <optgroup label="อื่นๆ">
+                <option value="บุคคลทั่วไป">บุคคลทั่วไป</option>
+              </optgroup>
             </select>
           </div>
           <div class="form-group">
@@ -371,7 +398,7 @@
         
         <div class="form-group">
           <label>รายละเอียด (ถ้ามี)</label>
-          <textarea id="classroomDesc" name="description" rows="3" placeholder="เช่น วิชาภาษาอังกฤษ"></textarea>
+          <textarea id="classroomDesc" name="description" rows="3" placeholder="เช่น วิชาภาษาอังกฤษ, แผนกคอมพิวเตอร์"></textarea>
         </div>
       </div>
       <div class="modal-footer">
@@ -397,17 +424,20 @@ function openCreateModal() {
   modal.classList.add('show');
 }
 
-function openEditModal(cls) {
+function openEditModal(btn) {
   isEdit = true;
   document.getElementById('modalTitle').textContent = 'แก้ไขห้องเรียน';
   document.getElementById('submitBtn').textContent = '💾 บันทึก';
-  form.action = `/classroom/${cls.id}/edit`;
   
-  document.getElementById('classroomId').value = cls.id;
-  document.getElementById('classroomName').value = cls.name || '';
-  document.getElementById('gradeLevel').value = cls.grade_level || '';
-  document.getElementById('academicYear').value = cls.academic_year || '';
-  document.getElementById('classroomDesc').value = cls.description || '';
+  // ใช้ data attribute แทน
+  const id = btn.dataset.id;
+  form.action = `/classroom/${id}/edit`;
+  
+  document.getElementById('classroomId').value = id;
+  document.getElementById('classroomName').value = btn.dataset.name;
+  document.getElementById('gradeLevel').value = btn.dataset.grade;
+  document.getElementById('academicYear').value = btn.dataset.year;
+  document.getElementById('classroomDesc').value = btn.dataset.desc;
   
   modal.classList.add('show');
 }
