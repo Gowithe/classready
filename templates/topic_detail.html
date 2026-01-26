@@ -243,6 +243,140 @@
     font-size: 0.85rem;
     margin-top: 1rem;
   }
+
+  /* QR Code Modal */
+  .qr-modal-box {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 10px 40px rgba(0, 0, 0, 0.2);
+    max-width: 700px;
+    width: 95%;
+    max-height: 90vh;
+    overflow: hidden;
+  }
+  .qr-modal-header {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 1.25rem 1.5rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .qr-modal-header h3 { margin: 0; font-size: 1.2rem; }
+  .qr-modal-close {
+    background: rgba(255,255,255,0.2);
+    border: none;
+    color: white;
+    width: 36px;
+    height: 36px;
+    border-radius: 8px;
+    cursor: pointer;
+    font-size: 1.2rem;
+  }
+  .qr-modal-body {
+    padding: 1.5rem;
+    max-height: calc(90vh - 80px);
+    overflow-y: auto;
+  }
+  .qr-tabs {
+    display: flex;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    border-bottom: 2px solid #e2e8f0;
+    padding-bottom: 0.5rem;
+  }
+  .qr-tab {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    background: #f1f5f9;
+    border-radius: 8px 8px 0 0;
+    font-weight: 700;
+    cursor: pointer;
+    color: #64748b;
+    transition: all 0.2s;
+  }
+  .qr-tab:hover { background: #e2e8f0; }
+  .qr-tab.active {
+    background: #667eea;
+    color: white;
+  }
+  .qr-content {
+    display: none;
+    text-align: center;
+  }
+  .qr-content.active { display: block; }
+  .qr-image {
+    background: white;
+    padding: 1rem;
+    border-radius: 12px;
+    border: 2px solid #e2e8f0;
+    display: inline-block;
+    margin-bottom: 1rem;
+  }
+  .qr-image img {
+    width: 200px;
+    height: 200px;
+  }
+  .qr-url {
+    background: #f8fafc;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    padding: 0.75rem 1rem;
+    font-family: monospace;
+    font-size: 0.85rem;
+    word-break: break-all;
+    margin-bottom: 1rem;
+    color: #475569;
+  }
+  .qr-actions {
+    display: flex;
+    gap: 0.75rem;
+    justify-content: center;
+    flex-wrap: wrap;
+  }
+  .qr-btn {
+    padding: 0.6rem 1.2rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+  }
+  .qr-btn-copy { background: #667eea; color: white; }
+  .qr-btn-copy:hover { background: #5a67d8; }
+  .qr-btn-download { background: #10b981; color: white; }
+  .qr-btn-download:hover { background: #059669; }
+  .qr-btn-open { background: #f59e0b; color: white; }
+  .qr-btn-open:hover { background: #d97706; }
+  .qr-tip {
+    margin-top: 1rem;
+    padding: 0.75rem;
+    background: #fef3c7;
+    border-radius: 8px;
+    font-size: 0.85rem;
+    color: #92400e;
+  }
+  .copy-toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    z-index: 2000;
+    display: none;
+  }
+  .copy-toast.show { display: block; animation: fadeInUp 0.3s ease; }
+  @keyframes fadeInUp {
+    from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
 </style>
 {% endblock %}
 
@@ -293,6 +427,7 @@
         <a href="{{ url_for('practice_fill_blanks', topic_id=topic.id) }}">✍️ Fill in the Blanks</a>
         <a href="{{ url_for('practice_unscramble', topic_id=topic.id) }}">🔀 Sentence Unscramble</a>
         <div class="dropdown-divider"></div>
+        <a href="javascript:void(0)" onclick="openQRModal()">📱 QR Code สำหรับนักเรียน</a>
         <a href="{{ url_for('practice_all_scores', topic_id=topic.id) }}">📊 View All Scores</a>
         {% else %}
         <a class="disabled">กรุณา Generate Practice ก่อน</a>
@@ -369,6 +504,65 @@
     <p class="hint">โปรดอย่าปิดหน้าเว็บระหว่างทำงาน</p>
   </div>
 </div>
+
+<!-- QR Code Modal -->
+<div class="modal-overlay" id="qrModal">
+  <div class="qr-modal-box">
+    <div class="qr-modal-header">
+      <h3>📱 QR Code สำหรับนักเรียน</h3>
+      <button class="qr-modal-close" onclick="closeQRModal()">✕</button>
+    </div>
+    <div class="qr-modal-body">
+      <div class="qr-tabs">
+        <button class="qr-tab active" onclick="switchQRTab('mcq')">📝 MCQ</button>
+        <button class="qr-tab" onclick="switchQRTab('fill')">✍️ Fill Blanks</button>
+        <button class="qr-tab" onclick="switchQRTab('unscramble')">🔀 Unscramble</button>
+      </div>
+      
+      <div class="qr-content active" id="qr-mcq">
+        <div class="qr-image">
+          <img id="qr-img-mcq" src="" alt="QR Code MCQ">
+        </div>
+        <div class="qr-url" id="qr-url-mcq"></div>
+        <div class="qr-actions">
+          <button class="qr-btn qr-btn-copy" onclick="copyURL('mcq')">📋 Copy Link</button>
+          <button class="qr-btn qr-btn-download" onclick="downloadQR('mcq')">💾 Download QR</button>
+          <button class="qr-btn qr-btn-open" onclick="openURL('mcq')">🔗 เปิดลิงก์</button>
+        </div>
+      </div>
+      
+      <div class="qr-content" id="qr-fill">
+        <div class="qr-image">
+          <img id="qr-img-fill" src="" alt="QR Code Fill Blanks">
+        </div>
+        <div class="qr-url" id="qr-url-fill"></div>
+        <div class="qr-actions">
+          <button class="qr-btn qr-btn-copy" onclick="copyURL('fill')">📋 Copy Link</button>
+          <button class="qr-btn qr-btn-download" onclick="downloadQR('fill')">💾 Download QR</button>
+          <button class="qr-btn qr-btn-open" onclick="openURL('fill')">🔗 เปิดลิงก์</button>
+        </div>
+      </div>
+      
+      <div class="qr-content" id="qr-unscramble">
+        <div class="qr-image">
+          <img id="qr-img-unscramble" src="" alt="QR Code Unscramble">
+        </div>
+        <div class="qr-url" id="qr-url-unscramble"></div>
+        <div class="qr-actions">
+          <button class="qr-btn qr-btn-copy" onclick="copyURL('unscramble')">📋 Copy Link</button>
+          <button class="qr-btn qr-btn-download" onclick="downloadQR('unscramble')">💾 Download QR</button>
+          <button class="qr-btn qr-btn-open" onclick="openURL('unscramble')">🔗 เปิดลิงก์</button>
+        </div>
+      </div>
+      
+      <div class="qr-tip">
+        💡 <strong>วิธีใช้:</strong> ฉาย QR Code บนหน้าจอ แล้วให้นักเรียนสแกนด้วยมือถือเพื่อเข้าทำแบบฝึกหัด
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="copy-toast" id="copyToast">✅ คัดลอกลิงก์แล้ว!</div>
 
 <script>
   // ---------------- Dropdown (click-to-toggle) ----------------
@@ -530,5 +724,93 @@
   if(btnSlides) btnSlides.addEventListener('click', () => callGenerate('slides'));
   if(btnGame) btnGame.addEventListener('click', () => callGenerate('game'));
   if(btnPractice) btnPractice.addEventListener('click', () => callGenerate('practice'));
+
+  // ==================== QR Code Modal ====================
+  const qrModal = document.getElementById('qrModal');
+  const baseUrl = window.location.origin;
+  
+  // URLs for each exercise type
+  const qrUrls = {
+    mcq: `${baseUrl}/p/{{ topic.id }}/mcq`,
+    fill: `${baseUrl}/p/{{ topic.id }}/fill`,
+    unscramble: `${baseUrl}/p/{{ topic.id }}/unscramble`
+  };
+  
+  function generateQRUrl(url) {
+    return `https://api.qrserver.com/v1/create-qr-code/?size=200x200&data=${encodeURIComponent(url)}`;
+  }
+  
+  function openQRModal() {
+    // Set QR images and URLs
+    document.getElementById('qr-img-mcq').src = generateQRUrl(qrUrls.mcq);
+    document.getElementById('qr-url-mcq').textContent = qrUrls.mcq;
+    
+    document.getElementById('qr-img-fill').src = generateQRUrl(qrUrls.fill);
+    document.getElementById('qr-url-fill').textContent = qrUrls.fill;
+    
+    document.getElementById('qr-img-unscramble').src = generateQRUrl(qrUrls.unscramble);
+    document.getElementById('qr-url-unscramble').textContent = qrUrls.unscramble;
+    
+    qrModal.classList.add('show');
+  }
+  
+  function closeQRModal() {
+    qrModal.classList.remove('show');
+  }
+  
+  function switchQRTab(type) {
+    // Update tabs
+    document.querySelectorAll('.qr-tab').forEach(t => t.classList.remove('active'));
+    document.querySelectorAll('.qr-content').forEach(c => c.classList.remove('active'));
+    
+    event.target.classList.add('active');
+    document.getElementById(`qr-${type}`).classList.add('active');
+  }
+  
+  function copyURL(type) {
+    const url = qrUrls[type];
+    navigator.clipboard.writeText(url).then(() => {
+      showToast();
+    }).catch(() => {
+      // Fallback
+      const input = document.createElement('input');
+      input.value = url;
+      document.body.appendChild(input);
+      input.select();
+      document.execCommand('copy');
+      document.body.removeChild(input);
+      showToast();
+    });
+  }
+  
+  function showToast() {
+    const toast = document.getElementById('copyToast');
+    toast.classList.add('show');
+    setTimeout(() => toast.classList.remove('show'), 2000);
+  }
+  
+  function downloadQR(type) {
+    const url = generateQRUrl(qrUrls[type]);
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = `qr-${type}-topic-{{ topic.id }}.png`;
+    link.click();
+  }
+  
+  function openURL(type) {
+    window.open(qrUrls[type], '_blank');
+  }
+  
+  // Close modal on backdrop click
+  qrModal.addEventListener('click', (e) => {
+    if (e.target === qrModal) closeQRModal();
+  });
+  
+  // Close on Escape
+  document.addEventListener('keydown', (e) => {
+    if (e.key === 'Escape' && qrModal.classList.contains('show')) {
+      closeQRModal();
+    }
+  });
 </script>
 {% endblock %}
