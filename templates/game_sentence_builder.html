@@ -203,6 +203,42 @@
 }
 .selected-student.show { display: block; }
 
+/* Classroom Import */
+.classroom-import {
+  background: #f0fdf4;
+  border: 1px solid #86efac;
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+.classroom-import-row {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  align-items: center;
+}
+.classroom-import label {
+  font-weight: 700;
+  color: #166534;
+}
+.classroom-import select {
+  flex: 1;
+  min-width: 180px;
+  padding: 0.5rem;
+  border-radius: 8px;
+  border: 1px solid #86efac;
+}
+.btn-import {
+  padding: 0.5rem 1rem;
+  background: #22c55e;
+  color: #fff;
+  border: none;
+  border-radius: 8px;
+  font-weight: 700;
+  cursor: pointer;
+}
+.btn-import:hover { background: #16a34a; }
+
 /* Game Section */
 .game-section {
   background: #fff;
@@ -535,6 +571,17 @@
       <h3>🎡 วงล้อสุ่มนักเรียน</h3>
     </div>
     
+    <!-- Classroom Import -->
+  <div class="classroom-import">
+    <div class="classroom-import-row">
+      <label>📚 ดึงจาก Classroom:</label>
+      <select id="classroomSelect">
+        <option value="">-- เลือก Classroom --</option>
+      </select>
+      <button class="btn-import" onclick="loadFromClassroom()">📥 ดึงรายชื่อ</button>
+    </div>
+  </div>
+
     <div class="student-input-row">
       <input type="text" id="studentNameInput" placeholder="พิมพ์ชื่อนักเรียน แล้วกด Enter หรือ เพิ่ม" maxlength="50">
       <button class="btn-add" onclick="addStudent()">➕ เพิ่ม</button>
@@ -640,6 +687,7 @@
 </div>
 
 
+
 <div class="modal-backdrop" id="editorBackdrop" onclick="onBackdropClick(event)">
   <div class="modal" onclick="event.stopPropagation()">
     <div class="modal-header">
@@ -716,6 +764,46 @@ function playWinSound() { const n=[523,659,784,1047]; n.forEach((x,i)=>setTimeou
 function playTickSound() { playTone(800, 0.05, 'sine', 0.1); }
 function toggleSound() { soundEnabled = !soundEnabled; document.getElementById('soundToggle').textContent = soundEnabled ? '🔊' : '🔇'; }
 
+// Classroom Import
+async function loadClassrooms() {
+  try {
+    const res = await fetch('/api/classrooms');
+    const data = await res.json();
+    const select = document.getElementById('classroomSelect');
+    select.innerHTML = '<option value="">-- เลือก Classroom --</option>';
+    if (data.classrooms && data.classrooms.length > 0) {
+      data.classrooms.forEach(c => {
+        const opt = document.createElement('option');
+        opt.value = c.id;
+        opt.textContent = c.name;
+        select.appendChild(opt);
+      });
+    }
+  } catch (e) { console.log('Could not load classrooms:', e); }
+}
+
+async function loadFromClassroom() {
+  const classroomId = document.getElementById('classroomSelect').value;
+  if (!classroomId) { alert('กรุณาเลือก Classroom ก่อน'); return; }
+  try {
+    const res = await fetch('/api/classroom/' + classroomId + '/students');
+    const data = await res.json();
+    if (data.students && data.students.length > 0) {
+      students = [];
+      data.students.forEach(s => {
+        const name = s.student_name || s.name || '';
+        if (name && !students.includes(name)) students.push(name);
+      });
+      renderStudentList();
+      drawWheel();
+      document.getElementById('btnSpin').disabled = students.length < 2;
+      playClickSound();
+      alert('✅ เพิ่ม ' + students.length + ' คน จาก Classroom แล้ว!');
+    } else { alert('ไม่พบนักเรียนใน Classroom นี้'); }
+  } catch (e) { alert('ไม่สามารถโหลดรายชื่อได้'); }
+}
+
+loadClassrooms(); // เรียกตอนโหลดหน้า
 // Student Wheel
 const colors = ['#8b5cf6', '#ec4899', '#06b6d4', '#22c55e', '#f59e0b', '#ef4444', '#6366f1', '#14b8a6', '#f97316', '#a855f7'];
 document.getElementById('studentNameInput').addEventListener('keypress', function(e) { if(e.key === 'Enter') addStudent(); });
