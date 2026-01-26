@@ -481,8 +481,10 @@ class PracticeLink:
         conn = get_db()
         c = conn.cursor()
         now = datetime.utcnow().isoformat()
-        c.execute("INSERT INTO practice_links (topic_id, created_by, token, is_active, created_at) VALUES (?, ?, ?, 1, ?)",
-                  (topic_id, created_by, token, now))
+        c.execute(
+            "INSERT INTO practice_links (topic_id, created_by, token, is_active, created_at) VALUES (?, ?, ?, 1, ?)",
+            (topic_id, created_by, token, now)
+        )
         conn.commit()
         link_id = c.lastrowid
         conn.close()
@@ -506,12 +508,32 @@ class PracticeLink:
         conn.close()
         return dict(row) if row else None
 
+    # ✅ เพิ่มเมธอดนี้: ดึงลิงก์ล่าสุดของ topic (โดยรวม ทั้ง active/inactive)
+    @staticmethod
+    def get_by_topic(topic_id: int) -> Optional[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute(
+            """
+            SELECT * FROM practice_links
+            WHERE topic_id = ?
+            ORDER BY id DESC
+            LIMIT 1
+            """,
+            (topic_id,),
+        )
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
     @staticmethod
     def get_latest_active_by_topic_and_user(topic_id: int, created_by: int) -> Optional[Dict[str, Any]]:
         conn = get_db()
         c = conn.cursor()
-        c.execute("SELECT * FROM practice_links WHERE topic_id = ? AND created_by = ? AND is_active = 1 ORDER BY id DESC LIMIT 1",
-                  (topic_id, created_by))
+        c.execute(
+            "SELECT * FROM practice_links WHERE topic_id = ? AND created_by = ? AND is_active = 1 ORDER BY id DESC LIMIT 1",
+            (topic_id, created_by)
+        )
         row = c.fetchone()
         conn.close()
         return dict(row) if row else None
