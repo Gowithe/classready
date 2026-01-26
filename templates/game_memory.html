@@ -40,8 +40,8 @@
 
 /* Setup Screen */
 .setup-screen {
-  max-width: 600px;
-  margin: 2rem auto;
+  max-width: 550px;
+  margin: 1.5rem auto;
   background: #fff;
   padding: 2rem;
   border-radius: 16px;
@@ -50,12 +50,12 @@
 }
 .setup-screen h2 {
   color: var(--primary);
-  margin-bottom: 1.5rem;
+  margin-bottom: 0.5rem;
 }
 .setup-options {
   display: flex;
   flex-direction: column;
-  gap: 1rem;
+  gap: 0.75rem;
   margin-bottom: 1.5rem;
   text-align: left;
 }
@@ -63,18 +63,20 @@
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 1rem;
+  padding: 0.85rem 1rem;
   background: #f8fafc;
   border-radius: 12px;
 }
 .setup-row label {
   font-weight: 700;
+  color: #334155;
 }
 .setup-row select {
   padding: .5rem 1rem;
   border-radius: 8px;
   border: 1px solid #e2e8f0;
   font-weight: 600;
+  font-size: 0.95rem;
 }
 .btn-start {
   width: 100%;
@@ -96,7 +98,7 @@
 /* Game Container */
 .game-container {
   display: none;
-  max-width: 900px;
+  max-width: 950px;
   margin: 0 auto;
 }
 .game-container.active {
@@ -109,32 +111,100 @@
   justify-content: space-between;
   align-items: center;
   flex-wrap: wrap;
-  gap: 1rem;
-  padding: 1rem 1.5rem;
+  gap: 0.75rem;
+  padding: 0.75rem 1rem;
   background: #fff;
-  border-radius: 16px;
+  border-radius: 14px;
   box-shadow: 0 2px 10px rgba(0,0,0,.08);
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
+}
+.scoreboard {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+.team-score {
+  text-align: center;
+  padding: 0.5rem 1rem;
+  border-radius: 10px;
+  background: #f8fafc;
+  border: 2px solid transparent;
+  min-width: 70px;
+  transition: all 0.2s;
+}
+.team-score.active {
+  border-color: var(--primary);
+  background: #eef2ff;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(102,126,234,.2);
+}
+.team-score.scored {
+  animation: scoreFlash 0.5s ease;
+}
+@keyframes scoreFlash {
+  50% { background: #dcfce7; }
+}
+.team-value {
+  font-size: 1.5rem;
+  font-weight: 900;
+  color: var(--primary);
+}
+.team-label {
+  font-size: 0.7rem;
+  color: #64748b;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 .stat-item {
   text-align: center;
+  padding: 0.4rem 0.8rem;
 }
 .stat-value {
-  font-size: 1.8rem;
+  font-size: 1.3rem;
   font-weight: 900;
   color: var(--primary);
 }
 .stat-label {
-  font-size: .85rem;
+  font-size: .75rem;
   color: #64748b;
   font-weight: 600;
+}
+.controls {
+  display: flex;
+  gap: 0.4rem;
+}
+.ctrl-btn {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-weight: 700;
+  font-size: 0.85rem;
+  cursor: pointer;
+}
+.ctrl-btn:hover {
+  background: #e2e8f0;
+}
+
+/* Turn Indicator */
+.turn-indicator {
+  text-align: center;
+  padding: 0.5rem;
+  background: linear-gradient(135deg, #eef2ff, #e0e7ff);
+  border-radius: 10px;
+  margin-bottom: 1rem;
+  font-weight: 700;
+  color: var(--primary-dark);
 }
 
 /* Cards Grid */
 .cards-grid {
   display: grid;
-  gap: 12px;
-  margin-bottom: 1.5rem;
+  gap: 10px;
+  margin-bottom: 1rem;
+  max-width: 800px;
+  margin-left: auto;
+  margin-right: auto;
 }
 .cards-grid.grid-4 { grid-template-columns: repeat(4, 1fr); }
 .cards-grid.grid-5 { grid-template-columns: repeat(5, 1fr); }
@@ -143,7 +213,7 @@
 @media (max-width: 600px) {
   .cards-grid.grid-4,
   .cards-grid.grid-5,
-  .cards-grid.grid-6 { grid-template-columns: repeat(3, 1fr); }
+  .cards-grid.grid-6 { grid-template-columns: repeat(3, 1fr); gap: 8px; }
 }
 
 /* Card */
@@ -169,26 +239,42 @@
   backface-visibility: hidden;
   border-radius: 12px;
   display: flex;
+  flex-direction: column;
   align-items: center;
   justify-content: center;
   font-weight: 700;
-  padding: 8px;
+  padding: 6px;
   text-align: center;
   box-shadow: 0 4px 12px rgba(0,0,0,.1);
 }
 .card-front {
   background: linear-gradient(135deg, var(--primary), #764ba2);
   color: #fff;
-  font-size: 2rem;
+}
+.card-number {
+  font-size: clamp(1.5rem, 5vw, 2.5rem);
+  font-weight: 900;
 }
 .card-back {
   background: #fff;
   border: 2px solid #e2e8f0;
   transform: rotateY(180deg);
-  font-size: clamp(0.7rem, 2.5vw, 1rem);
   color: #1e293b;
   word-break: break-word;
   overflow: hidden;
+}
+.card-back-number {
+  position: absolute;
+  top: 4px;
+  left: 6px;
+  font-size: 0.7rem;
+  color: #94a3b8;
+  font-weight: 800;
+}
+.card-back-content {
+  font-size: clamp(0.65rem, 2.2vw, 0.95rem);
+  line-height: 1.3;
+  padding: 0 2px;
 }
 .card-back.word {
   background: linear-gradient(135deg, #fef3c7, #fde68a);
@@ -199,7 +285,7 @@
   border-color: #3b82f6;
 }
 .card.matched .card-inner {
-  opacity: 0.5;
+  opacity: 0.4;
   transform: rotateY(180deg) scale(0.95);
 }
 .card.matched {
@@ -209,15 +295,17 @@
 /* Actions */
 .actions {
   display: flex;
-  gap: 1rem;
+  gap: 0.75rem;
   justify-content: center;
   flex-wrap: wrap;
+  padding-top: 0.5rem;
 }
 .btn {
-  padding: .75rem 1.5rem;
+  padding: .65rem 1.25rem;
   border: none;
-  border-radius: 12px;
+  border-radius: 10px;
   font-weight: 700;
+  font-size: 0.9rem;
   cursor: pointer;
   transition: all .2s;
 }
@@ -254,11 +342,11 @@
 }
 .modal-box {
   background: #fff;
-  padding: 2.5rem;
+  padding: 2rem;
   border-radius: 20px;
   text-align: center;
-  max-width: 400px;
-  width: 90%;
+  max-width: 420px;
+  width: 92%;
   animation: popIn .3s ease;
 }
 @keyframes popIn {
@@ -266,36 +354,60 @@
   to { transform: scale(1); opacity: 1; }
 }
 .modal-box h2 {
-  font-size: 2rem;
+  font-size: 1.75rem;
   margin-bottom: .5rem;
 }
 .modal-box .trophy {
-  font-size: 4rem;
-  margin-bottom: 1rem;
+  font-size: 3.5rem;
+  margin-bottom: 0.75rem;
+}
+.winner-announce {
+  font-size: 1.3rem;
+  font-weight: 800;
+  color: var(--primary);
+  margin: 0.5rem 0;
 }
 .modal-stats {
   display: flex;
   justify-content: center;
-  gap: 2rem;
-  margin: 1.5rem 0;
+  gap: 1.5rem;
+  margin: 1rem 0;
+  flex-wrap: wrap;
 }
 .modal-stat {
   text-align: center;
 }
 .modal-stat-value {
-  font-size: 1.5rem;
+  font-size: 1.3rem;
   font-weight: 900;
   color: var(--primary);
 }
 .modal-stat-label {
-  font-size: .85rem;
+  font-size: .8rem;
   color: #64748b;
+}
+.final-scores {
+  display: flex;
+  justify-content: center;
+  gap: 1rem;
+  margin: 1rem 0;
+  flex-wrap: wrap;
+}
+.final-team {
+  padding: 0.5rem 1rem;
+  background: #f8fafc;
+  border-radius: 10px;
+  text-align: center;
+}
+.final-team.winner {
+  background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+  border: 2px solid var(--success);
 }
 .modal-actions {
   display: flex;
   gap: 1rem;
   justify-content: center;
-  margin-top: 1.5rem;
+  margin-top: 1rem;
 }
 </style>
 {% endblock %}
@@ -311,9 +423,18 @@
 <!-- Setup Screen -->
 <div class="setup-screen" id="setupScreen">
   <h2>🃏 Memory Match</h2>
-  <p style="color:#64748b; margin-bottom:1.5rem;">จับคู่คำศัพท์กับความหมาย</p>
+  <p style="color:#64748b; margin-bottom:1.25rem;">จับคู่คำศัพท์ภาษาอังกฤษ ↔ ความหมายภาษาไทย</p>
   
   <div class="setup-options">
+    <div class="setup-row">
+      <label>จำนวนทีม</label>
+      <select id="teamsSelect">
+        <option value="1">1 ทีม (Solo)</option>
+        <option value="2" selected>2 ทีม</option>
+        <option value="3">3 ทีม</option>
+        <option value="4">4 ทีม</option>
+      </select>
+    </div>
     <div class="setup-row">
       <label>จำนวนคู่</label>
       <select id="pairsSelect">
@@ -327,37 +448,38 @@
   
   <button class="btn-start" onclick="startGame()">🎮 เริ่มเกม</button>
   
-  <p style="margin-top:1.5rem; font-size:.85rem; color:#94a3b8;">
-    พลิกการ์ด 2 ใบ ถ้าเป็นคู่ที่ถูกต้อง (คำ ↔ ความหมาย) จะหายไป<br>
-    จับคู่ให้ครบโดยใช้ครั้งพลิกน้อยที่สุด!
+  <p style="margin-top:1.25rem; font-size:.85rem; color:#94a3b8;">
+    พลิกการ์ด 2 ใบ ถ้าเป็นคู่ที่ถูกต้อง (คำศัพท์ ↔ ความหมาย) ได้คะแนน!<br>
+    ทีมที่จับคู่ได้มากที่สุดชนะ 🏆
   </p>
 </div>
 
 <!-- Game Container -->
 <div class="game-container" id="gameContainer">
   <div class="stats-bar">
-    <div class="stat-item">
-      <div class="stat-value" id="movesCount">0</div>
-      <div class="stat-label">ครั้งพลิก</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-value" id="matchesCount">0 / 0</div>
-      <div class="stat-label">จับคู่ได้</div>
-    </div>
-    <div class="stat-item">
-      <div class="stat-value" id="timerDisplay">00:00</div>
-      <div class="stat-label">เวลา</div>
+    <div class="scoreboard" id="scoreboard"></div>
+    <div style="display:flex; gap:1rem; align-items:center; flex-wrap:wrap;">
+      <div class="stat-item">
+        <div class="stat-value" id="matchesCount">0/0</div>
+        <div class="stat-label">จับคู่</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="timerDisplay">00:00</div>
+        <div class="stat-label">เวลา</div>
+      </div>
+      <div class="controls">
+        <button class="ctrl-btn" onclick="resetGame()">🔄</button>
+        <button class="ctrl-btn" id="soundToggle" onclick="toggleSound()">🔊</button>
+      </div>
     </div>
   </div>
   
-  <div class="cards-grid grid-4" id="cardsGrid">
-    <!-- Cards will be inserted here -->
-  </div>
+  <div class="turn-indicator" id="turnIndicator">🎯 ตาของ Team 1</div>
+  
+  <div class="cards-grid grid-4" id="cardsGrid"></div>
   
   <div class="actions">
-    <button class="btn btn-secondary" onclick="resetGame()">🔄 เริ่มใหม่</button>
-    <button class="btn btn-secondary" onclick="backToSetup()">⚙️ ตั้งค่า</button>
-    <button class="btn btn-secondary" id="soundToggle" onclick="toggleSound()">🔊 เสียง</button>
+    <button class="btn btn-secondary" onclick="backToSetup()">⚙️ ตั้งค่าใหม่</button>
   </div>
 </div>
 
@@ -365,13 +487,15 @@
 <div class="modal-overlay" id="winModal">
   <div class="modal-box">
     <div class="trophy">🏆</div>
-    <h2>ยอดเยี่ยม!</h2>
-    <p style="color:#64748b;">จับคู่ครบทุกคู่แล้ว</p>
+    <h2>จบเกม!</h2>
+    <div class="winner-announce" id="winnerAnnounce">Team 1 ชนะ!</div>
+    
+    <div class="final-scores" id="finalScores"></div>
     
     <div class="modal-stats">
       <div class="modal-stat">
-        <div class="modal-stat-value" id="finalMoves">0</div>
-        <div class="modal-stat-label">ครั้งพลิก</div>
+        <div class="modal-stat-value" id="finalPairs">0</div>
+        <div class="modal-stat-label">คู่ทั้งหมด</div>
       </div>
       <div class="modal-stat">
         <div class="modal-stat-value" id="finalTime">00:00</div>
@@ -381,7 +505,7 @@
     
     <div class="modal-actions">
       <button class="btn btn-secondary" onclick="backToSetup()">⚙️ ตั้งค่า</button>
-      <button class="btn btn-primary" onclick="playAgain()">🔄 เล่นอีกครั้ง</button>
+      <button class="btn btn-primary" onclick="playAgain()">🔄 เล่นอีก</button>
     </div>
   </div>
 </div>
@@ -407,20 +531,15 @@ function playTone(frequency, duration, type = 'sine', volume = 0.3) {
     const ctx = initAudio();
     const oscillator = ctx.createOscillator();
     const gainNode = ctx.createGain();
-    
     oscillator.connect(gainNode);
     gainNode.connect(ctx.destination);
-    
     oscillator.frequency.value = frequency;
     oscillator.type = type;
     gainNode.gain.setValueAtTime(volume, ctx.currentTime);
     gainNode.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
-    
     oscillator.start(ctx.currentTime);
     oscillator.stop(ctx.currentTime + duration);
-  } catch (e) {
-    console.log('Audio error:', e);
-  }
+  } catch (e) {}
 }
 
 function playFlipSound() {
@@ -428,7 +547,6 @@ function playFlipSound() {
 }
 
 function playMatchSound() {
-  // Happy ascending notes
   playTone(523, 0.15, 'sine', 0.3);
   setTimeout(() => playTone(659, 0.15, 'sine', 0.3), 100);
   setTimeout(() => playTone(784, 0.2, 'sine', 0.3), 200);
@@ -439,9 +557,7 @@ function playWrongSound() {
 }
 
 function playWinSound() {
-  // Victory fanfare
-  const notes = [523, 659, 784, 1047];
-  notes.forEach((note, i) => {
+  [523, 659, 784, 1047].forEach((note, i) => {
     setTimeout(() => playTone(note, 0.3, 'sine', 0.3), i * 150);
   });
 }
@@ -454,7 +570,7 @@ function playStartSound() {
 
 function toggleSound() {
   soundEnabled = !soundEnabled;
-  document.getElementById('soundToggle').textContent = soundEnabled ? '🔊 เสียง' : '🔇 ปิดเสียง';
+  document.getElementById('soundToggle').textContent = soundEnabled ? '🔊' : '🔇';
   if (soundEnabled) playTone(440, 0.1, 'sine', 0.2);
 }
 
@@ -463,21 +579,33 @@ let cards = [];
 let flippedCards = [];
 let matchedPairs = 0;
 let totalPairs = 0;
-let moves = 0;
 let gameTimer = null;
 let seconds = 0;
 let isLocked = false;
 
-// Initialize
+// Team State
+let numTeams = 2;
+let currentTeam = 0;
+let teamScores = {};
+
 function startGame() {
   playStartSound();
+  
+  numTeams = parseInt(document.getElementById('teamsSelect').value);
   const pairsCount = parseInt(document.getElementById('pairsSelect').value);
   totalPairs = pairsCount;
   
-  // Prepare card pairs
+  // Reset team scores
+  teamScores = {};
+  for (let i = 0; i < numTeams; i++) {
+    teamScores[i] = 0;
+  }
+  currentTeam = 0;
+  
+  // Prepare card pairs from VOCABULARY only
   const pairs = preparePairs(pairsCount);
   if (pairs.length < pairsCount) {
-    alert('ข้อมูลไม่พอสำหรับจำนวนคู่ที่เลือก กรุณาเลือกจำนวนน้อยลง');
+    alert('ข้อมูลคำศัพท์ไม่พอ กรุณาเลือกจำนวนคู่น้อยลง หรือเพิ่มคำศัพท์ใน Slides');
     return;
   }
   
@@ -491,16 +619,19 @@ function startGame() {
   // Shuffle cards
   shuffleArray(cards);
   
+  // Assign display numbers after shuffle
+  cards.forEach((card, idx) => {
+    card.displayNum = idx + 1;
+  });
+  
   // Reset state
   flippedCards = [];
   matchedPairs = 0;
-  moves = 0;
   seconds = 0;
   isLocked = false;
   
   // Update UI
-  document.getElementById('movesCount').textContent = '0';
-  document.getElementById('matchesCount').textContent = `0 / ${totalPairs}`;
+  document.getElementById('matchesCount').textContent = `0/${totalPairs}`;
   document.getElementById('timerDisplay').textContent = '00:00';
   
   // Set grid columns
@@ -510,8 +641,10 @@ function startGame() {
   else if (cards.length <= 20) grid.classList.add('grid-5');
   else grid.classList.add('grid-6');
   
-  // Render cards
+  // Render
+  renderScoreboard();
   renderCards();
+  updateTurnIndicator();
   
   // Show game
   document.getElementById('setupScreen').style.display = 'none';
@@ -524,20 +657,11 @@ function startGame() {
 function preparePairs(count) {
   const pairs = [];
   
-  // Try to get vocabulary from game data
+  // Get vocabulary from game data (from slides)
   if (gameData.vocabulary && gameData.vocabulary.length > 0) {
     gameData.vocabulary.forEach(v => {
       if (v.word && v.meaning) {
         pairs.push({ word: v.word, meaning: v.meaning });
-      }
-    });
-  }
-  
-  // Also use game questions (question ↔ answer)
-  if (gameData.questions && gameData.questions.length > 0) {
-    gameData.questions.forEach(q => {
-      if (q.question && q.answer) {
-        pairs.push({ word: q.question, meaning: q.answer });
       }
     });
   }
@@ -555,13 +679,46 @@ function shuffleArray(array) {
   return array;
 }
 
+function renderScoreboard() {
+  const sb = document.getElementById('scoreboard');
+  sb.innerHTML = '';
+  
+  for (let i = 0; i < numTeams; i++) {
+    const div = document.createElement('div');
+    div.className = 'team-score' + (i === currentTeam ? ' active' : '');
+    div.id = `team-${i}`;
+    
+    const label = numTeams === 1 ? 'SCORE' : `TEAM ${i + 1}`;
+    div.innerHTML = `
+      <div class="team-value">${teamScores[i]}</div>
+      <div class="team-label">${label}</div>
+    `;
+    sb.appendChild(div);
+  }
+}
+
+function updateTurnIndicator() {
+  const indicator = document.getElementById('turnIndicator');
+  if (numTeams === 1) {
+    indicator.style.display = 'none';
+  } else {
+    indicator.style.display = 'block';
+    indicator.innerHTML = `🎯 ตาของ <strong>Team ${currentTeam + 1}</strong>`;
+  }
+}
+
 function renderCards() {
   const grid = document.getElementById('cardsGrid');
   grid.innerHTML = cards.map((card, index) => `
     <div class="card" data-index="${index}" onclick="flipCard(${index})">
       <div class="card-inner">
-        <div class="card-front">?</div>
-        <div class="card-back ${card.type}">${escapeHtml(card.content)}</div>
+        <div class="card-front">
+          <div class="card-number">${card.displayNum}</div>
+        </div>
+        <div class="card-back ${card.type}">
+          <div class="card-back-number">#${card.displayNum}</div>
+          <div class="card-back-content">${escapeHtml(card.content)}</div>
+        </div>
       </div>
     </div>
   `).join('');
@@ -579,7 +736,6 @@ function flipCard(index) {
   // Don't flip more than 2 cards
   if (flippedCards.length >= 2) return;
   
-  // Play flip sound
   playFlipSound();
   
   // Flip the card
@@ -588,8 +744,6 @@ function flipCard(index) {
   
   // Check for match when 2 cards are flipped
   if (flippedCards.length === 2) {
-    moves++;
-    document.getElementById('movesCount').textContent = moves;
     checkMatch();
   }
 }
@@ -597,31 +751,52 @@ function flipCard(index) {
 function checkMatch() {
   const [first, second] = flippedCards;
   
-  // Check if same pair (but different type)
+  // Check if same pair (but different type: word ↔ meaning)
   if (first.card.pairId === second.card.pairId && first.card.type !== second.card.type) {
-    // Match! Play sound
+    // Match!
     playMatchSound();
+    
     setTimeout(() => {
       first.element.classList.add('matched');
       second.element.classList.add('matched');
+      
+      // Add score to current team
+      teamScores[currentTeam]++;
       matchedPairs++;
-      document.getElementById('matchesCount').textContent = `${matchedPairs} / ${totalPairs}`;
+      
+      // Update UI
+      const teamEl = document.getElementById(`team-${currentTeam}`);
+      teamEl.querySelector('.team-value').textContent = teamScores[currentTeam];
+      teamEl.classList.add('scored');
+      setTimeout(() => teamEl.classList.remove('scored'), 500);
+      
+      document.getElementById('matchesCount').textContent = `${matchedPairs}/${totalPairs}`;
+      
       flippedCards = [];
       
       // Check win
       if (matchedPairs === totalPairs) {
         endGame();
       }
+      // Same team continues (don't switch turn on match)
     }, 500);
   } else {
-    // No match - play wrong sound and flip back
+    // No match
     playWrongSound();
     isLocked = true;
+    
     setTimeout(() => {
       first.element.classList.remove('flipped');
       second.element.classList.remove('flipped');
       flippedCards = [];
       isLocked = false;
+      
+      // Switch to next team
+      if (numTeams > 1) {
+        currentTeam = (currentTeam + 1) % numTeams;
+        renderScoreboard();
+        updateTurnIndicator();
+      }
     }, 1000);
   }
 }
@@ -650,7 +825,42 @@ function endGame() {
   const mins = Math.floor(seconds / 60).toString().padStart(2, '0');
   const secs = (seconds % 60).toString().padStart(2, '0');
   
-  document.getElementById('finalMoves').textContent = moves;
+  // Find winner
+  let maxScore = -1;
+  let winners = [];
+  for (let i = 0; i < numTeams; i++) {
+    if (teamScores[i] > maxScore) {
+      maxScore = teamScores[i];
+      winners = [i];
+    } else if (teamScores[i] === maxScore) {
+      winners.push(i);
+    }
+  }
+  
+  // Winner announcement
+  const announce = document.getElementById('winnerAnnounce');
+  if (numTeams === 1) {
+    announce.textContent = `คะแนน: ${teamScores[0]} คู่!`;
+  } else if (winners.length > 1) {
+    announce.textContent = `เสมอกัน! (${maxScore} คู่)`;
+  } else {
+    announce.textContent = `🎉 Team ${winners[0] + 1} ชนะ!`;
+  }
+  
+  // Final scores display
+  const finalScores = document.getElementById('finalScores');
+  finalScores.innerHTML = '';
+  for (let i = 0; i < numTeams; i++) {
+    const div = document.createElement('div');
+    div.className = 'final-team' + (winners.includes(i) ? ' winner' : '');
+    div.innerHTML = `
+      <div class="team-value">${teamScores[i]}</div>
+      <div class="team-label">${numTeams === 1 ? 'คู่' : `Team ${i + 1}`}</div>
+    `;
+    finalScores.appendChild(div);
+  }
+  
+  document.getElementById('finalPairs').textContent = totalPairs;
   document.getElementById('finalTime').textContent = `${mins}:${secs}`;
   document.getElementById('winModal').classList.add('active');
 }
