@@ -21,357 +21,439 @@
     font-size:1rem;
     color:#4338ca;
   }
-  
-  /* Adjusted grid */
   .form-grid{
     display:grid;
     grid-template-columns: 1fr 1fr;
     gap:12px;
   }
-  @media(max-width:600px){ .form-grid{ grid-template-columns: 1fr; } }
-
-  .inp{
-    width:100%;
-    padding:10px 14px;
-    border:2px solid #e2e8f0;
-    border-radius:10px;
-    font-size:1rem;
-    outline:none;
-    transition:border-color .2s;
+  @media(max-width:600px){
+    .form-grid{grid-template-columns:1fr;}
   }
-  .inp:focus{border-color:#667eea;}
-
-  /* Timer Bar */
-  .timer-bar {
-    position: sticky; top: 0; z-index: 100;
-    background: #ef4444; color: white;
-    text-align: center; padding: 10px;
-    font-weight: 800; border-radius: 0 0 12px 12px;
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-    margin-bottom: 20px; display: none;
-    animation: pulse 1s infinite;
-  }
-  .timer-bar.safe { background: #667eea; animation: none; box-shadow: 0 4px 12px rgba(102,126,234,0.3); }
-
-  @keyframes pulse {
-    0% { transform: scale(1); }
-    50% { transform: scale(1.02); }
-    100% { transform: scale(1); }
-  }
-
-  /* Question List */
-  .q-list{display:flex;flex-direction:column;gap:16px;}
-  .q-card{
-    background:#fff;
-    border:1px solid #e2e8f0;
-    border-radius:12px;
-    padding:16px;
-    transition:transform .2s;
-  }
-  .q-card:hover{transform:translateY(-2px);box-shadow:0 4px 12px rgba(0,0,0,.05);}
-  .q-text{font-weight:700;font-size:1.05rem;margin-bottom:12px;color:#1e293b;}
-  
-  .choice-wrap{display:flex;flex-direction:column;gap:8px;}
-  .choice-lbl{
-    display:flex;align-items:center;gap:10px;
-    padding:10px 12px;
-    border:2px solid #e2e8f0;
-    border-radius:10px;
-    cursor:pointer;
-    transition:all .15s;
-  }
-  .choice-lbl:hover{background:#f8fafc;border-color:#cbd5e1;}
-  .choice-lbl:has(input:checked){border-color:#667eea;background:#eef2ff;}
-  input[type="radio"]{accent-color:#667eea;width:18px;height:18px;}
-
-  /* Submit */
-  .action-area{margin-top:24px;text-align:center;padding-bottom:40px;}
-  .btn-submit{
-    background:linear-gradient(135deg, #667eea, #764ba2);
-    color:#fff;
-    border:none;
-    padding:12px 40px;
-    border-radius:50px;
-    font-size:1.1rem;
+  .form-group label{
+    display:block;
     font-weight:800;
-    cursor:pointer;
-    box-shadow:0 10px 20px rgba(102,126,234,.3);
-    transition:transform .2s;
+    font-size:.9rem;
+    margin-bottom:4px;
+    color:#334155;
   }
-  .btn-submit:hover{transform:translateY(-2px);}
-  .btn-submit:disabled{opacity:0.6;cursor:not-allowed;}
-
-  /* Result */
-  .result-box{
-    text-align:center;
-    padding:40px 20px;
+  .form-group select,
+  .form-group input{
+    width:100%;
+    padding:.7rem .85rem;
+    border-radius:10px;
+    border:1px solid rgba(0,0,0,.15);
+    outline:none;
+    font-size:1rem;
+    transition: border-color .2s, box-shadow .2s;
     background:#fff;
-    border-radius:16px;
-    box-shadow:0 10px 40px rgba(0,0,0,.1);
-    display:none;
   }
-  .score-display{font-size:3rem;font-weight:900;color:#667eea;line-height:1;}
-  .score-label{color:#64748b;font-weight:700;margin-top:4px;}
+  .form-group select:focus,
+  .form-group input:focus{
+    border-color:#667eea;
+    box-shadow: 0 0 0 3px rgba(102,126,234,.15);
+  }
+  .form-group select.error,
+  .form-group input.error{
+    border-color:#ef4444;
+    background:#fef2f2;
+  }
+  .required{color:#ef4444;}
   
-  .feedback{margin-top:8px;padding:10px;border-radius:8px;font-size:.9rem;display:none;}
-  .feedback.correct{background:#dcfce7;color:#166534;}
-  .feedback.wrong{background:#fee2ff;color:#991b1b;}
-
-  /* Completed State */
-  .completed-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: white; z-index: 999;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; display: none;
+  /* Questions */
+  .q{
+    margin-top:14px;
+    padding:14px;
+    border-radius:14px;
+    border:1px solid rgba(0,0,0,.08);
+    background:#f8fafc;
+    transition: border-color .2s;
   }
+  .q.answered{
+    border-color:#22c55e;
+    background:#f0fdf4;
+  }
+  .q strong{display:block;margin-bottom:10px;font-size:1.02rem;}
+  .choices{display:grid;gap:8px}
+  .choice{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    padding:12px 14px;
+    border-radius:12px;
+    border:1px solid rgba(0,0,0,.08);
+    background:#fff;
+    cursor:pointer;
+    transition: all .15s;
+  }
+  .choice:hover{
+    border-color:#667eea;
+    background:rgba(102,126,234,.04);
+  }
+  .choice input[type="radio"]{
+    width:18px;
+    height:18px;
+    accent-color:#667eea;
+  }
+  .choice.selected{
+    border-color:#667eea;
+    background:rgba(102,126,234,.08);
+  }
+  
+  /* Buttons */
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    justify-content:center;
+    gap:.5rem;
+    border:0;
+    border-radius:12px;
+    padding:.85rem 1.5rem;
+    font-weight:900;
+    font-size:1rem;
+    cursor:pointer;
+    transition: all .2s;
+  }
+  .btn-primary{
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color:#fff;
+    box-shadow: 0 4px 14px rgba(102,126,234,.35);
+  }
+  .btn-primary:hover{
+    transform: translateY(-2px);
+    box-shadow: 0 6px 20px rgba(102,126,234,.45);
+  }
+  .btn-primary:disabled{
+    opacity:.6;
+    cursor:not-allowed;
+    transform:none;
+  }
+  .bar{
+    display:flex;
+    gap:10px;
+    flex-wrap:wrap;
+    margin-top:16px;
+    padding-top:16px;
+    border-top:1px solid rgba(0,0,0,.08);
+    justify-content:center;
+  }
+  
+  /* Result */
+  .result{
+    margin-top:16px;
+    padding:16px;
+    border-radius:14px;
+    display:none;
+    text-align:center;
+  }
+  .result.show{display:block;}
+  .result.success{
+    background: linear-gradient(135deg, #dcfce7, #bbf7d0);
+    border:1px solid #22c55e;
+  }
+  .result.fail{
+    background: linear-gradient(135deg, #fef2f2, #fecaca);
+    border:1px solid #ef4444;
+  }
+  .result h3{margin:0 0 8px;font-size:1.1rem;}
+  .result .score{font-size:2.5rem;font-weight:900;margin:8px 0;}
+  
+  /* Feedback */
+  .feedback{margin-top:8px;font-size:.9rem;padding:8px 10px;border-radius:8px;}
+  .feedback.correct{background:#dcfce7;color:#166534;}
+  .feedback.wrong{background:#fef2f2;color:#991b1b;}
+  
+  /* Progress */
+  .progress-bar{
+    height:6px;
+    background:#e2e8f0;
+    border-radius:3px;
+    margin-top:12px;
+    overflow:hidden;
+  }
+  .progress-bar .fill{
+    height:100%;
+    background: linear-gradient(90deg, #667eea, #764ba2);
+    transition: width .3s ease;
+  }
+  .progress-text{
+    font-size:.85rem;
+    color:#64748b;
+    margin-top:6px;
+    text-align:right;
+  }
+  
+  /* Manual input */
+  .manual-input{display:none;margin-top:8px;}
+  .manual-input.show{display:block;}
 </style>
 {% endblock %}
 
 {% block content %}
-
-<div id="timerBar" class="timer-bar safe">
-  ⏳ เหลือเวลาอีก: <span id="timerDisplay">--:--</span>
-</div>
-
-<div id="completedScreen" class="completed-overlay">
-  <div style="font-size:4rem;">✅</div>
-  <h1 style="color:#1e293b;">คุณทำแบบทดสอบนี้ไปแล้ว</h1>
-  <p style="color:#64748b;">ระบบอนุญาตให้ส่งคำตอบได้เพียง 1 ครั้งเท่านั้น</p>
-</div>
-
-<div class="wrap" id="mainContainer">
-  <div class="card" style="margin-bottom:20px; border-top:5px solid #667eea;">
-    <h1 class="h1">{{ topic.name }}</h1>
+<div class="wrap">
+  <div class="card">
+    <div class="h1">📝 {{ topic.name }}</div>
     <div class="muted">Practice Mode • {{ questions|length }} Questions</div>
-  </div>
 
-  <form id="publicForm">
+    <!-- Student Info Form -->
     <div class="student-form">
       <h3>👤 ข้อมูลผู้ทำแบบทดสอบ</h3>
-      
-      {% if students %}
-      <div class="form-group" style="margin-bottom:12px;">
-        <label style="font-weight:700; color:#4338ca; display:block; margin-bottom:6px;">
-          เลือกชื่อของคุณ <span style="color:#ef4444">*</span>
-        </label>
-        <select class="inp" id="studentSelect" onchange="autoFillStudent()" required>
-          <option value="">-- ค้นหาหรือเลือกชื่อ --</option>
-          {% for s in students %}
-          <option value="{{ s.id }}" 
-                  data-no="{{ s.student_no }}" 
-                  data-name="{{ s.student_name }}" 
-                  data-code="{{ s.student_id or '' }}"
-                  data-class="{{ classroom.name if classroom else '' }}"
-                  data-dept="{{ s.department or '' }}">
-            {{ s.student_no }} {{ s.student_name }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-      
-      <div class="form-grid" style="opacity:0.8; margin-top:10px;">
-        <input class="inp" id="studentName" placeholder="ชื่อ-นามสกุล" readonly style="background:#f1f5f9; grid-column: span 2;">
-        <input class="inp" id="studentNo" placeholder="เลขที่" readonly style="background:#f1f5f9;">
-        <input class="inp" id="studentId" placeholder="รหัสนักศึกษา" readonly style="background:#f1f5f9;">
-        <input class="inp" id="classroom" placeholder="ชั้นเรียน" readonly style="background:#f1f5f9;">
-        <input class="inp" id="department" placeholder="แผนก" readonly style="background:#f1f5f9;">
-      </div>
-      <input type="hidden" id="realStudentId" value=""> {% else %}
       <div class="form-grid">
-        <input class="inp" id="studentName" placeholder="ชื่อ-นามสกุล (Name)" required style="grid-column: span 2;">
-        <input class="inp" id="studentNo" placeholder="เลขที่ (No.)" required>
-        <input class="inp" id="studentId" placeholder="รหัสนักศึกษา (Student ID)" required>
-        <input class="inp" id="classroom" placeholder="ชั้นเรียน (Class)" required>
-        <input class="inp" id="department" placeholder="แผนก/สาขา (Department)" required>
+        <div class="form-group">
+          <label>แผนก/สาขา (Department) <span class="required">*</span></label>
+          <select id="classroomSelect" onchange="loadStudents()">
+            <option value="">-- เลือกห้อง --</option>
+            {% for cls in classrooms %}
+            <option value="{{ cls.id }}" data-name="{{ cls.name }}">{{ cls.name }}</option>
+            {% endfor %}
+            <option value="other">อื่นๆ (พิมพ์เอง)</option>
+          </select>
+          <input type="text" id="classroomManual" class="manual-input" placeholder="พิมพ์ชื่อห้อง/แผนก">
+        </div>
+        <div class="form-group">
+          <label>ชื่อ-นามสกุล (Name) <span class="required">*</span></label>
+          <select id="studentSelect">
+            <option value="">-- เลือกชื่อ --</option>
+            <option value="other">พิมพ์ชื่อเอง</option>
+          </select>
+          <input type="text" id="studentManual" class="manual-input" placeholder="พิมพ์ชื่อ-นามสกุล">
+        </div>
       </div>
-      <input type="hidden" id="realStudentId" value="">
-      {% endif %}
     </div>
 
-    <div class="q-list">
-      {% for q in questions %}
-      <div class="q-card q" data-qid="{{ q.id }}">
-        <div class="q-text">{{ loop.index }}. {{ q.prompt }}</div>
-        
-        {% if q.choices %}
-          <div class="choice-wrap">
-            {% for c in q.choices %}
-            <label class="choice-lbl">
-              <input type="radio" name="q{{ q.id }}" value="{{ c }}" required>
-              <span>{{ c }}</span>
-            </label>
-            {% endfor %}
-          </div>
-        {% else %}
-          <input type="text" class="inp" name="q{{ q.id }}" placeholder="Type answer..." required>
-        {% endif %}
+    <!-- Progress -->
+    <div class="progress-bar">
+      <div class="fill" id="progressFill" style="width:0%"></div>
+    </div>
+    <div class="progress-text" id="progressText">ตอบแล้ว 0 / {{ questions|length }} ข้อ</div>
 
-        <div class="feedback" id="fb{{ q.id }}"></div>
+    <!-- Questions -->
+    <div id="questions">
+      {% for q in questions %}
+      <div class="q" data-qid="{{ q.id }}">
+        <strong>{{ loop.index }}. {{ q.prompt }}</strong>
+        <div class="choices">
+          {% for ch in q.choices %}
+          <label class="choice">
+            <input type="radio" name="q{{ q.id }}" value="{{ ch }}">
+            <span>{{ ch }}</span>
+          </label>
+          {% endfor %}
+        </div>
+        <div class="feedback" id="fb{{ q.id }}" style="display:none"></div>
       </div>
       {% endfor %}
     </div>
 
-    <div class="action-area">
-      <button type="submit" class="btn-submit" id="btnSubmit">ส่งคำตอบ (Submit)</button>
-    </div>
-  </form>
-
-  <div class="result-box" id="resultBox">
-    <div class="score-display" id="resultPercent">0%</div>
-    <div class="score-label">Score: <span id="resultScore">0/0</span></div>
-    <h2 id="resultTitle" style="margin:16px 0;">Great Job!</h2>
-    <p id="resultMsg" style="color:#64748b;"></p>
+    <div class="bar">
+      <button class="btn btn-primary" id="btnSubmit">📤 ส่งคำตอบ</button>
     </div>
 
+    <div class="result" id="resultBox">
+      <h3 id="resultTitle">ผลการทำแบบฝึกหัด</h3>
+      <div class="score" id="resultScore">0/0</div>
+      <div class="muted" id="resultPercent">0%</div>
+      <div id="resultMsg" style="margin-top:10px;"></div>
+    </div>
+  </div>
 </div>
 
 <script>
-  // --- Auto Fill Logic ---
-  function autoFillStudent() {
-    const select = document.getElementById('studentSelect');
-    if (!select) return;
-    const option = select.options[select.selectedIndex];
-    
-    if (option.value) {
-      document.getElementById('realStudentId').value = option.value;
-      document.getElementById('studentName').value = option.dataset.name;
-      document.getElementById('studentNo').value = option.dataset.no;
-      document.getElementById('studentId').value = option.dataset.code;
-      document.getElementById('classroom').value = option.dataset.class;
-      document.getElementById('department').value = option.dataset.dept;
-    } else {
-      ['realStudentId', 'studentName', 'studentNo', 'studentId', 'classroom', 'department'].forEach(id => {
-        const el = document.getElementById(id);
-        if(el) el.value = '';
-      });
-    }
-  }
-
-  // 1. One-Time Submission Check
-  const token = "{{ token }}";
-  const storageKey = "done_" + token;
+(function(){
+  const token = {{ token|tojson }};
+  const totalQuestions = {{ questions|length }};
   
-  if (localStorage.getItem(storageKey)) {
-    document.getElementById("mainContainer").style.display = "none";
-    document.getElementById("completedScreen").style.display = "flex";
-    document.getElementById("timerBar").style.display = "none";
-  }
-
-  // 2. Timer Logic
-  const urlParams = new URLSearchParams(window.location.search);
-  const timeLimitMins = parseInt(urlParams.get('limit')) || 0;
-  let timerInterval;
-
-  if (timeLimitMins > 0 && !localStorage.getItem(storageKey)) {
-    const timerBar = document.getElementById('timerBar');
-    const timerDisplay = document.getElementById('timerDisplay');
-    timerBar.style.display = 'block';
-
-    const startTimeKey = "start_" + token;
-    let endTime = localStorage.getItem(startTimeKey);
-    
-    if (!endTime) {
-      const now = new Date().getTime();
-      endTime = now + (timeLimitMins * 60 * 1000);
-      localStorage.setItem(startTimeKey, endTime);
-    }
-
-    function updateTimer() {
-      const now = new Date().getTime();
-      let timeLeft = Math.floor((endTime - now) / 1000); 
-
-      if (timeLeft < 0) timeLeft = 0;
-
-      const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-      const s = (timeLeft % 60).toString().padStart(2, '0');
-      timerDisplay.textContent = `${m}:${s}`;
-
-      if (timeLeft <= 60) { timerBar.classList.remove('safe'); }
-
-      if (timeLeft <= 0) {
-        clearInterval(timerInterval);
-        if(document.getElementById("mainContainer").style.display !== "none"){
-            alert("หมดเวลาทำข้อสอบ! ระบบจะส่งคำตอบโดยอัตโนมัติ");
-            submitForm();
-        }
-      }
-    }
-
-    updateTimer();
-    timerInterval = setInterval(updateTimer, 1000);
-  }
-
-  // 3. Form Submission
-  const form = document.getElementById("publicForm");
-  const resultBox = document.getElementById("resultBox");
   const btnSubmit = document.getElementById("btnSubmit");
+  const resultBox = document.getElementById("resultBox");
+  const progressFill = document.getElementById("progressFill");
+  const progressText = document.getElementById("progressText");
+  
+  const classroomSelect = document.getElementById("classroomSelect");
+  const classroomManual = document.getElementById("classroomManual");
+  const studentSelect = document.getElementById("studentSelect");
+  const studentManual = document.getElementById("studentManual");
 
-  form.addEventListener("submit", (e) => {
-    e.preventDefault();
-    if(confirm("ยืนยันการส่งคำตอบ? คุณสามารถทำได้เพียงครั้งเดียว")) {
-      submitForm();
+  // Load students when classroom is selected
+  window.loadStudents = async function() {
+    const classroomId = classroomSelect.value;
+    
+    if (classroomId === 'other') {
+      classroomManual.classList.add('show');
+      studentSelect.innerHTML = '<option value="">-- เลือกชื่อ --</option><option value="other">พิมพ์ชื่อเอง</option>';
+      studentSelect.value = 'other';
+      studentManual.classList.add('show');
+      return;
+    } else {
+      classroomManual.classList.remove('show');
+    }
+    
+    if (!classroomId) {
+      studentSelect.innerHTML = '<option value="">-- เลือกชื่อ --</option><option value="other">พิมพ์ชื่อเอง</option>';
+      studentManual.classList.remove('show');
+      return;
+    }
+    
+    try {
+      const res = await fetch(`/api/public/classroom/${classroomId}/students`);
+      const students = await res.json();
+      
+      let html = '<option value="">-- เลือกชื่อ --</option>';
+      students.forEach(s => {
+        const display = s.student_no ? `${s.student_no}. ${s.student_name}` : s.student_name;
+        html += `<option value="${s.student_name}">${display}</option>`;
+      });
+      html += '<option value="other">พิมพ์ชื่อเอง</option>';
+      studentSelect.innerHTML = html;
+      studentManual.classList.remove('show');
+    } catch(e) {
+      console.error(e);
+    }
+  };
+  
+  studentSelect.addEventListener('change', function() {
+    if (this.value === 'other') {
+      studentManual.classList.add('show');
+      studentManual.focus();
+    } else {
+      studentManual.classList.remove('show');
     }
   });
 
-  async function submitForm() {
-    clearInterval(timerInterval);
-    document.getElementById("timerBar").style.display = 'none';
-    
-    btnSubmit.disabled = true;
-    btnSubmit.innerHTML = "⏳ Sending...";
+  function updateProgress(){
+    let answered = 0;
+    document.querySelectorAll(".q").forEach(q => {
+      if(q.querySelector("input[type=radio]:checked")){
+        answered++;
+        q.classList.add("answered");
+      } else {
+        q.classList.remove("answered");
+      }
+    });
+    const pct = totalQuestions > 0 ? (answered / totalQuestions * 100) : 0;
+    progressFill.style.width = pct + "%";
+    progressText.textContent = `ตอบแล้ว ${answered} / ${totalQuestions} ข้อ`;
+  }
 
-    const formData = new FormData(form);
+  document.querySelectorAll(".q input[type=radio]").forEach(radio => {
+    radio.addEventListener("change", updateProgress);
+  });
+
+  document.querySelectorAll(".choice").forEach(choice => {
+    choice.addEventListener("click", function(){
+      const parent = this.closest(".choices");
+      parent.querySelectorAll(".choice").forEach(c => c.classList.remove("selected"));
+      this.classList.add("selected");
+    });
+  });
+
+  function collectAnswers(){
     const answers = {};
-    
     document.querySelectorAll(".q").forEach(q => {
       const qid = q.getAttribute("data-qid");
-      answers[qid] = formData.get("q"+qid) || "";
+      const sel = q.querySelector("input[type=radio]:checked");
+      answers[qid] = sel ? sel.value : "";
     });
+    return answers;
+  }
 
-    const payload = {
-      // ส่ง ID นักเรียนไปด้วย (ถ้ามี)
-      student_db_id: document.getElementById('realStudentId') ? document.getElementById('realStudentId').value : null,
-      student_name: document.getElementById('studentName').value,
-      student_no: document.getElementById('studentNo').value,
-      student_id: document.getElementById('studentId').value,
-      classroom: document.getElementById('classroom').value,
-      department: document.getElementById('department').value,
-      answers: answers
-    };
+  function getStudentInfo() {
+    let classroom = '';
+    let studentName = '';
+    
+    if (classroomSelect.value === 'other') {
+      classroom = classroomManual.value.trim();
+    } else if (classroomSelect.value) {
+      classroom = classroomSelect.options[classroomSelect.selectedIndex].dataset.name || classroomSelect.options[classroomSelect.selectedIndex].text;
+    }
+    
+    if (studentSelect.value === 'other') {
+      studentName = studentManual.value.trim();
+    } else {
+      studentName = studentSelect.value;
+    }
+    
+    return { classroom, studentName };
+  }
 
-    try {
-      const res = await fetch(`/api/p/${token}/submit`, { 
+  btnSubmit.addEventListener("click", async () => {
+    const { classroom, studentName } = getStudentInfo();
+
+    if(!classroom){
+      alert("กรุณาเลือกห้อง/แผนกก่อนส่ง");
+      classroomSelect.focus();
+      return;
+    }
+    
+    if(!studentName){
+      alert("กรุณาเลือกหรือพิมพ์ชื่อก่อนส่ง");
+      if(studentSelect.value === 'other') studentManual.focus();
+      else studentSelect.focus();
+      return;
+    }
+
+    const answers = collectAnswers();
+    const unanswered = Object.values(answers).filter(a => !a).length;
+    if(unanswered > 0){
+      if(!confirm(`ยังมี ${unanswered} ข้อที่ยังไม่ได้ตอบ\nต้องการส่งเลยหรือไม่?`)) return;
+    }
+
+    btnSubmit.disabled = true;
+    btnSubmit.innerHTML = "⏳ กำลังส่ง...";
+
+    try{
+      const res = await fetch(`/api/p/${token}/submit`, {
         method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify(payload)
+        headers: {"Content-Type": "application/json"},
+        body: JSON.stringify({
+          student_name: studentName,
+          student_no: "",
+          classroom: classroom,
+          answers: answers
+        })
       });
-      
-      if(!res.ok) throw new Error("Submission failed");
-      
-      const data = await res.json();
-      
-      localStorage.setItem(storageKey, "true");
-      localStorage.removeItem("start_" + token);
 
-      form.style.display = "none";
-      resultBox.style.display = "block";
-      
+      const data = await res.json();
+      if(!res.ok){
+        alert(data.error || "เกิดข้อผิดพลาด");
+        btnSubmit.disabled = false;
+        btnSubmit.innerHTML = "📤 ส่งคำตอบ";
+        return;
+      }
+
       const pct = Math.round(data.percentage);
       const isPass = pct >= 50;
       
+      resultBox.classList.add("show", isPass ? "success" : "fail");
       document.getElementById("resultTitle").textContent = isPass ? "🎉 ทำได้ดีมาก!" : "💪 พยายามต่อไปนะ!";
       document.getElementById("resultScore").textContent = `${data.score}/${data.total}`;
       document.getElementById("resultPercent").textContent = `${pct}%`;
-      document.getElementById("resultMsg").innerHTML = "คะแนนของคุณถูกบันทึกเรียบร้อยแล้ว ✅<br>(คุณไม่สามารถทำข้อสอบนี้ซ้ำได้)";
+      document.getElementById("resultMsg").innerHTML = "คะแนนถูกบันทึกเรียบร้อยแล้ว ✅";
 
-      window.scrollTo({ top: 0, behavior: "smooth" });
+      const feedback = data.feedback || {};
+      document.querySelectorAll(".q").forEach(q => {
+        const qid = q.getAttribute("data-qid");
+        const fb = document.getElementById(`fb${qid}`);
+        const qfb = feedback[qid];
+        if(qfb){
+          fb.style.display = "block";
+          fb.className = qfb.is_correct ? "feedback correct" : "feedback wrong";
+          fb.innerHTML = qfb.is_correct ? "✅ ถูกต้อง!" : `❌ ผิด — คำตอบที่ถูก: <strong>${qfb.correct_answer}</strong>`;
+        }
+      });
+
+      // Disable everything
+      document.querySelectorAll("input[type=radio], select, input[type=text]").forEach(el => el.disabled = true);
+      resultBox.scrollIntoView({ behavior: "smooth", block: "center" });
+      btnSubmit.innerHTML = "✅ ส่งแล้ว";
 
     } catch(e) {
       console.error(e);
-      alert("เกิดข้อผิดพลาดในการส่งคำตอบ: " + e.message);
+      alert("เกิดข้อผิดพลาดในการเชื่อมต่อ");
       btnSubmit.disabled = false;
-      btnSubmit.innerHTML = "ส่งคำตอบ (Submit)";
+      btnSubmit.innerHTML = "📤 ส่งคำตอบ";
     }
-  }
+  });
+
+  updateProgress();
+})();
 </script>
 {% endblock %}
