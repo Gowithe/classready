@@ -238,6 +238,7 @@
             <h4>{{ a.title }}</h4>
             <div class="assignment-meta">
               <span>📚 {{ a.topic_name }}</span>
+              <span>📋 {% if a.exercise_type == 'fill_blanks' %}Fill Blanks{% elif a.exercise_type == 'unscramble' %}Unscramble{% else %}MCQ{% endif %}</span>
               {% if a.due_date %}<span>⏰ {{ a.due_date[:10] }}</span>{% endif %}
             </div>
           </div>
@@ -321,6 +322,14 @@
           <select name="topic_id" required>
             <option value="">-- เลือก --</option>
             {% for t in topics %}<option value="{{ t.id }}">{{ t.name }}</option>{% endfor %}
+          </select>
+        </div>
+        <div class="form-group">
+          <label>ประเภทแบบฝึกหัด *</label>
+          <select name="exercise_type" required>
+            <option value="mcq" selected>📝 MCQ - แบบทดสอบปรนัย</option>
+            <option value="fill_blanks">✏️ Fill Blanks - เติมคำในช่องว่าง</option>
+            <option value="unscramble">🔀 Unscramble - เรียงประโยค</option>
           </select>
         </div>
         <div class="form-group"><label>ชื่องาน</label><input type="text" name="title" placeholder="แบบฝึกหัดบทที่ 1"></div>
