@@ -1193,7 +1193,11 @@ def public_fill_blanks(token):
     if not topic:
         return "Topic not found", 404
     practice_data = _get_practice_data_from_slides(topic)
-    return render_template("practice_fill_blanks_public.html", topic=topic, practice_data=practice_data, token=token)
+    
+    # Get classrooms of the teacher who created the link
+    classrooms = Classroom.get_by_owner(link["created_by"]) if link.get("created_by") else []
+    
+    return render_template("practice_fill_blanks_public.html", topic=topic, practice_data=practice_data, token=token, classrooms=classrooms)
 
 
 @app.route("/api/public/fill/<token>/submit", methods=["POST"])
@@ -1257,7 +1261,11 @@ def public_unscramble(token):
     if not topic:
         return "Topic not found", 404
     practice_data = _get_practice_data_from_slides(topic)
-    return render_template("practice_unscramble_public.html", topic=topic, practice_data=practice_data, token=token)
+    
+    # Get classrooms of the teacher who created the link
+    classrooms = Classroom.get_by_owner(link["created_by"]) if link.get("created_by") else []
+    
+    return render_template("practice_unscramble_public.html", topic=topic, practice_data=practice_data, token=token, classrooms=classrooms)
 
 
 @app.route("/api/public/unscramble/<token>/submit", methods=["POST"])
@@ -1460,7 +1468,11 @@ def public_practice(token):
     if not link or not link.get("is_active"): return render_template("error.html", error_code=404, error_msg="ลิงก์หมดอายุ"), 404
     topic = Topic.get_by_id(link["topic_id"])
     if not topic: return render_template("error.html", error_code=404, error_msg="Topic not found"), 404
-    return render_template("practice_public.html", topic=topic, questions=_normalize_practice_questions(PracticeQuestion.get_by_topic(topic["id"])), token=token)
+    
+    # Get classrooms of the teacher who created the link
+    classrooms = Classroom.get_by_owner(link["created_by"]) if link.get("created_by") else []
+    
+    return render_template("practice_public.html", topic=topic, questions=_normalize_practice_questions(PracticeQuestion.get_by_topic(topic["id"])), token=token, classrooms=classrooms)
 
 @app.route("/api/p/<token>/submit", methods=["POST"])
 def api_public_practice_submit(token):
@@ -1482,6 +1494,12 @@ def api_public_practice_submit(token):
     pct = (score/total*100) if total else 0
     PracticeSubmission.create(link["id"], name, data.get("student_no") or "", data.get("classroom") or "", json.dumps({"answers": answers}), score, total, pct)
     return jsonify({"score": score, "total": total, "percentage": pct, "feedback": feedback})
+
+# API to get students by classroom (for public practice)
+@app.route("/api/public/classroom/<int:classroom_id>/students")
+def api_public_classroom_students(classroom_id):
+    students = ClassroomStudent.get_by_classroom(classroom_id)
+    return jsonify([{"id": s["id"], "student_no": s.get("student_no") or "", "student_name": s.get("student_name") or ""} for s in students])
 
 
 # ==============================================================================
