@@ -8,7 +8,6 @@
   .h1{font-size:1.25rem;font-weight:900;margin-bottom:.25rem;}
   .muted{color:#64748b;font-size:.95rem;}
   
-  /* Student Info Form */
   .student-form{
     background: linear-gradient(135deg, #f9731615, #ea580c15);
     border:1px solid rgba(249,115,22,.2);
@@ -16,168 +15,101 @@
     padding:16px;
     margin-bottom:16px;
   }
-  .student-form h3{ margin:0 0 12px; font-size:1rem; color:#c2410c; }
+  .student-form h3{margin:0 0 12px;font-size:1rem;color:#c2410c;}
+  .form-grid{display:grid;grid-template-columns: 1fr 1fr;gap:12px;}
+  @media(max-width:600px){.form-grid{grid-template-columns:1fr;}}
+  .form-group label{display:block;font-weight:800;font-size:.9rem;margin-bottom:4px;color:#334155;}
+  .form-group select,.form-group input{width:100%;padding:.7rem .85rem;border-radius:10px;border:1px solid rgba(0,0,0,.15);outline:none;font-size:1rem;background:#fff;}
+  .form-group select:focus,.form-group input:focus{border-color:#f97316;box-shadow: 0 0 0 3px rgba(249,115,22,.15);}
+  .required{color:#ef4444;}
   
-  /* Grid 5 Fields */
-  .form-grid{ display:grid; grid-template-columns: 1fr 1fr; gap:12px; }
-  @media(max-width:600px){ .form-grid{ grid-template-columns: 1fr; } }
-
-  .inp{
-    width:100%; padding:10px 14px;
-    border:2px solid #e2e8f0; border-radius:10px;
-    font-size:1rem; outline:none; transition:border-color .2s;
-  }
-  .inp:focus{border-color:#f97316;}
-  .inp.error{border-color:#ef4444; background:#fef2f2;}
+  .progress-bar{height:6px;background:#e2e8f0;border-radius:3px;margin-top:12px;overflow:hidden;}
+  .progress-bar .fill{height:100%;background: linear-gradient(90deg, #f97316, #ea580c);transition: width .3s ease;}
+  .progress-text{font-size:.85rem;color:#64748b;margin-top:6px;text-align:right;}
   
-  /* Timer Bar */
-  .timer-bar {
-    position: sticky; top: 0; z-index: 100;
-    background: #ef4444; color: white;
-    text-align: center; padding: 10px;
-    font-weight: 800; border-radius: 0 0 12px 12px;
-    box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3);
-    margin-bottom: 20px; display: none;
-    animation: pulse 1s infinite;
-  }
-  .timer-bar.safe { background: #f97316; animation: none; box-shadow: 0 4px 12px rgba(249,115,22,0.3); }
-  @keyframes pulse { 0% { transform: scale(1); } 50% { transform: scale(1.02); } 100% { transform: scale(1); } }
-
-  /* Completed Overlay */
-  .completed-overlay {
-    position: fixed; top: 0; left: 0; width: 100%; height: 100%;
-    background: white; z-index: 999;
-    display: flex; flex-direction: column; align-items: center; justify-content: center;
-    text-align: center; display: none;
-  }
-
-  /* Progress & Question Styles */
-  .progress-bar{ height:6px; background:#e2e8f0; border-radius:3px; margin-top:12px; overflow:hidden; }
-  .progress-bar .fill{ height:100%; background: linear-gradient(90deg, #f97316, #ea580c); transition: width .3s ease; }
-  .progress-text{ font-size:.85rem; color:#64748b; margin-top:6px; text-align:right; }
-  
-  .q{ margin-top:14px; padding:14px; border-radius:14px; border:1px solid rgba(0,0,0,.08); background:#f8fafc; transition: border-color .2s; }
-  .q.answered{ border-color:#22c55e; background:#f0fdf4; }
+  .q{margin-top:14px;padding:14px;border-radius:14px;border:1px solid rgba(0,0,0,.08);background:#f8fafc;transition: border-color .2s;}
+  .q.answered{border-color:#22c55e;background:#f0fdf4;}
   .q strong{display:block;margin-bottom:6px;font-size:1.02rem;}
   .hint-text{color:#94a3b8;font-size:.85rem;margin-bottom:12px;font-style:italic;}
   
-  .answer-zone{ min-height:60px; border:3px dashed #cbd5e1; border-radius:12px; padding:.75rem; margin-bottom:1rem; display:flex; flex-wrap:wrap; gap:.4rem; align-items:center; justify-content:center; background:#fff; transition: all .2s; }
+  .answer-zone{min-height:60px;border:3px dashed #cbd5e1;border-radius:12px;padding:.75rem;margin-bottom:1rem;display:flex;flex-wrap:wrap;gap:.4rem;align-items:center;justify-content:center;background:#fff;transition: all .2s;}
   .answer-zone.active{border-color:#f97316;background:#fff7ed;}
   .answer-zone.correct{border-color:#22c55e;background:#dcfce7;border-style:solid;}
   .answer-zone.wrong{border-color:#ef4444;background:#fee2e2;border-style:solid;}
   .answer-zone .placeholder{color:#94a3b8;font-style:italic;}
   
-  .words-container{ display:flex; flex-wrap:wrap; gap:.5rem; justify-content:center; margin-bottom:.75rem; }
-  .word-token{ padding:.6rem 1rem; background: linear-gradient(135deg, #f97316, #ea580c); color:#fff; border:none; border-radius:10px; font-size:1rem; font-weight:700; cursor:pointer; box-shadow:0 3px 8px rgba(249,115,22,.3); transition: all .15s; }
+  .words-container{display:flex;flex-wrap:wrap;gap:.5rem;justify-content:center;margin-bottom:.75rem;}
+  .word-token{padding:.6rem 1rem;background: linear-gradient(135deg, #f97316, #ea580c);color:#fff;border:none;border-radius:10px;font-size:1rem;font-weight:700;cursor:pointer;box-shadow:0 3px 8px rgba(249,115,22,.3);transition: all .15s;}
   .word-token:hover:not(:disabled){transform:translateY(-2px);}
   .word-token:disabled{opacity:.4;cursor:not-allowed;}
   
-  .answer-token{ padding:.4rem .8rem; background:#f97316; color:#fff; border:none; border-radius:8px; font-weight:600; cursor:pointer; transition: all .15s; }
+  .answer-token{padding:.4rem .8rem;background:#f97316;color:#fff;border:none;border-radius:8px;font-weight:600;cursor:pointer;transition: all .15s;}
   .answer-token:hover{background:#ef4444;}
   
-  .q-actions{ display:flex; gap:.5rem; justify-content:center; margin-top:.75rem; }
-  .btn-sm{ padding:.5rem 1rem; border:none; border-radius:8px; font-weight:700; font-size:.9rem; cursor:pointer; }
-  .btn-sm.secondary{background:#e2e8f0;color:#475569;}
-  .btn-sm:disabled{opacity:.5;cursor:not-allowed;}
-  
-  .feedback{ margin-top:8px; font-size:.9rem; padding:8px 10px; border-radius:8px; display:none; text-align:center; }
+  .feedback{margin-top:8px;font-size:.9rem;padding:8px 10px;border-radius:8px;display:none;text-align:center;}
   .feedback.show{display:block;}
   .feedback.correct{background:#dcfce7;color:#166534;}
   .feedback.wrong{background:#fef2f2;color:#991b1b;}
-  .correct-answer{margin-top:.5rem;font-weight:600;color:#166534;}
   
-  /* Buttons */
-  .btn{ display:inline-flex; align-items:center; justify-content:center; gap:.5rem; border:0; border-radius:12px; padding:.85rem 1.5rem; font-weight:900; font-size:1rem; cursor:pointer; transition: all .2s; }
-  .btn-primary{ background: linear-gradient(135deg, #f97316, #ea580c); color:#fff; box-shadow: 0 4px 14px rgba(249,115,22,.35); }
-  .btn-primary:hover{ transform: translateY(-2px); box-shadow: 0 6px 20px rgba(249,115,22,.45); }
-  .btn-primary:disabled{ opacity:.6; cursor:not-allowed; transform:none; }
-  .btn-secondary{ background:#e2e8f0; color:#0f172a; }
-  .btn-secondary:hover{ background:#cbd5e1; }
-  .bar{ display:flex; gap:10px; flex-wrap:wrap; margin-top:16px; padding-top:16px; border-top:1px solid rgba(0,0,0,.08); justify-content:center; }
+  .btn{display:inline-flex;align-items:center;justify-content:center;gap:.5rem;border:0;border-radius:12px;padding:.85rem 1.5rem;font-weight:900;font-size:1rem;cursor:pointer;transition: all .2s;}
+  .btn-primary{background: linear-gradient(135deg, #f97316, #ea580c);color:#fff;box-shadow: 0 4px 14px rgba(249,115,22,.35);}
+  .btn-primary:hover{transform: translateY(-2px);}
+  .btn-primary:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+  .bar{display:flex;gap:10px;flex-wrap:wrap;margin-top:16px;padding-top:16px;border-top:1px solid rgba(0,0,0,.08);justify-content:center;}
   
-  /* Result */
-  .result{ margin-top:16px; padding:16px; border-radius:14px; display:none; text-align:center; }
+  .result{margin-top:16px;padding:16px;border-radius:14px;display:none;text-align:center;}
   .result.show{display:block;}
-  .result.success{ background: linear-gradient(135deg, #dcfce7, #bbf7d0); border:1px solid #22c55e; }
-  .result.fail{ background: linear-gradient(135deg, #fef2f2, #fecaca); border:1px solid #ef4444; }
+  .result.success{background: linear-gradient(135deg, #dcfce7, #bbf7d0);border:1px solid #22c55e;}
+  .result.fail{background: linear-gradient(135deg, #fef2f2, #fecaca);border:1px solid #ef4444;}
   .result h3{margin:0 0 8px;font-size:1.1rem;}
   .result .score{font-size:2.5rem;font-weight:900;margin:8px 0;}
   
-  /* Sound Toggle */
-  .sound-toggle{ position:fixed; bottom:15px; right:15px; width:45px; height:45px; border-radius:50%; background:#f97316; color:#fff; border:none; font-size:1.3rem; cursor:pointer; box-shadow:0 4px 12px rgba(249,115,22,.4); }
+  .manual-input{display:none;margin-top:8px;}
+  .manual-input.show{display:block;}
+  
+  .sound-toggle{position:fixed;bottom:15px;right:15px;width:45px;height:45px;border-radius:50%;background:#f97316;color:#fff;border:none;font-size:1.3rem;cursor:pointer;box-shadow:0 4px 12px rgba(249,115,22,.4);}
 </style>
 {% endblock %}
 
 {% block content %}
-<div id="timerBar" class="timer-bar safe">
-  ⏳ เหลือเวลาอีก: <span id="timerDisplay">--:--</span>
-</div>
-
-<div id="completedScreen" class="completed-overlay">
-  <div style="font-size:4rem;">✅</div>
-  <h1 style="color:#1e293b;">คุณทำแบบทดสอบนี้ไปแล้ว</h1>
-  <p style="color:#64748b;">ระบบอนุญาตให้ส่งคำตอบได้เพียง 1 ครั้งเท่านั้น</p>
-</div>
-
-<div class="wrap" id="mainContainer">
+<div class="wrap">
   <div class="card">
     <div class="h1">🔀 Sentence Unscramble</div>
     <div class="muted">{{ topic.name }} • เรียงคำให้เป็นประโยคที่ถูกต้อง</div>
 
     <div class="student-form">
       <h3>👤 ข้อมูลผู้ทำแบบทดสอบ</h3>
-      
-      {% if students %}
-      <div class="form-group" style="margin-bottom:12px;">
-        <label style="font-weight:700; color:#c2410c; display:block; margin-bottom:6px;">
-          เลือกชื่อของคุณ <span style="color:#ef4444">*</span>
-        </label>
-        <select class="inp" id="studentSelect" onchange="autoFillStudent()">
-          <option value="">-- ค้นหาหรือเลือกชื่อ --</option>
-          {% for s in students %}
-          <option value="{{ s.id }}" 
-                  data-no="{{ s.student_no }}" 
-                  data-name="{{ s.student_name }}" 
-                  data-code="{{ s.student_id or '' }}"
-                  data-class="{{ classroom.name if classroom else '' }}"
-                  data-dept="{{ s.department or '' }}">
-            {{ s.student_no }} {{ s.student_name }}
-          </option>
-          {% endfor %}
-        </select>
-      </div>
-      
-      <div class="form-grid" style="opacity:0.8; margin-top:10px;">
-        <input class="inp" id="studentName" placeholder="ชื่อ-นามสกุล" readonly style="background:#f1f5f9; grid-column: span 2;">
-        <input class="inp" id="studentNo" placeholder="เลขที่" readonly style="background:#f1f5f9;">
-        <input class="inp" id="studentId" placeholder="รหัสนักศึกษา" readonly style="background:#f1f5f9;">
-        <input class="inp" id="classroom" placeholder="ชั้นเรียน" readonly style="background:#f1f5f9;">
-        <input class="inp" id="department" placeholder="แผนก" readonly style="background:#f1f5f9;">
-      </div>
-      <input type="hidden" id="realStudentId" value="">
-
-      {% else %}
       <div class="form-grid">
-        <input class="inp" id="studentName" placeholder="ชื่อ-นามสกุล (Name)" style="grid-column: span 2;">
-        <input class="inp" id="studentNo" placeholder="เลขที่ (No.)">
-        <input class="inp" id="studentId" placeholder="รหัสนักศึกษา (Student ID)">
-        <input class="inp" id="classroom" placeholder="ชั้นเรียน (Class)">
-        <input class="inp" id="department" placeholder="แผนก/สาขา (Department)">
+        <div class="form-group">
+          <label>แผนก/สาขา <span class="required">*</span></label>
+          <select id="classroomSelect" onchange="loadStudents()">
+            <option value="">-- เลือกห้อง --</option>
+            {% for cls in classrooms %}
+            <option value="{{ cls.id }}" data-name="{{ cls.name }}">{{ cls.name }}</option>
+            {% endfor %}
+            <option value="other">อื่นๆ (พิมพ์เอง)</option>
+          </select>
+          <input type="text" id="classroomManual" class="manual-input" placeholder="พิมพ์ชื่อห้อง/แผนก">
+        </div>
+        <div class="form-group">
+          <label>ชื่อ-นามสกุล <span class="required">*</span></label>
+          <select id="studentSelect">
+            <option value="">-- เลือกชื่อ --</option>
+            <option value="other">พิมพ์ชื่อเอง</option>
+          </select>
+          <input type="text" id="studentManual" class="manual-input" placeholder="พิมพ์ชื่อ-นามสกุล">
+        </div>
       </div>
-      <input type="hidden" id="realStudentId" value="">
-      {% endif %}
     </div>
 
-    <div class="progress-bar">
-      <div class="fill" id="progressFill" style="width:0%"></div>
-    </div>
+    <div class="progress-bar"><div class="fill" id="progressFill" style="width:0%"></div></div>
     <div class="progress-text" id="progressText">ตอบแล้ว 0 / 0 ข้อ</div>
 
     <div id="questionsContainer"></div>
 
     <div class="bar">
       <button class="btn btn-primary" id="btnSubmit">📤 ส่งคำตอบ</button>
-      </div>
+    </div>
 
     <div class="result" id="resultBox">
       <h3 id="resultTitle">ผลการทำแบบฝึกหัด</h3>
@@ -193,117 +125,58 @@
 <script>
 const practiceData = {{ practice_data | tojson | safe }};
 const token = "{{ token }}";
-const storageKey = "done_" + token;
 
-// --- Auto Fill Logic ---
-function autoFillStudent() {
-  const select = document.getElementById('studentSelect');
-  if (!select) return;
-  const option = select.options[select.selectedIndex];
-  
-  if (option.value) {
-    document.getElementById('realStudentId').value = option.value;
-    document.getElementById('studentName').value = option.dataset.name;
-    document.getElementById('studentNo').value = option.dataset.no;
-    document.getElementById('studentId').value = option.dataset.code;
-    document.getElementById('classroom').value = option.dataset.class;
-    document.getElementById('department').value = option.dataset.dept;
-  } else {
-    ['realStudentId', 'studentName', 'studentNo', 'studentId', 'classroom', 'department'].forEach(id => {
-      const el = document.getElementById(id);
-      if(el) el.value = '';
-    });
-  }
-}
-
-// --- 1. One-Time Submission Check ---
-if (localStorage.getItem(storageKey)) {
-  document.getElementById("mainContainer").style.display = "none";
-  document.getElementById("completedScreen").style.display = "flex";
-  document.getElementById("timerBar").style.display = "none";
-}
-
-// --- 2. Timer Logic ---
-const urlParams = new URLSearchParams(window.location.search);
-const timeLimitMins = parseInt(urlParams.get('limit')) || 0;
-let timerInterval;
-
-if (timeLimitMins > 0 && !localStorage.getItem(storageKey)) {
-  const timerBar = document.getElementById('timerBar');
-  const timerDisplay = document.getElementById('timerDisplay');
-  timerBar.style.display = 'block';
-
-  const startTimeKey = "start_" + token;
-  let endTime = localStorage.getItem(startTimeKey);
-  
-  if (!endTime) {
-    const now = new Date().getTime();
-    endTime = now + (timeLimitMins * 60 * 1000);
-    localStorage.setItem(startTimeKey, endTime);
-  }
-
-  function updateTimer() {
-    const now = new Date().getTime();
-    let timeLeft = Math.floor((endTime - now) / 1000); 
-
-    if (timeLeft < 0) timeLeft = 0;
-
-    const m = Math.floor(timeLeft / 60).toString().padStart(2, '0');
-    const s = (timeLeft % 60).toString().padStart(2, '0');
-    timerDisplay.textContent = `${m}:${s}`;
-
-    if (timeLeft <= 60) { timerBar.classList.remove('safe'); }
-
-    if (timeLeft <= 0) {
-      clearInterval(timerInterval);
-      if(document.getElementById("mainContainer").style.display !== "none"){
-          alert("หมดเวลา! ระบบจะส่งคำตอบโดยอัตโนมัติ");
-          handleSubmit(true); // Force submit
-      }
-    }
-  }
-  updateTimer();
-  timerInterval = setInterval(updateTimer, 1000);
-}
-
-// --- Audio System ---
 let soundEnabled = true;
 let audioContext = null;
-function initAudio() {
-  if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)();
-  return audioContext;
-}
+function initAudio() { if (!audioContext) audioContext = new (window.AudioContext || window.webkitAudioContext)(); return audioContext; }
 function playTone(freq, dur, type = 'sine', vol = 0.3) {
   if (!soundEnabled) return;
-  try {
-    const ctx = initAudio();
-    const osc = ctx.createOscillator();
-    const gain = ctx.createGain();
-    osc.connect(gain); gain.connect(ctx.destination);
-    osc.frequency.value = freq; osc.type = type;
-    gain.gain.setValueAtTime(vol, ctx.currentTime);
-    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + dur);
+  try { const ctx = initAudio(); const osc = ctx.createOscillator(); const gain = ctx.createGain();
+    osc.connect(gain); gain.connect(ctx.destination); osc.frequency.value = freq; osc.type = type;
+    gain.gain.setValueAtTime(vol, ctx.currentTime); gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + dur);
     osc.start(ctx.currentTime); osc.stop(ctx.currentTime + dur);
   } catch (e) {}
 }
 function playCorrectSound() { playTone(523, 0.15); setTimeout(() => playTone(659, 0.15), 100); setTimeout(() => playTone(784, 0.2), 200); }
 function playWrongSound() { playTone(200, 0.3, 'square', 0.15); }
 function playClickSound() { playTone(500, 0.08, 'sine', 0.2); }
-function toggleSound() {
-  soundEnabled = !soundEnabled;
-  document.getElementById('soundToggle').textContent = soundEnabled ? '🔊' : '🔇';
-}
+function toggleSound() { soundEnabled = !soundEnabled; document.getElementById('soundToggle').textContent = soundEnabled ? '🔊' : '🔇'; }
 
-// --- Game Logic ---
+const classroomSelect = document.getElementById("classroomSelect");
+const classroomManual = document.getElementById("classroomManual");
+const studentSelect = document.getElementById("studentSelect");
+const studentManual = document.getElementById("studentManual");
+
+window.loadStudents = async function() {
+  const cid = classroomSelect.value;
+  if (cid === 'other') { classroomManual.classList.add('show'); studentSelect.value = 'other'; studentManual.classList.add('show'); return; }
+  classroomManual.classList.remove('show');
+  if (!cid) { studentSelect.innerHTML = '<option value="">-- เลือกชื่อ --</option><option value="other">พิมพ์ชื่อเอง</option>'; studentManual.classList.remove('show'); return; }
+  try {
+    const res = await fetch(`/api/public/classroom/${cid}/students`);
+    const students = await res.json();
+    let html = '<option value="">-- เลือกชื่อ --</option>';
+    students.forEach(s => { html += `<option value="${s.student_name}">${s.student_no ? s.student_no + '. ' : ''}${s.student_name}</option>`; });
+    html += '<option value="other">พิมพ์ชื่อเอง</option>';
+    studentSelect.innerHTML = html;
+    studentManual.classList.remove('show');
+  } catch(e) { console.error(e); }
+};
+studentSelect.addEventListener('change', function() { if (this.value === 'other') { studentManual.classList.add('show'); studentManual.focus(); } else { studentManual.classList.remove('show'); } });
+
 let questions = [];
-let userAnswers = {}; // qid -> array of words
+let userAnswers = {};
+let questionStates = {};
 
 function init() {
   questions = prepareQuestions();
-  if (questions.length === 0) {
-    document.getElementById('questionsContainer').innerHTML = '<p style="text-align:center;color:#64748b;padding:2rem;">ไม่มีข้อมูลสำหรับแบบฝึกหัดนี้</p>';
-    return;
+  if (questions.length === 0) { 
+    document.getElementById('questionsContainer').innerHTML = '<p style="text-align:center;color:#64748b;padding:2rem;">ไม่มีข้อมูลสำหรับแบบฝึกหัดนี้</p>'; 
+    return; 
   }
+  questions.forEach(q => {
+    questionStates[q.id] = { selectedWords: [], availableButtons: [] };
+  });
   renderQuestions();
   updateProgress();
 }
@@ -313,210 +186,137 @@ function prepareQuestions() {
   if (practiceData.examples && practiceData.examples.length > 0) {
     practiceData.examples.forEach((ex, i) => {
       if (ex.en && ex.en.split(' ').length >= 3) {
-        result.push({ id: i, sentence: ex.en.replace(/[.!?]$/, ''), hint: ex.th || '' });
+        result.push({ id: i, sentence: ex.en.replace(/[.!?]$/, ''), hint: ex.th || '', words: ex.en.replace(/[.!?]$/, '').split(' ') });
       }
     });
   }
   if (practiceData.vocabulary && practiceData.vocabulary.length > 0) {
     practiceData.vocabulary.forEach((v, i) => {
       if (v.example && v.example.split(' ').length >= 3) {
-        result.push({ id: 100 + i, sentence: v.example.replace(/[.!?]$/, ''), hint: v.meaning || '' });
+        result.push({ id: 100 + i, sentence: v.example.replace(/[.!?]$/, ''), hint: v.meaning || '', words: v.example.replace(/[.!?]$/, '').split(' ') });
       }
     });
   }
-  if (practiceData.dialogues && practiceData.dialogues.length > 0) {
-    practiceData.dialogues.forEach((d, i) => {
-      if (d.text && d.text.split(' ').length >= 3) {
-        result.push({ id: 200 + i, sentence: d.text.replace(/[.!?]$/, ''), hint: '' });
-      }
-    });
-  }
-  shuffleArray(result);
-  return result.slice(0, 12);
+  for (let i = result.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [result[i], result[j]] = [result[j], result[i]]; }
+  return result.slice(0, 10);
 }
 
 function shuffleArray(arr) {
-  for (let i = arr.length - 1; i > 0; i--) {
-    const j = Math.floor(Math.random() * (i + 1));
-    [arr[i], arr[j]] = [arr[j], arr[i]];
-  }
-  return arr;
+  const a = [...arr];
+  for (let i = a.length - 1; i > 0; i--) { const j = Math.floor(Math.random() * (i + 1)); [a[i], a[j]] = [a[j], a[i]]; }
+  return a;
 }
+
+function escapeHtml(text) { const div = document.createElement('div'); div.textContent = text; return div.innerHTML; }
 
 function renderQuestions() {
   const container = document.getElementById('questionsContainer');
   container.innerHTML = questions.map((q, idx) => {
-    const words = q.sentence.split(' ');
-    const scrambled = [...words];
-    shuffleArray(scrambled);
-    while (scrambled.join(' ') === words.join(' ') && scrambled.length > 2) {
-      shuffleArray(scrambled);
-    }
-    
-    // Store correct words
-    q.words = words;
-    userAnswers[q.id] = [];
-    
-    return `
-      <div class="q" id="q${q.id}" data-qid="${q.id}">
-        <strong>${idx + 1}. เรียงคำให้เป็นประโยคที่ถูกต้อง</strong>
-        ${q.hint ? `<div class="hint-text">💡 ${q.hint}</div>` : ''}
-        
-        <div class="answer-zone" id="zone${q.id}">
-          <span class="placeholder">คลิกคำด้านล่างเพื่อเรียงประโยค</span>
-        </div>
-        
-        <div class="words-container" id="words${q.id}">
-          ${scrambled.map((w, wi) => `
-            <button class="word-token" data-word="${escapeHtml(w)}" data-idx="${wi}" onclick="addWord(${q.id}, this)">${escapeHtml(w)}</button>
-          `).join('')}
-        </div>
-        
-        <div class="q-actions">
-          <button class="btn-sm secondary" onclick="clearWords(${q.id})">🗑️ ล้าง</button>
-        </div>
-        
-        <div class="feedback" id="fb${q.id}"></div>
+    const scrambled = shuffleArray(q.words);
+    return `<div class="q" id="q${q.id}" data-qid="${q.id}">
+      <strong>${idx + 1}. เรียงคำให้เป็นประโยค</strong>
+      ${q.hint ? `<div class="hint-text">💡 ${escapeHtml(q.hint)}</div>` : ''}
+      <div class="answer-zone" id="answer${q.id}"><span class="placeholder">คลิกคำด้านล่างเพื่อเรียงประโยค</span></div>
+      <div class="words-container" id="words${q.id}">
+        ${scrambled.map((w, wi) => `<button class="word-token" data-qid="${q.id}" data-word="${escapeHtml(w)}" data-idx="${wi}" onclick="addWord(${q.id}, this)">${escapeHtml(w)}</button>`).join('')}
       </div>
-    `;
+      <div class="feedback" id="fb${q.id}"></div>
+    </div>`;
   }).join('');
 }
 
-function escapeHtml(text) {
-  const div = document.createElement('div');
-  div.textContent = text;
-  return div.innerHTML;
-}
-
-function addWord(qid, btn) {
-  if (btn.disabled) return;
-  if (document.getElementById('btnSubmit').disabled) return;
-  
+window.addWord = function(qid, btn) {
+  if (btn.disabled || document.getElementById('btnSubmit').disabled) return;
   playClickSound();
   
-  const word = btn.dataset.word;
-  userAnswers[qid].push({ word, btn });
+  const state = questionStates[qid];
+  state.selectedWords.push({ word: btn.dataset.word, btn: btn });
   btn.disabled = true;
+  state.availableButtons.push(btn);
   
   updateAnswerZone(qid);
-  
-  // Check if answered
-  const q = questions.find(x => x.id === qid);
-  if (userAnswers[qid].length === q.words.length) {
-    document.getElementById('q' + qid).classList.add('answered');
-  }
-  
-  updateProgress();
-}
+  checkAnswered(qid);
+};
 
-function removeWord(qid, index) {
+window.removeWord = function(qid, index) {
   if (document.getElementById('btnSubmit').disabled) return;
+  playClickSound();
   
-  const removed = userAnswers[qid].splice(index, 1)[0];
-  if (removed && removed.btn) {
-    removed.btn.disabled = false;
-  }
+  const state = questionStates[qid];
+  const removed = state.selectedWords.splice(index, 1)[0];
+  if (removed && removed.btn) removed.btn.disabled = false;
   
-  document.getElementById('q' + qid).classList.remove('answered');
   updateAnswerZone(qid);
-  updateProgress();
-}
+  checkAnswered(qid);
+};
 
 function updateAnswerZone(qid) {
-  const zone = document.getElementById('zone' + qid);
-  const answers = userAnswers[qid];
+  const zone = document.getElementById('answer' + qid);
+  const state = questionStates[qid];
   
-  if (answers.length === 0) {
+  if (state.selectedWords.length === 0) {
     zone.innerHTML = '<span class="placeholder">คลิกคำด้านล่างเพื่อเรียงประโยค</span>';
     zone.classList.remove('active');
   } else {
     zone.classList.add('active');
-    zone.innerHTML = answers.map((item, i) => 
+    zone.innerHTML = state.selectedWords.map((item, i) => 
       `<button class="answer-token" onclick="removeWord(${qid}, ${i})">${escapeHtml(item.word)}</button>`
     ).join('');
   }
 }
 
-function clearWords(qid) {
-  if (document.getElementById('btnSubmit').disabled) return;
+function checkAnswered(qid) {
+  const q = questions.find(x => x.id === qid);
+  const state = questionStates[qid];
+  const qEl = document.getElementById('q' + qid);
   
-  userAnswers[qid].forEach(item => {
-    if (item.btn) item.btn.disabled = false;
-  });
-  userAnswers[qid] = [];
-  
-  document.getElementById('q' + qid).classList.remove('answered');
-  updateAnswerZone(qid);
+  if (state.selectedWords.length === q.words.length) {
+    qEl.classList.add('answered');
+    userAnswers[qid] = state.selectedWords.map(s => s.word);
+  } else {
+    qEl.classList.remove('answered');
+    delete userAnswers[qid];
+  }
   updateProgress();
 }
 
 function updateProgress() {
-  let answered = 0;
-  questions.forEach(q => {
-    if (userAnswers[q.id] && userAnswers[q.id].length === q.words.length) {
-      answered++;
-    }
-  });
+  const answered = Object.keys(userAnswers).length;
   const total = questions.length;
-  const pct = total > 0 ? (answered / total * 100) : 0;
-  document.getElementById('progressFill').style.width = pct + '%';
+  document.getElementById('progressFill').style.width = (total > 0 ? answered / total * 100 : 0) + '%';
   document.getElementById('progressText').textContent = `ตอบแล้ว ${answered} / ${total} ข้อ`;
 }
 
-// Removed resetAll function since button is gone
+function getStudentInfo() {
+  let classroom = classroomSelect.value === 'other' ? classroomManual.value.trim() : (classroomSelect.value ? (classroomSelect.options[classroomSelect.selectedIndex].dataset.name || classroomSelect.options[classroomSelect.selectedIndex].text) : '');
+  let studentName = studentSelect.value === 'other' ? studentManual.value.trim() : studentSelect.value;
+  return { classroom, studentName };
+}
 
-// --- Submission Logic ---
-document.getElementById('btnSubmit').addEventListener('click', () => handleSubmit(false));
-
-async function handleSubmit(force = false) {
-  const studentName = (document.getElementById('studentName').value || '').trim();
-  const studentNo = (document.getElementById('studentNo').value || '').trim();
-  const studentId = (document.getElementById('studentId').value || '').trim();
-  const classroom = (document.getElementById('classroom').value || '').trim();
-  const department = (document.getElementById('department').value || '').trim();
-  
-  if (!studentName && !force) {
-    alert('กรุณากรอกชื่อ-สกุลก่อนส่ง');
-    document.getElementById('studentName').classList.add('error');
-    document.getElementById('studentName').focus();
-    return;
-  }
-  document.getElementById('studentName').classList.remove('error');
+document.getElementById('btnSubmit').addEventListener('click', async () => {
+  const { classroom, studentName } = getStudentInfo();
+  if (!classroom) { alert('กรุณาเลือกห้อง/แผนกก่อนส่ง'); return; }
+  if (!studentName) { alert('กรุณาเลือกหรือพิมพ์ชื่อก่อนส่ง'); return; }
   
   let unanswered = 0;
-  questions.forEach(q => {
-    if (!userAnswers[q.id] || userAnswers[q.id].length !== q.words.length) {
-      unanswered++;
-    }
-  });
+  questions.forEach(q => { if (!userAnswers[q.id] || userAnswers[q.id].length !== q.words.length) unanswered++; });
+  if (unanswered > 0 && !confirm(`ยังมี ${unanswered} ข้อที่ยังไม่ครบ\nต้องการส่งเลยหรือไม่?`)) return;
   
-  if (unanswered > 0 && !force) {
-    if (!confirm(`ยังมี ${unanswered} ข้อที่ยังไม่ครบ\nต้องการส่งเลยหรือไม่?`)) {
-      return;
-    }
-  }
-
-  if(!force && !confirm("ยืนยันการส่งคำตอบ? คุณสามารถทำได้เพียงครั้งเดียว")) return;
-  
-  clearInterval(timerInterval);
-  document.getElementById("timerBar").style.display = 'none';
-
   const btnSubmit = document.getElementById('btnSubmit');
   btnSubmit.disabled = true;
   btnSubmit.innerHTML = '⏳ กำลังส่ง...';
   
-  // Disable all word buttons
-  document.querySelectorAll('.word-token').forEach(b => b.disabled = true);
-  
-  // Calculate score locally
   let score = 0;
   questions.forEach(q => {
-    const userAns = (userAnswers[q.id] || []).map(a => a.word).join(' ');
-    const correctAns = q.words.join(' ');
-    const isCorrect = userAns.toLowerCase() === correctAns.toLowerCase();
+    const userAns = userAnswers[q.id] || [];
+    const correct = q.words.join(' ');
+    const userStr = userAns.join(' ');
+    const isCorrect = userStr.toLowerCase() === correct.toLowerCase();
     
-    const zone = document.getElementById('zone' + q.id);
+    const zone = document.getElementById('answer' + q.id);
     const fb = document.getElementById('fb' + q.id);
+    
+    document.querySelectorAll(`#words${q.id} .word-token`).forEach(b => b.disabled = true);
     
     if (isCorrect) {
       score++;
@@ -527,53 +327,32 @@ async function handleSubmit(force = false) {
       playWrongSound();
       zone.classList.add('wrong');
       fb.className = 'feedback show wrong';
-      fb.innerHTML = `❌ ผิด<div class="correct-answer">คำตอบที่ถูก: ${correctAns}</div>`;
+      fb.innerHTML = `❌ ผิด — คำตอบที่ถูก: <strong>${correct}</strong>`;
     }
   });
-  
   if (score > 0) playCorrectSound();
   
-  // Submit to server
-  try {
-    await fetch(`/api/public/unscramble/${token}/submit`, {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        // ส่ง student_db_id ไปด้วย
-        student_db_id: document.getElementById('realStudentId') ? document.getElementById('realStudentId').value : null,
-        student_name: studentName,
-        student_no: studentNo,
-        student_id: studentId,
-        classroom: classroom,
-        department: department,
-        score: score,
-        total: questions.length,
-        answers: {}
-      })
-    });
-    
-    // Mark as done
-    localStorage.setItem(storageKey, "true");
-    localStorage.removeItem("start_" + token);
-
-  } catch (e) {
-    console.error(e);
-  }
+  try { 
+    await fetch(`/api/public/unscramble/${token}/submit`, { 
+      method: 'POST', 
+      headers: { 'Content-Type': 'application/json' }, 
+      body: JSON.stringify({ student_name: studentName, student_no: "", classroom: classroom, score: score, total: questions.length, answers: userAnswers }) 
+    }); 
+  } catch (e) { console.error(e); }
   
-  // Show result
   const pct = Math.round(score / questions.length * 100);
   const isPass = pct >= 50;
-  
   const resultBox = document.getElementById('resultBox');
   resultBox.classList.add('show', isPass ? 'success' : 'fail');
   document.getElementById('resultTitle').textContent = isPass ? '🎉 ทำได้ดีมาก!' : '💪 พยายามต่อไปนะ!';
   document.getElementById('resultScore').textContent = `${score}/${questions.length}`;
   document.getElementById('resultPercent').textContent = `${pct}%`;
-  document.getElementById('resultMsg').innerHTML = 'คะแนนถูกบันทึกเรียบร้อยแล้ว ✅<br>(คุณไม่สามารถทำซ้ำได้)';
+  document.getElementById('resultMsg').innerHTML = 'คะแนนถูกบันทึกเรียบร้อยแล้ว ✅';
   
+  document.querySelectorAll('select, input[type=text]').forEach(el => el.disabled = true);
   resultBox.scrollIntoView({ behavior: 'smooth', block: 'center' });
   btnSubmit.innerHTML = '✅ ส่งแล้ว';
-}
+});
 
 init();
 </script>
