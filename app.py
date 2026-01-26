@@ -1501,6 +1501,35 @@ def api_public_classroom_students(classroom_id):
     students = ClassroomStudent.get_by_classroom(classroom_id)
     return jsonify([{"id": s["id"], "student_no": s.get("student_no") or "", "student_name": s.get("student_name") or ""} for s in students])
 
+# API: Get all classrooms for current user (for dropdown)
+@app.route("/api/classrooms")
+@login_required
+def api_get_classrooms():
+    """Get all classrooms for current user"""
+    user_id = session["user_id"]
+    cls_list = Classroom.get_by_owner(user_id)
+    return jsonify({
+        "classrooms": [{"id": c["id"], "name": c["name"]} for c in cls_list]
+    })
+
+
+# API: Get students in a classroom (for importing to games)
+@app.route("/api/classroom/<int:classroom_id>/students")
+@login_required
+def api_get_classroom_students(classroom_id):
+    """Get students in a classroom"""
+    # Verify ownership
+    classroom = Classroom.get_by_id(classroom_id)
+    if not classroom or classroom.get("owner_id") != session["user_id"]:
+        return jsonify({"error": "Not found"}), 404
+    
+    students = ClassroomStudent.get_by_classroom(classroom_id)
+    return jsonify({
+        "students": [
+            {"id": s["id"], "student_no": s.get("student_no") or "", "student_name": s.get("student_name") or ""}
+            for s in students
+        ]
+    })
 
 # ==============================================================================
 # Classrooms
