@@ -12,134 +12,215 @@
   --bg-soft: #f8fafc;
 }
 
+/* ========= Normal Layout (scrollable) ========= */
+.game-page { 
+  padding: 0.5rem; 
+  box-sizing: border-box;
+}
+
 /* ========= Nav ========= */
-.quick-nav{display:flex;gap:.75rem;flex-wrap:wrap;align-items:center;justify-content:flex-start;margin:.75rem 0 1.25rem;}
-.nav-btn{display:inline-flex;align-items:center;gap:.5rem;padding:.6rem .9rem;border-radius:12px;font-weight:800;text-decoration:none;border:1px solid rgba(0,0,0,.10);background:#f7fafc;color:#1a202c;transition:all .15s ease;}
-.nav-btn:hover{background:#edf2f7;transform:translateY(-1px);box-shadow:0 4px 12px rgba(0,0,0,.1);}
+.quick-nav{
+  display:flex;
+  gap:.5rem;
+  flex-wrap:wrap;
+  align-items:center;
+  padding: 0.5rem 0;
+  flex-shrink: 0;
+}
+.nav-btn{
+  display:inline-flex;
+  align-items:center;
+  gap:.4rem;
+  padding:.5rem .75rem;
+  border-radius:10px;
+  font-weight:700;
+  font-size: 0.85rem;
+  text-decoration:none;
+  border:1px solid rgba(0,0,0,.10);
+  background:#f7fafc;
+  color:#1a202c;
+  transition:all .15s ease;
+}
+.nav-btn:hover{background:#edf2f7;}
 .nav-game{border-color:rgba(102,126,234,.35);background:#eef2ff;color:var(--primary);}
 
-/* ========= Setup Screen (Memory Style) ========= */
+/* ========= Setup Screen ========= */
 .setup-screen {
-  max-width: 600px;
-  margin: 2rem auto;
+  max-width: 550px;
+  margin: 1rem auto;
   background: #fff;
-  padding: 2.5rem;
+  padding: 2rem;
   border-radius: 20px;
   box-shadow: 0 4px 25px rgba(0,0,0,.08);
   text-align: center;
 }
-.setup-screen h2 { color: var(--primary); margin-bottom: 0.5rem; font-size: 2rem; }
-.setup-screen p { color: #64748b; margin-bottom: 2rem; }
+.setup-screen h2 { color: var(--primary); margin-bottom: 0.5rem; font-size: 1.75rem; }
+.setup-screen p { color: #64748b; margin-bottom: 1.5rem; }
 
-.setup-options { display: flex; flex-direction: column; gap: 1rem; margin-bottom: 2rem; text-align: left; }
+.setup-options { display: flex; flex-direction: column; gap: 0.75rem; margin-bottom: 1.5rem; text-align: left; }
 .setup-row {
   display: flex; justify-content: space-between; align-items: center;
-  padding: 1rem 1.25rem; background: var(--bg-soft); border-radius: 14px;
+  padding: 0.75rem 1rem; background: var(--bg-soft); border-radius: 12px;
   border: 1px solid #e2e8f0;
 }
-.setup-row label { font-weight: 700; color: #334155; }
-.setup-row select, .setup-row input[type="text"] {
-  padding: .6rem 1rem; border-radius: 8px; border: 1px solid #cbd5e1;
-  font-weight: 600; font-size: 1rem; color: #1e293b; background: #fff;
+.setup-row label { font-weight: 700; color: #334155; font-size: 0.95rem; }
+.setup-row select {
+  padding: .5rem .75rem; border-radius: 8px; border: 1px solid #cbd5e1;
+  font-weight: 600; font-size: 0.95rem; color: #1e293b; background: #fff;
 }
 
-/* Custom Switch for Setup */
-.switch { position: relative; display: inline-block; width: 50px; height: 28px; }
+.switch { position: relative; display: inline-block; width: 46px; height: 26px; }
 .switch input { opacity: 0; width: 0; height: 0; }
-.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .4s; border-radius: 34px; }
-.slider:before { position: absolute; content: ""; height: 20px; width: 20px; left: 4px; bottom: 4px; background-color: white; transition: .4s; border-radius: 50%; }
+.slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #cbd5e1; transition: .3s; border-radius: 26px; }
+.slider:before { position: absolute; content: ""; height: 18px; width: 18px; left: 4px; bottom: 4px; background-color: white; transition: .3s; border-radius: 50%; }
 input:checked + .slider { background-color: var(--primary); }
-input:checked + .slider:before { transform: translateX(22px); }
+input:checked + .slider:before { transform: translateX(20px); }
 
 .btn-start {
-  width: 100%; padding: 1.2rem;
+  width: 100%; padding: 1rem;
   background: linear-gradient(135deg, var(--primary), #764ba2);
-  color: #fff; border: none; border-radius: 14px;
-  font-size: 1.25rem; font-weight: 800; cursor: pointer;
+  color: #fff; border: none; border-radius: 12px;
+  font-size: 1.15rem; font-weight: 800; cursor: pointer;
   transition: all .2s; box-shadow: 0 4px 15px rgba(102,126,234,.3);
 }
-.btn-start:hover { transform: translateY(-3px); box-shadow: 0 8px 25px rgba(102,126,234,.5); }
+.btn-start:hover { transform: translateY(-2px); box-shadow: 0 6px 20px rgba(102,126,234,.4); }
 
 /* ========= Game Container ========= */
-.game-container { display: none; max-width: 1100px; margin: 0 auto; }
+.game-container { 
+  display: none; 
+}
 .game-container.active { display: block; }
 
-/* Stats Bar (Memory Style Scoreboard) */
+/* Stats Bar */
 .stats-bar {
-  display: flex; justify-content: space-between; align-items: stretch;
-  gap: 1rem; padding: 1rem; background: #fff;
-  border-radius: 16px; box-shadow: 0 4px 20px rgba(0,0,0,.06); margin-bottom: 1.5rem;
+  display: flex; 
+  justify-content: space-between; 
+  align-items: center;
+  gap: 0.5rem; 
+  padding: 0.5rem 0.75rem; 
+  background: #fff;
+  border-radius: 12px; 
+  box-shadow: 0 2px 10px rgba(0,0,0,.05); 
+  flex-shrink: 0;
   flex-wrap: wrap;
 }
 .scoreboard-section {
-  display: flex; gap: 1rem; flex: 1; flex-wrap: wrap;
+  display: flex; gap: 0.4rem; flex: 1; flex-wrap: wrap;
 }
 .stat-item {
   display: flex; flex-direction: column; justify-content: center;
-  padding: 0.5rem 1.5rem; border-radius: 12px; background: var(--bg-soft);
-  text-align: center; border: 2px solid transparent; min-width: 100px;
+  padding: 0.4rem 0.8rem; border-radius: 10px; background: var(--bg-soft);
+  text-align: center; border: 2px solid transparent; min-width: 70px;
   transition: all 0.2s;
 }
 .stat-item.active {
-  background: #eef2ff; border-color: var(--primary); transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(102,126,234,.2);
+  background: #eef2ff; border-color: var(--primary);
+  box-shadow: 0 2px 8px rgba(102,126,234,.2);
 }
-.stat-value { font-size: 1.8rem; font-weight: 900; color: var(--primary); line-height: 1.2; }
-.stat-label { font-size: 0.85rem; color: #64748b; font-weight: 700; text-transform: uppercase; }
+.stat-item.scored {
+  animation: scoreFlash 0.5s ease;
+}
+@keyframes scoreFlash {
+  0%, 100% { background: var(--bg-soft); }
+  50% { background: #dcfce7; }
+}
+.stat-value { font-size: 1.4rem; font-weight: 900; color: var(--primary); line-height: 1.2; }
+.stat-label { font-size: 0.7rem; color: #64748b; font-weight: 700; text-transform: uppercase; }
 
 .controls-section {
-  display: flex; gap: 0.5rem; align-items: center;
+  display: flex; gap: 0.4rem; align-items: center;
 }
+.ctrl-btn {
+  padding: 0.5rem 0.75rem; border-radius: 8px; border: 1px solid #e2e8f0;
+  background: #f8fafc; font-weight: 700; font-size: 0.85rem; cursor: pointer;
+  transition: all 0.15s;
+}
+.ctrl-btn:hover { background: #e2e8f0; }
 
-/* ========= Tiles ========= */
+/* ========= Tiles Grid - Fixed Size ========= */
+.tiles-wrap {
+  padding: 0.5rem 0;
+}
 .tiles-grid {
   display: grid;
-  grid-template-columns: repeat(var(--cols, 6), minmax(0, 1fr));
-  gap: 14px; margin-bottom: 2rem;
+  grid-template-columns: repeat(var(--cols, 6), 1fr);
+  gap: clamp(8px, 1.5vw, 14px);
+  max-width: 900px;
+  margin: 0 auto;
 }
 .tile {
   aspect-ratio: 1;
   background: linear-gradient(135deg, var(--primary), #764ba2);
-  color: #fff; border: none; border-radius: 16px;
-  font-size: clamp(1.5rem, 3vw, 2.5rem); font-weight: 800;
+  color: #fff; border: none; border-radius: clamp(10px, 2vw, 16px);
+  font-size: clamp(1.3rem, 3.5vw, 2.2rem); font-weight: 800;
   cursor: pointer; position: relative;
   box-shadow: 0 4px 10px rgba(102,126,234,.2);
-  transition: transform .15s cubic-bezier(0.34, 1.56, 0.64, 1), box-shadow .15s;
+  transition: transform .15s, box-shadow .15s;
   display: flex; align-items: center; justify-content: center;
 }
-.tile:hover:not(.used) { transform: scale(1.05) translateY(-5px); box-shadow: 0 12px 20px rgba(102,126,234,.35); z-index: 2; }
-.tile:active:not(.used) { transform: scale(0.95); }
-.tile.used { background: #cbd5e1; color: #94a3b8; cursor: not-allowed; opacity: 0.7; box-shadow: none; transform: none; }
+.tile:hover:not(.used) { 
+  transform: scale(1.03); 
+  box-shadow: 0 6px 15px rgba(102,126,234,.3); 
+  z-index: 2; 
+}
+.tile:active:not(.used) { transform: scale(0.97); }
+.tile.used { 
+  background: #cbd5e1; 
+  color: #94a3b8; 
+  cursor: not-allowed; 
+  opacity: 0.6; 
+  box-shadow: none; 
+}
 .tile .badge {
-  position: absolute; top: 8px; right: 8px; font-size: 1.2rem;
-  background: rgba(255,255,255,0.2); width: 30px; height: 30px;
+  position: absolute; top: 4px; right: 4px; font-size: 0.9rem;
+  background: rgba(255,255,255,0.25); width: 22px; height: 22px;
   border-radius: 50%; display: flex; align-items: center; justify-content: center;
 }
 
-/* ========= Modal (Cleaner) ========= */
-.modal { display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(15, 23, 42, 0.6); z-index: 1000; align-items: center; justify-content: center; backdrop-filter: blur(4px); }
+/* ========= Modal ========= */
+.modal { 
+  display: none; position: fixed; top: 0; left: 0; width: 100%; height: 100%; 
+  background: rgba(15, 23, 42, 0.7); z-index: 1000; 
+  align-items: center; justify-content: center; 
+  backdrop-filter: blur(4px); 
+}
 .modal.active { display: flex; animation: fadeIn 0.2s ease-out; }
 .modal-content {
-  background: #fff; padding: 2.5rem; border-radius: 24px;
-  max-width: 680px; width: 90%; text-align: center;
-  box-shadow: 0 20px 50px rgba(0,0,0,0.25);
+  background: #fff; padding: 2rem; border-radius: 20px;
+  max-width: 600px; width: 92%; text-align: center;
+  box-shadow: 0 20px 50px rgba(0,0,0,0.3);
   animation: slideUp 0.3s cubic-bezier(0.34, 1.56, 0.64, 1);
+  max-height: 90vh; overflow-y: auto;
 }
-.modal-header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 1.5rem; }
-.timer-badge { font-size: 2.5rem; font-weight: 900; color: var(--danger); font-variant-numeric: tabular-nums; }
+.modal-header { 
+  display: flex; justify-content: space-between; align-items: center; 
+  margin-bottom: 1rem; 
+}
+.timer-badge { 
+  font-size: 2.2rem; font-weight: 900; color: var(--danger); 
+  font-variant-numeric: tabular-nums; 
+}
+.timer-badge.no-timer { color: #94a3b8; font-size: 1.5rem; }
 
-#question-text { font-size: 1.5rem; font-weight: 600; color: #1e293b; margin: 1.5rem 0; line-height: 1.5; }
+#question-text { 
+  font-size: 1.35rem; font-weight: 600; color: #1e293b; 
+  margin: 1rem 0; line-height: 1.5; 
+}
 
 .answer-box {
-  background: #f1f5f9; padding: 1.5rem; border-radius: 16px; margin-bottom: 2rem;
+  background: #f1f5f9; padding: 1.25rem; border-radius: 14px; margin-bottom: 1.5rem;
   border: 2px dashed #cbd5e1; display: none;
 }
 .answer-box.show { display: block; animation: fadeIn 0.3s; }
-.answer-text { font-size: 1.3rem; color: var(--primary-dark); font-weight: 800; }
+.answer-text { font-size: 1.2rem; color: var(--primary-dark); font-weight: 800; }
 
-.action-row { display: flex; gap: 1rem; justify-content: center; flex-wrap: wrap; }
+.action-row { display: flex; gap: 0.75rem; justify-content: center; flex-wrap: wrap; }
 
-.btn { padding: 0.9rem 1.8rem; border-radius: 12px; border: none; font-weight: 800; font-size: 1rem; cursor: pointer; transition: all 0.2s; display: inline-flex; align-items: center; gap: 8px; }
+.btn { 
+  padding: 0.8rem 1.5rem; border-radius: 10px; border: none; 
+  font-weight: 800; font-size: 0.95rem; cursor: pointer; 
+  transition: all 0.2s; display: inline-flex; align-items: center; gap: 6px; 
+}
 .btn-primary { background: var(--primary); color: #fff; }
 .btn-primary:hover { background: var(--primary-dark); }
 .btn-success { background: var(--success); color: #fff; }
@@ -149,13 +230,19 @@ input:checked + .slider:before { transform: translateX(22px); }
 .btn-secondary { background: #f1f5f9; color: #475569; }
 .btn-secondary:hover { background: #e2e8f0; }
 .btn-disabled { opacity: 0.5; cursor: not-allowed; pointer-events: none; }
-.btn-reveal { width: 100%; background: linear-gradient(135deg, var(--primary), #764ba2); color: white; padding: 1rem; font-size: 1.1rem; }
+.btn-reveal { 
+  width: 100%; background: linear-gradient(135deg, var(--primary), #764ba2); 
+  color: white; padding: 0.9rem; font-size: 1rem; margin-bottom: 1rem;
+}
 
-/* Special Modal styling */
-.special-card { background: #f8fafc; border-radius: 20px; padding: 2rem; border: 2px solid #e2e8f0; margin-bottom: 1.5rem; }
-.special-icon { font-size: 4rem; margin-bottom: 1rem; display: block; }
-.special-title { font-size: 1.8rem; font-weight: 900; margin-bottom: 0.5rem; display: block; }
-.special-desc { color: #64748b; font-size: 1.1rem; }
+/* Special Card */
+.special-card { 
+  background: #f8fafc; border-radius: 16px; padding: 1.5rem; 
+  border: 2px solid #e2e8f0; margin-bottom: 1.25rem; 
+}
+.special-icon { font-size: 3rem; margin-bottom: 0.75rem; display: block; }
+.special-title { font-size: 1.5rem; font-weight: 900; margin-bottom: 0.4rem; display: block; }
+.special-desc { color: #64748b; font-size: 1rem; }
 .special-card.lucky { background: #ecfdf5; border-color: #34d399; color: #064e3b; }
 .special-card.bomb { background: #fff1f2; border-color: #fca5a5; color: #7f1d1d; }
 .special-card.mystery { background: #eef2ff; border-color: #a5b4fc; color: #312e81; }
@@ -163,100 +250,108 @@ input:checked + .slider:before { transform: translateX(22px); }
 @keyframes fadeIn { from { opacity: 0; } to { opacity: 1; } }
 @keyframes slideUp { from { transform: translateY(20px); opacity: 0; } to { transform: translateY(0); opacity: 1; } }
 
-/* Mobile Responsive */
+/* Mobile */
 @media (max-width: 600px) {
-  .setup-screen { padding: 1.5rem; }
-  .setup-row { flex-direction: column; align-items: flex-start; gap: 0.5rem; }
-  .setup-row select, .setup-row .switch { width: 100%; }
-  .stats-bar { flex-direction: column; }
-  .tiles-grid { grid-template-columns: repeat(3, 1fr); }
-  .btn { width: 100%; justify-content: center; }
+  .game-page { padding: 0.25rem; }
+  .setup-screen { padding: 1.25rem; margin: 0.5rem; }
+  .setup-row { flex-direction: column; align-items: stretch; gap: 0.4rem; }
+  .stats-bar { padding: 0.4rem; }
+  .stat-item { padding: 0.3rem 0.5rem; min-width: 55px; }
+  .stat-value { font-size: 1.1rem; }
+  .modal-content { padding: 1.25rem; }
+  .btn { padding: 0.7rem 1rem; font-size: 0.9rem; }
+  .tiles-grid { max-width: 100%; }
 }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="quick-nav">
-  <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="nav-btn">← Back to Topic</a>
-  <a href="{{ url_for('view_slides', topic_id=topic.id) }}" class="nav-btn">📽 Slides</a>
-  <a href="{{ url_for('game_memory', topic_id=topic.id) }}" class="nav-btn">🃏 Memory Match</a>
-  <a href="{{ url_for('game', topic_id=topic.id) }}" class="nav-btn nav-game">🎮 Bamboozle</a>
-</div>
-
-<div class="setup-screen" id="setup">
-  <h2>🎮 Bamboozle Game</h2>
-  <p>แข่งขันตอบคำถามสะสมคะแนนแบบทีม</p>
-
-  <div class="setup-options">
-    <div class="setup-row">
-      <label>จำนวนทีม</label>
-      <select id="num-teams">
-        <option value="2">2 Teams</option>
-        <option value="3">3 Teams</option>
-        <option value="4">4 Teams</option>
-      </select>
-    </div>
-
-    <div class="setup-row">
-      <label>ชุดคำถาม (Game Set)</label>
-      <select id="game-set">
-        <option value="1">Set 1</option>
-        <option value="2">Set 2</option>
-        <option value="3">Set 3</option>
-      </select>
-    </div>
-
-    <div class="setup-row">
-      <label>จำนวนข้อ</label>
-      <select id="question-count">
-        <option value="12">12 ข้อ</option>
-        <option value="18">18 ข้อ</option>
-        <option value="24" selected>24 ข้อ</option>
-        <option value="30">30 ข้อ</option>
-        <option value="all">ทั้งหมด</option>
-      </select>
-    </div>
-
-    <div class="setup-row">
-      <label>เวลาต่อข้อ</label>
-      <select id="timer-seconds">
-        <option value="5">5 วินาที</option>
-        <option value="10" selected>10 วินาที</option>
-        <option value="15">15 วินาที</option>
-      </select>
-    </div>
-
-    <div class="setup-row">
-      <label>โหมดพิเศษ (Special Tiles)</label>
-      <label class="switch">
-        <input id="enable-special" type="checkbox">
-        <span class="slider"></span>
-      </label>
-    </div>
-    
-    <div style="display:none;">
-        <select id="special-rate"><option value="0.25" selected>25%</option></select>
-        <select id="show-icons"><option value="0" selected>Hide</option></select>
-    </div>
-
+<div class="game-page">
+  <div class="quick-nav">
+    <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="nav-btn">← Back</a>
+    <a href="{{ url_for('view_slides', topic_id=topic.id) }}" class="nav-btn">📽 Slides</a>
+    <a href="{{ url_for('game_memory', topic_id=topic.id) }}" class="nav-btn">🃏 Memory</a>
+    <a href="{{ url_for('game', topic_id=topic.id) }}" class="nav-btn nav-game">🎮 Bamboozle</a>
   </div>
 
-  <button class="btn-start" onclick="startGame()">🚀 เริ่มเกมเลย!</button>
-</div>
+  <!-- Setup Screen -->
+  <div class="setup-screen" id="setup">
+    <h2>🎮 Bamboozle Game</h2>
+    <p>แข่งขันตอบคำถามสะสมคะแนนแบบทีม</p>
 
-<div class="game-container" id="game-area">
-  <div class="stats-bar">
-    <div class="scoreboard-section" id="scoreboard">
+    <div class="setup-options">
+      <div class="setup-row">
+        <label>จำนวนทีม</label>
+        <select id="num-teams">
+          <option value="1">1 Team (Solo)</option>
+          <option value="2" selected>2 Teams</option>
+          <option value="3">3 Teams</option>
+          <option value="4">4 Teams</option>
+          <option value="5">5 Teams</option>
+          <option value="6">6 Teams</option>
+        </select>
       </div>
-    <div class="controls-section">
-      <button class="btn btn-secondary" onclick="resetGame()">🔄 Reset</button>
-      <button class="btn btn-secondary" id="soundToggleBtn" onclick="toggleMute()">🔊 Sound</button>
+
+      <div class="setup-row">
+        <label>ชุดคำถาม</label>
+        <select id="game-set">
+          <option value="1">Set 1</option>
+          <option value="2">Set 2</option>
+          <option value="3">Set 3</option>
+        </select>
+      </div>
+
+      <div class="setup-row">
+        <label>จำนวนข้อ</label>
+        <select id="question-count">
+          <option value="12">12 ข้อ</option>
+          <option value="18">18 ข้อ</option>
+          <option value="24" selected>24 ข้อ</option>
+          <option value="30">30 ข้อ</option>
+          <option value="all">ทั้งหมด</option>
+        </select>
+      </div>
+
+      <div class="setup-row">
+        <label>เวลาต่อข้อ</label>
+        <select id="timer-seconds">
+          <option value="0">ไม่จับเวลา ⏸</option>
+          <option value="5">5 วินาที</option>
+          <option value="10" selected>10 วินาที</option>
+          <option value="15">15 วินาที</option>
+          <option value="20">20 วินาที</option>
+        </select>
+      </div>
+
+      <div class="setup-row">
+        <label>โหมดพิเศษ (Special Tiles)</label>
+        <label class="switch">
+          <input id="enable-special" type="checkbox">
+          <span class="slider"></span>
+        </label>
+      </div>
     </div>
+
+    <button class="btn-start" onclick="startGame()">🚀 เริ่มเกมเลย!</button>
   </div>
 
-  <div class="tiles-grid" id="tiles-grid"></div>
+  <!-- Game Area -->
+  <div class="game-container" id="game-area">
+    <div class="stats-bar">
+      <div class="scoreboard-section" id="scoreboard"></div>
+      <div class="controls-section">
+        <button class="ctrl-btn" onclick="resetGame()">🔄 Reset</button>
+        <button class="ctrl-btn" id="soundToggleBtn" onclick="toggleSound()">🔊</button>
+      </div>
+    </div>
+
+    <div class="tiles-wrap">
+      <div class="tiles-grid" id="tiles-grid"></div>
+    </div>
+  </div>
 </div>
 
+<!-- Question Modal -->
 <div class="modal" id="question-modal">
   <div class="modal-content">
     <div class="modal-header">
@@ -264,7 +359,7 @@ input:checked + .slider:before { transform: translateX(22px); }
         <span class="stat-label">TIME LEFT</span>
         <div class="timer-badge" id="timer-box">10</div>
       </div>
-      <button class="btn btn-secondary" style="padding: 0.5rem 1rem;" onclick="closeQuestion()">✖</button>
+      <button class="btn btn-secondary" style="padding: 0.4rem 0.8rem;" onclick="closeQuestion()">✖</button>
     </div>
 
     <p id="question-text">Loading question...</p>
@@ -276,12 +371,13 @@ input:checked + .slider:before { transform: translateX(22px); }
     </div>
 
     <div class="action-row">
-      <button id="btn-correct" onclick="markCorrect()" class="btn btn-success">✅ ถูกต้อง (+Points)</button>
-      <button id="btn-incorrect" onclick="markIncorrect()" class="btn btn-danger">❌ ไม่ถูกต้อง</button>
+      <button id="btn-correct" onclick="markCorrect()" class="btn btn-success">✅ ถูก (+Points)</button>
+      <button id="btn-incorrect" onclick="markIncorrect()" class="btn btn-danger">❌ ไม่ถูก</button>
     </div>
   </div>
 </div>
 
+<!-- Special Modal -->
 <div class="modal" id="special-modal">
   <div class="modal-content">
     <div id="special-card-ui" class="special-card mystery">
@@ -290,7 +386,7 @@ input:checked + .slider:before { transform: translateX(22px); }
       <div class="special-desc" id="special-desc">...</div>
     </div>
 
-    <div style="font-weight: 800; color: var(--primary); margin-bottom: 1.5rem; font-size: 1.2rem;">
+    <div style="font-weight: 800; color: var(--primary); margin-bottom: 1rem; font-size: 1.1rem;">
       Team <span id="special-team">1</span> Turn
     </div>
 
@@ -299,391 +395,523 @@ input:checked + .slider:before { transform: translateX(22px); }
 </div>
 
 <script>
-  // -----------------------------
-  // Sounds & Init
-  // -----------------------------
-  const soundOpen   = new Audio("{{ url_for('static', filename='sound/open.mp3') }}");
-  const soundReveal = new Audio("{{ url_for('static', filename='sound/reveal.mp3') }}");
-  const soundLucky  = new Audio("{{ url_for('static', filename='sound/lucky.mp3') }}");
-  const soundBomb   = new Audio("{{ url_for('static', filename='sound/bomb.mp3') }}");
-  const soundMystery= new Audio("{{ url_for('static', filename='sound/mystery.mp3') }}");
-  const ALL_SOUNDS = [soundOpen, soundReveal, soundLucky, soundBomb, soundMystery];
+// ========================================
+// Web Audio API Sound System
+// ========================================
+let audioContext = null;
+let soundEnabled = true;
 
-  let muted = (localStorage.getItem("game_muted") === "1");
+function initAudio() {
+  if (!audioContext) {
+    audioContext = new (window.AudioContext || window.webkitAudioContext)();
+  }
+  return audioContext;
+}
 
-  function applyMuteToAudios(){
-    // 1. Update UI Text
-    const lbl = muted ? "🔇 Sound" : "🔊 Sound";
-    const btn = document.getElementById("soundToggleBtn");
-    if(btn) btn.textContent = lbl;
+function playTone(freq, duration, type = 'sine', volume = 0.3) {
+  if (!soundEnabled) return;
+  try {
+    const ctx = initAudio();
+    const osc = ctx.createOscillator();
+    const gain = ctx.createGain();
+    osc.connect(gain);
+    gain.connect(ctx.destination);
+    osc.frequency.value = freq;
+    osc.type = type;
+    gain.gain.setValueAtTime(volume, ctx.currentTime);
+    gain.gain.exponentialRampToValueAtTime(0.01, ctx.currentTime + duration);
+    osc.start(ctx.currentTime);
+    osc.stop(ctx.currentTime + duration);
+  } catch (e) {}
+}
 
-    // 2. Apply Mute/Pause to ALL Audio objects
-    ALL_SOUNDS.forEach(a => {
-      if(a) {
-        a.muted = muted;
-        // If muting, immediately stop playback
-        if(muted) {
-          try { a.pause(); a.currentTime = 0; } catch(e){}
-        }
-      }
-    });
+// Sound Effects
+function playOpenSound() {
+  playTone(440, 0.1);
+  setTimeout(() => playTone(554, 0.1), 50);
+  setTimeout(() => playTone(659, 0.15), 100);
+}
+
+function playRevealSound() {
+  playTone(523, 0.15);
+  setTimeout(() => playTone(659, 0.15), 100);
+  setTimeout(() => playTone(784, 0.2), 200);
+}
+
+function playCorrectSound() {
+  playTone(523, 0.1);
+  setTimeout(() => playTone(659, 0.1), 80);
+  setTimeout(() => playTone(784, 0.1), 160);
+  setTimeout(() => playTone(1047, 0.25), 240);
+}
+
+function playWrongSound() {
+  playTone(200, 0.15, 'square', 0.2);
+  setTimeout(() => playTone(150, 0.25, 'square', 0.15), 150);
+}
+
+function playLuckySound() {
+  [523, 659, 784, 1047, 1319].forEach((f, i) => {
+    setTimeout(() => playTone(f, 0.15, 'sine', 0.25), i * 80);
+  });
+}
+
+function playBombSound() {
+  playTone(150, 0.3, 'sawtooth', 0.3);
+  setTimeout(() => playTone(100, 0.4, 'sawtooth', 0.25), 200);
+}
+
+function playMysterySound() {
+  [400, 450, 500, 450, 400, 500, 600].forEach((f, i) => {
+    setTimeout(() => playTone(f, 0.1, 'triangle', 0.2), i * 100);
+  });
+}
+
+function playTickSound() {
+  playTone(800, 0.05, 'square', 0.1);
+}
+
+function playTimeUpSound() {
+  playTone(300, 0.3, 'square', 0.25);
+  setTimeout(() => playTone(250, 0.4, 'square', 0.2), 200);
+}
+
+function toggleSound() {
+  soundEnabled = !soundEnabled;
+  document.getElementById('soundToggleBtn').textContent = soundEnabled ? '🔊' : '🔇';
+  localStorage.setItem('game_sound', soundEnabled ? '1' : '0');
+}
+
+// Load sound preference
+soundEnabled = localStorage.getItem('game_sound') !== '0';
+
+// ========================================
+// Game State
+// ========================================
+let gameState = {
+  numTeams: 2,
+  gameSet: 1,
+  scores: {},
+  currentTeam: 0,
+  questions: [],
+  usedTiles: new Set(),
+  currentQuestion: null,
+  answerRevealed: false,
+  lastScoredTeam: null,
+  timerSeconds: 10,
+  specialEnabled: false,
+  specialRate: 0.25,
+  specialMap: {},
+  _doubleNow: false
+};
+
+let countdown = null;
+
+// ========================================
+// Grid Layout - Fit to Screen
+// ========================================
+function calculateGrid() {
+  const count = gameState.questions.length || 24;
+  
+  // Calculate optimal columns based on count and screen
+  let cols;
+  if (count <= 12) cols = 4;
+  else if (count <= 18) cols = 6;
+  else if (count <= 24) cols = 6;
+  else cols = 6;
+  
+  // Limit by screen width
+  const w = window.innerWidth;
+  if (w < 400) cols = Math.min(cols, 3);
+  else if (w < 600) cols = Math.min(cols, 4);
+  else if (w < 900) cols = Math.min(cols, 5);
+  
+  return cols;
+}
+
+function applyGridLayout() {
+  const grid = document.getElementById('tiles-grid');
+  if (!grid) return;
+  
+  const cols = calculateGrid();
+  grid.style.setProperty('--cols', cols);
+}
+
+window.addEventListener('resize', applyGridLayout);
+
+// ========================================
+// Start Game
+// ========================================
+async function startGame() {
+  gameState.numTeams = parseInt(document.getElementById('num-teams').value);
+  gameState.gameSet = parseInt(document.getElementById('game-set').value);
+  gameState.timerSeconds = parseInt(document.getElementById('timer-seconds').value);
+  gameState.specialEnabled = document.getElementById('enable-special').checked;
+  gameState.specialRate = 0.25;
+
+  // Reset
+  gameState.scores = {};
+  gameState.usedTiles.clear();
+  gameState.currentTeam = 0;
+  gameState.lastScoredTeam = null;
+  gameState.currentQuestion = null;
+  gameState.answerRevealed = false;
+  gameState._doubleNow = false;
+  
+  for (let i = 0; i < gameState.numTeams; i++) {
+    gameState.scores[i] = 0;
   }
 
-  function toggleMute(){
-    muted = !muted;
-    localStorage.setItem("game_muted", muted ? "1" : "0");
-    applyMuteToAudios();
-  }
-
-  // Helper: Play only if valid
-  function playSfx(a){ 
-    if(!muted && a){ 
-      try{ a.currentTime=0; a.play().catch(()=>{}); }catch(e){} 
-    } 
-  }
-
-  // -----------------------------
-  // State
-  // -----------------------------
-  let gameState = {
-    numTeams: 2, gameSet: 1, scores: {}, currentTeam: 0,
-    questions: [], usedTiles: new Set(), currentQuestion: null,
-    answerRevealed: false, lastScoredTeam: null, timerSeconds: 10,
-    specialEnabled: false, specialRate: 0.25, showIcons: false, // Default Hidden
-    specialMap: {}, _doubleNow: false
-  };
-
-  // -----------------------------
-  // Grid Helper
-  // -----------------------------
-  function maxColsByWidth(){
-    const w = window.innerWidth || 1100;
-    if(w < 600) return 3;
-    if(w < 900) return 4;
-    return 6; 
-  }
-  function applyGridCols(){
-    const grid = document.getElementById("tiles-grid");
-    if(!grid) return;
-    const count = gameState.questions.length || 24;
-    let cols = 6;
-    // Simple logic: if few questions, use fewer cols
-    if(count <= 12) cols = 4;
-    const max = maxColsByWidth();
-    if(cols > max) cols = max;
-    grid.style.setProperty("--cols", String(cols));
-  }
-  window.addEventListener("resize", applyGridCols);
-
-  // -----------------------------
-  // Start Game
-  // -----------------------------
-  async function startGame(){
-    gameState.numTeams = parseInt(document.getElementById('num-teams').value);
-    gameState.gameSet  = parseInt(document.getElementById('game-set').value);
-    gameState.timerSeconds = parseInt(document.getElementById('timer-seconds').value);
-    gameState.specialEnabled = document.getElementById('enable-special').checked;
-    
-    // Default hidden values
-    gameState.specialRate = 0.25; 
-    gameState.showIcons = false; // Hide icons on tiles
-
-    // Reset State
-    gameState.scores = {};
-    gameState.usedTiles.clear();
-    gameState.currentTeam = 0;
-    gameState.lastScoredTeam = null;
-    gameState.currentQuestion = null;
-    gameState.answerRevealed = false;
-    gameState._doubleNow = false;
-    for(let i=0;i<gameState.numTeams;i++) gameState.scores[i] = 0;
-
-    // Fetch Questions
-    let all = [];
-    try{
-      const response = await fetch('{{ url_for("api_game_sets", topic_id=topic.id) }}');
-      const data = await response.json();
-      all = (data[String(gameState.gameSet)] || []);
-      if(all.length === 0){ alert('Set นี้ไม่มีคำถาม'); return; }
-    }catch(e){ alert('โหลดคำถามไม่สำเร็จ'); return; }
-
-    const countSel = document.getElementById("question-count").value;
-    let finalCount = (countSel === "all") ? all.length : parseInt(countSel || "24");
-    if(finalCount > all.length) finalCount = all.length;
-    gameState.questions = all.slice(0, finalCount);
-
-    buildSpecialMap();
-
-    document.getElementById('setup').style.display = 'none';
-    document.getElementById('game-area').classList.add('active');
-    
-    applyMuteToAudios();
-    renderScoreboard();
-    renderTiles();
-    applyGridCols();
-  }
-
-  // -----------------------------
-  // Rendering
-  // -----------------------------
-  function renderScoreboard(){
-    const sb = document.getElementById('scoreboard');
-    sb.innerHTML = '';
-    for(let i=0;i<gameState.numTeams;i++){
-      const div = document.createElement('div');
-      // Use stat-item class from Memory design
-      div.className = 'stat-item';
-      if(i === gameState.currentTeam) div.classList.add('active');
-      
-      // Flash effect if scored
-      if(gameState.lastScoredTeam === i) {
-        div.style.backgroundColor = '#dcfce7'; // green-ish
-        setTimeout(() => div.style.backgroundColor = '', 500);
-      }
-
-      div.innerHTML = `
-        <div class="stat-value">${gameState.scores[i]}</div>
-        <div class="stat-label">Team ${i+1}</div>
-      `;
-      sb.appendChild(div);
+  // Fetch Questions
+  let all = [];
+  try {
+    const response = await fetch('{{ url_for("api_game_sets", topic_id=topic.id) }}');
+    const data = await response.json();
+    all = data[String(gameState.gameSet)] || [];
+    if (all.length === 0) {
+      alert('Set นี้ไม่มีคำถาม');
+      return;
     }
+  } catch (e) {
+    alert('โหลดคำถามไม่สำเร็จ');
+    return;
   }
 
-  function renderTiles(){
-    const grid = document.getElementById('tiles-grid');
-    grid.innerHTML = '';
-    for(let i=0;i<gameState.questions.length;i++){
-      const btn = document.createElement('button');
-      btn.className = 'tile' + (gameState.usedTiles.has(i) ? ' used' : '');
-      btn.textContent = i+1;
-      btn.disabled = gameState.usedTiles.has(i);
-      btn.onclick = () => onTileClick(i);
+  const countSel = document.getElementById('question-count').value;
+  let finalCount = (countSel === 'all') ? all.length : parseInt(countSel || '24');
+  if (finalCount > all.length) finalCount = all.length;
+  gameState.questions = all.slice(0, finalCount);
 
-      const icon = getTileIcon(i);
-      if(gameState.specialEnabled && gameState.showIcons && icon && !btn.disabled){
-        const badge = document.createElement('div');
-        badge.className = 'badge';
-        badge.textContent = icon;
-        btn.appendChild(badge);
-      }
-      grid.appendChild(btn);
+  buildSpecialMap();
+
+  document.getElementById('setup').style.display = 'none';
+  document.getElementById('game-area').classList.add('active');
+  document.getElementById('soundToggleBtn').textContent = soundEnabled ? '🔊' : '🔇';
+
+  renderScoreboard();
+  renderTiles();
+  applyGridLayout();
+  
+  playOpenSound();
+}
+
+// ========================================
+// Rendering
+// ========================================
+function renderScoreboard() {
+  const sb = document.getElementById('scoreboard');
+  sb.innerHTML = '';
+  
+  for (let i = 0; i < gameState.numTeams; i++) {
+    const div = document.createElement('div');
+    div.className = 'stat-item';
+    if (i === gameState.currentTeam) div.classList.add('active');
+    if (gameState.lastScoredTeam === i) {
+      div.classList.add('scored');
+      setTimeout(() => div.classList.remove('scored'), 500);
     }
-  }
 
-  // -----------------------------
-  // Logic & Interaction
-  // -----------------------------
-  function onTileClick(idx){
-    if(gameState.usedTiles.has(idx)) return;
-    const sp = gameState.specialEnabled ? gameState.specialMap[idx] : null;
-    if(sp){ openSpecial(idx, sp.type); return; }
-    showQuestion(idx);
+    const label = gameState.numTeams === 1 ? 'SCORE' : `TEAM ${i + 1}`;
+    div.innerHTML = `
+      <div class="stat-value">${gameState.scores[i]}</div>
+      <div class="stat-label">${label}</div>
+    `;
+    sb.appendChild(div);
   }
+}
 
-  function nextTeam(){
+function renderTiles() {
+  const grid = document.getElementById('tiles-grid');
+  grid.innerHTML = '';
+  
+  for (let i = 0; i < gameState.questions.length; i++) {
+    const btn = document.createElement('button');
+    btn.className = 'tile' + (gameState.usedTiles.has(i) ? ' used' : '');
+    btn.textContent = i + 1;
+    btn.disabled = gameState.usedTiles.has(i);
+    btn.onclick = () => onTileClick(i);
+
+    // Show special icon (hidden by default)
+    const icon = getTileIcon(i);
+    if (gameState.specialEnabled && icon && !btn.disabled) {
+      // Icons are hidden - uncomment below to show
+      // const badge = document.createElement('div');
+      // badge.className = 'badge';
+      // badge.textContent = icon;
+      // btn.appendChild(badge);
+    }
+    grid.appendChild(btn);
+  }
+}
+
+// ========================================
+// Game Logic
+// ========================================
+function onTileClick(idx) {
+  if (gameState.usedTiles.has(idx)) return;
+  
+  const sp = gameState.specialEnabled ? gameState.specialMap[idx] : null;
+  if (sp) {
+    openSpecial(idx, sp.type);
+    return;
+  }
+  showQuestion(idx);
+}
+
+function nextTeam() {
+  if (gameState.numTeams > 1) {
     gameState.currentTeam = (gameState.currentTeam + 1) % gameState.numTeams;
-    renderScoreboard();
   }
+  renderScoreboard();
+}
 
-  // Timer
-  let countdown = null;
-  function startTimer(){
-    stopTimer();
-    let timeLeft = gameState.timerSeconds;
-    const box = document.getElementById('timer-box');
-    box.textContent = timeLeft;
-    box.style.color = '#ef4444';
-
-    countdown = setInterval(() => {
-      timeLeft--;
-      box.textContent = timeLeft;
-      if(timeLeft <= 0){
-        stopTimer();
-        if(!gameState.answerRevealed) revealAnswer();
-      }
-    }, 1000);
-  }
-  function stopTimer(){ if(countdown) clearInterval(countdown); }
-
-  // Question Modal
-  function showQuestion(idx){
-    gameState.currentQuestion = idx;
-    const q = gameState.questions[idx] || {};
-    
-    document.getElementById('question-text').textContent = q.question || '';
-    document.getElementById('answer-text').textContent = q.answer || '';
-    
-    // Reset UI
-    document.getElementById('answer-box').classList.remove('show');
-    document.getElementById('reveal-btn').style.display = 'block';
-    document.getElementById('btn-correct').classList.add('btn-disabled');
-    document.getElementById('btn-incorrect').classList.add('btn-disabled');
-
-    playSfx(soundOpen);
-    startTimer();
-    document.getElementById('question-modal').classList.add('active');
-  }
-
-  function revealAnswer(){
-    if(gameState.answerRevealed) return;
-    gameState.answerRevealed = true;
-    stopTimer();
-    playSfx(soundReveal);
-    
-    document.getElementById('answer-box').classList.add('show');
-    document.getElementById('reveal-btn').style.display = 'none';
-    document.getElementById('btn-correct').classList.remove('btn-disabled');
-    document.getElementById('btn-incorrect').classList.remove('btn-disabled');
-  }
-
-  function closeQuestion(){
-    stopTimer();
-    document.getElementById('question-modal').classList.remove('active');
-    gameState.answerRevealed = false;
-    
-    if(gameState.currentQuestion !== null){
-      gameState.usedTiles.add(gameState.currentQuestion);
-      gameState.currentQuestion = null;
-      renderTiles();
-      nextTeam();
-    }
-  }
-
-  function markCorrect(){
-    const q = gameState.questions[gameState.currentQuestion] || {};
-    let pts = parseInt(q.points || 10);
-    if(gameState._doubleNow){ pts *= 2; gameState._doubleNow = false; }
-    
-    gameState.scores[gameState.currentTeam] += pts;
-    gameState.lastScoredTeam = gameState.currentTeam;
-    closeQuestion();
-    renderScoreboard();
+// ========================================
+// Timer
+// ========================================
+function startTimer() {
+  stopTimer();
+  
+  const box = document.getElementById('timer-box');
+  
+  // No timer mode
+  if (gameState.timerSeconds === 0) {
+    box.textContent = '∞';
+    box.classList.add('no-timer');
+    return;
   }
   
-  function markIncorrect(){
+  box.classList.remove('no-timer');
+  let timeLeft = gameState.timerSeconds;
+  box.textContent = timeLeft;
+  box.style.color = '#ef4444';
+
+  countdown = setInterval(() => {
+    timeLeft--;
+    box.textContent = timeLeft;
+    
+    // Tick sound for last 5 seconds
+    if (timeLeft <= 5 && timeLeft > 0) {
+      playTickSound();
+    }
+    
+    if (timeLeft <= 0) {
+      stopTimer();
+      playTimeUpSound();
+      if (!gameState.answerRevealed) revealAnswer();
+    }
+  }, 1000);
+}
+
+function stopTimer() {
+  if (countdown) {
+    clearInterval(countdown);
+    countdown = null;
+  }
+}
+
+// ========================================
+// Question Modal
+// ========================================
+function showQuestion(idx) {
+  gameState.currentQuestion = idx;
+  gameState.answerRevealed = false;
+  
+  const q = gameState.questions[idx] || {};
+  
+  document.getElementById('question-text').textContent = q.question || '';
+  document.getElementById('answer-text').textContent = q.answer || '';
+  
+  document.getElementById('answer-box').classList.remove('show');
+  document.getElementById('reveal-btn').style.display = 'block';
+  document.getElementById('btn-correct').classList.add('btn-disabled');
+  document.getElementById('btn-incorrect').classList.add('btn-disabled');
+
+  playOpenSound();
+  startTimer();
+  document.getElementById('question-modal').classList.add('active');
+}
+
+function revealAnswer() {
+  if (gameState.answerRevealed) return;
+  gameState.answerRevealed = true;
+  stopTimer();
+  playRevealSound();
+  
+  document.getElementById('answer-box').classList.add('show');
+  document.getElementById('reveal-btn').style.display = 'none';
+  document.getElementById('btn-correct').classList.remove('btn-disabled');
+  document.getElementById('btn-incorrect').classList.remove('btn-disabled');
+}
+
+function closeQuestion() {
+  stopTimer();
+  document.getElementById('question-modal').classList.remove('active');
+  gameState.answerRevealed = false;
+  
+  if (gameState.currentQuestion !== null) {
+    gameState.usedTiles.add(gameState.currentQuestion);
+    gameState.currentQuestion = null;
+    renderTiles();
+    nextTeam();
+  }
+}
+
+function markCorrect() {
+  const q = gameState.questions[gameState.currentQuestion] || {};
+  let pts = parseInt(q.points || 10);
+  if (gameState._doubleNow) {
+    pts *= 2;
     gameState._doubleNow = false;
-    closeQuestion();
   }
+  
+  gameState.scores[gameState.currentTeam] += pts;
+  gameState.lastScoredTeam = gameState.currentTeam;
+  
+  playCorrectSound();
+  closeQuestion();
+  renderScoreboard();
+}
 
-  // -----------------------------
-  // Special Logic
-  // -----------------------------
-  function buildSpecialMap(){
-    gameState.specialMap = {};
-    if(!gameState.specialEnabled) return;
-    const n = gameState.questions.length;
-    const count = Math.max(1, Math.floor(n * gameState.specialRate));
-    // Shuffle indices
-    const idxs = Array.from({length:n}, (_,i)=>i).sort(()=>Math.random()-0.5);
-    // Assign
-    for(let i=0; i<count; i++){
-      const r = Math.random();
-      let t = "lucky";
-      if(r < 0.45) t="lucky"; else if(r<0.8) t="bomb"; else t="mystery";
-      gameState.specialMap[idxs[i]] = {type:t};
-    }
-  }
-  function getTileIcon(idx){
-    const s = gameState.specialMap[idx];
-    if(!s) return "";
-    if(s.type=="lucky") return "🎁";
-    if(s.type=="bomb") return "💣";
-    if(s.type=="mystery") return "❓";
-    return "";
-  }
+function markIncorrect() {
+  gameState._doubleNow = false;
+  playWrongSound();
+  closeQuestion();
+}
 
-  function openSpecial(idx, type){
-    gameState.currentQuestion = idx;
-    const modal = document.getElementById('special-modal');
-    const ui = document.getElementById('special-card-ui');
-    const actions = document.getElementById('special-actions');
-    const tm = document.getElementById('special-team');
-    
-    tm.textContent = String(gameState.currentTeam + 1);
-    
-    // Style update
-    ui.className = "special-card " + type;
-    actions.innerHTML = "";
-
-    // IMPORTANT: Use ${idx} to interpolate variable
-    if(type==="lucky"){
-      playSfx(soundLucky);
-      document.getElementById('special-icon').textContent = "🎁";
-      document.getElementById('special-title').textContent = "Lucky Bonus!";
-      document.getElementById('special-desc').textContent = "โชคดีสุดๆ! เลือกรับคะแนนฟรี หรือคูณสองรอบหน้า";
-      
-      actions.innerHTML = `
-        <button class="btn btn-secondary" onclick="applySpecialEffect(${idx}, 'x2')">✨ คูณ 2 รอบหน้า</button>
-        <button class="btn btn-success" onclick="applySpecialEffect(${idx}, 'plus10')">➕ รับ 10 คะแนน</button>
-      `;
-    } else if(type==="bomb"){
-      playSfx(soundBomb);
-      document.getElementById('special-icon').textContent = "💣";
-      document.getElementById('special-title').textContent = "Oh no! Bomb";
-      document.getElementById('special-desc').textContent = "ระเบิดลง! จะเสียคะแนน หรือจะยอมข้ามตานี้ไป";
-      
-      actions.innerHTML = `
-        <button class="btn btn-danger" onclick="applySpecialEffect(${idx}, 'minus10')">💥 ยอมลบ 10</button>
-        <button class="btn btn-secondary" onclick="applySpecialEffect(${idx}, 'skip')">🏳️ ข้ามตา (ไม่ลบ)</button>
-      `;
-    } else {
-      playSfx(soundMystery);
-      document.getElementById('special-icon').textContent = "❓";
-      document.getElementById('special-title').textContent = "Mystery Box";
-      document.getElementById('special-desc').textContent = "กล่องปริศนา... อะไรจะเกิดขึ้น?";
-      
-      actions.innerHTML = `<button class="btn btn-primary" onclick="rollMystery(${idx})">🎲 สุ่มเลย</button>`;
-    }
-
-    modal.classList.add('active');
-  }
-
-  function applySpecialEffect(idx, effect){
-    if(effect === 'x2'){ gameState._doubleNow = true; closeSpecial(idx, true); } // true = open question next
-    else if(effect === 'plus10'){ gameState.scores[gameState.currentTeam]+=10; gameState.lastScoredTeam=gameState.currentTeam; closeSpecial(idx, false); }
-    else if(effect === 'minus10'){ gameState.scores[gameState.currentTeam]-=10; gameState.lastScoredTeam=gameState.currentTeam; closeSpecial(idx, false); }
-    else if(effect === 'skip'){ closeSpecial(idx, false); }
-    
-    renderScoreboard();
-  }
-
-  function rollMystery(idx){
+// ========================================
+// Special Tiles
+// ========================================
+function buildSpecialMap() {
+  gameState.specialMap = {};
+  if (!gameState.specialEnabled) return;
+  
+  const n = gameState.questions.length;
+  const count = Math.max(1, Math.floor(n * gameState.specialRate));
+  const idxs = Array.from({ length: n }, (_, i) => i).sort(() => Math.random() - 0.5);
+  
+  for (let i = 0; i < count; i++) {
     const r = Math.random();
-    const desc = document.getElementById('special-desc');
-    if(r < 0.3){
-        desc.textContent = "🎉 Jackpot! +20 คะแนน";
-        gameState.scores[gameState.currentTeam]+=20; 
-        gameState.lastScoredTeam=gameState.currentTeam;
-        setTimeout(()=>closeSpecial(idx, false), 1000);
-    } else if(r < 0.6){
-        desc.textContent = "💨 ว่างเปล่า... ไม่เกิดอะไรขึ้น";
-        setTimeout(()=>closeSpecial(idx, false), 1000);
-    } else {
-        desc.textContent = "✨ ได้สิทธิ์เปิดคำถาม (x2)";
-        gameState._doubleNow = true;
-        setTimeout(()=>closeSpecial(idx, true), 1000);
-    }
-    renderScoreboard();
+    let t = 'lucky';
+    if (r < 0.45) t = 'lucky';
+    else if (r < 0.8) t = 'bomb';
+    else t = 'mystery';
+    gameState.specialMap[idxs[i]] = { type: t };
+  }
+}
+
+function getTileIcon(idx) {
+  const s = gameState.specialMap[idx];
+  if (!s) return '';
+  if (s.type === 'lucky') return '🎁';
+  if (s.type === 'bomb') return '💣';
+  if (s.type === 'mystery') return '❓';
+  return '';
+}
+
+function openSpecial(idx, type) {
+  gameState.currentQuestion = idx;
+  
+  const modal = document.getElementById('special-modal');
+  const ui = document.getElementById('special-card-ui');
+  const actions = document.getElementById('special-actions');
+  const tm = document.getElementById('special-team');
+  
+  tm.textContent = String(gameState.currentTeam + 1);
+  ui.className = 'special-card ' + type;
+  actions.innerHTML = '';
+
+  if (type === 'lucky') {
+    playLuckySound();
+    document.getElementById('special-icon').textContent = '🎁';
+    document.getElementById('special-title').textContent = 'Lucky Bonus!';
+    document.getElementById('special-desc').textContent = 'โชคดี! เลือกรับคะแนนฟรี หรือคูณสองรอบหน้า';
+    
+    actions.innerHTML = `
+      <button class="btn btn-secondary" onclick="applySpecialEffect(${idx}, 'x2')">✨ คูณ 2 รอบหน้า</button>
+      <button class="btn btn-success" onclick="applySpecialEffect(${idx}, 'plus10')">➕ รับ 10 คะแนน</button>
+    `;
+  } else if (type === 'bomb') {
+    playBombSound();
+    document.getElementById('special-icon').textContent = '💣';
+    document.getElementById('special-title').textContent = 'Oh no! Bomb';
+    document.getElementById('special-desc').textContent = 'ระเบิด! จะเสียคะแนน หรือข้ามตา?';
+    
+    actions.innerHTML = `
+      <button class="btn btn-danger" onclick="applySpecialEffect(${idx}, 'minus10')">💥 ลบ 10</button>
+      <button class="btn btn-secondary" onclick="applySpecialEffect(${idx}, 'skip')">🏳️ ข้ามตา</button>
+    `;
+  } else {
+    playMysterySound();
+    document.getElementById('special-icon').textContent = '❓';
+    document.getElementById('special-title').textContent = 'Mystery Box';
+    document.getElementById('special-desc').textContent = 'กล่องปริศนา... อะไรจะเกิดขึ้น?';
+    
+    actions.innerHTML = `<button class="btn btn-primary" onclick="rollMystery(${idx})">🎲 สุ่มเลย</button>`;
   }
 
-  function closeSpecial(idx, openQuestionAfter){
-    document.getElementById('special-modal').classList.remove('active');
-    if(openQuestionAfter){
-        showQuestion(idx);
-    } else {
-        gameState.usedTiles.add(idx);
-        gameState.currentQuestion = null;
-        renderTiles();
-        nextTeam();
-    }
-  }
+  modal.classList.add('active');
+}
 
-  function resetGame(){
-    // Simple reload setup
-    document.getElementById('game-area').classList.remove('active');
-    document.getElementById('setup').style.display = 'block';
+function applySpecialEffect(idx, effect) {
+  if (effect === 'x2') {
+    gameState._doubleNow = true;
+    closeSpecial(idx, true);
+  } else if (effect === 'plus10') {
+    gameState.scores[gameState.currentTeam] += 10;
+    gameState.lastScoredTeam = gameState.currentTeam;
+    playCorrectSound();
+    closeSpecial(idx, false);
+  } else if (effect === 'minus10') {
+    gameState.scores[gameState.currentTeam] -= 10;
+    gameState.lastScoredTeam = gameState.currentTeam;
+    closeSpecial(idx, false);
+  } else if (effect === 'skip') {
+    closeSpecial(idx, false);
   }
+  
+  renderScoreboard();
+}
 
-  applyMuteToAudios();
+function rollMystery(idx) {
+  const r = Math.random();
+  const desc = document.getElementById('special-desc');
+  
+  if (r < 0.3) {
+    desc.textContent = '🎉 Jackpot! +20 คะแนน';
+    gameState.scores[gameState.currentTeam] += 20;
+    gameState.lastScoredTeam = gameState.currentTeam;
+    playLuckySound();
+    setTimeout(() => closeSpecial(idx, false), 1200);
+  } else if (r < 0.6) {
+    desc.textContent = '💨 ว่างเปล่า... ไม่มีอะไร';
+    setTimeout(() => closeSpecial(idx, false), 1000);
+  } else {
+    desc.textContent = '✨ ได้สิทธิ์ x2 รอบนี้!';
+    gameState._doubleNow = true;
+    setTimeout(() => closeSpecial(idx, true), 1000);
+  }
+  renderScoreboard();
+}
+
+function closeSpecial(idx, openQuestionAfter) {
+  document.getElementById('special-modal').classList.remove('active');
+  
+  if (openQuestionAfter) {
+    showQuestion(idx);
+  } else {
+    gameState.usedTiles.add(idx);
+    gameState.currentQuestion = null;
+    renderTiles();
+    nextTeam();
+  }
+}
+
+function resetGame() {
+  stopTimer();
+  document.getElementById('question-modal').classList.remove('active');
+  document.getElementById('special-modal').classList.remove('active');
+  document.getElementById('game-area').classList.remove('active');
+  document.getElementById('setup').style.display = 'block';
+}
 </script>
 {% endblock %}
