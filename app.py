@@ -1843,6 +1843,49 @@ def admin_delete_topic(topic_id):
     Topic.delete(topic_id)
     return redirect(url_for("admin_dashboard"))
 
+# ==============================================================================
+# PATCH: เพิ่ม Short URL Routes สำหรับ QR Code
+# เพิ่มใน app.py (ก่อน if __name__ == '__main__')
+# ==============================================================================
+
+# Short URLs for QR Code (redirect to public practice pages)
+@app.route("/p/<int:topic_id>/mcq")
+def qr_practice_mcq(topic_id):
+    """Short URL for MCQ practice - redirects to public practice page"""
+    topic = Topic.get_by_id(topic_id)
+    if not topic:
+        abort(404)
+    # Create or get practice link
+    link = PracticeLink.get_by_topic(topic_id)
+    if not link:
+        # Create a new link if doesn't exist
+        link = PracticeLink.create(topic_id, topic.get("user_id") or 1, secrets.token_urlsafe(12))
+    return redirect(url_for('public_practice', token=link['token']))
+
+
+@app.route("/p/<int:topic_id>/fill")
+def qr_practice_fill(topic_id):
+    """Short URL for Fill Blanks practice"""
+    topic = Topic.get_by_id(topic_id)
+    if not topic:
+        abort(404)
+    link = PracticeLink.get_by_topic(topic_id)
+    if not link:
+        link = PracticeLink.create(topic_id, topic.get("user_id") or 1, secrets.token_urlsafe(12))
+    return redirect(url_for('public_fill_blanks', token=link['token']))
+
+
+@app.route("/p/<int:topic_id>/unscramble")
+def qr_practice_unscramble(topic_id):
+    """Short URL for Unscramble practice"""
+    topic = Topic.get_by_id(topic_id)
+    if not topic:
+        abort(404)
+    link = PracticeLink.get_by_topic(topic_id)
+    if not link:
+        link = PracticeLink.create(topic_id, topic.get("user_id") or 1, secrets.token_urlsafe(12))
+    return redirect(url_for('public_unscramble', token=link['token']))
+
 
 # ==============================================================================
 # Errors
