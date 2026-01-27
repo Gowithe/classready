@@ -463,7 +463,7 @@ body {
 
 .theme-colorful .vocab-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
   gap: 16px;
 }
 
@@ -736,7 +736,7 @@ body {
 
 .theme-playful .vocab-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 10px;
 }
 
@@ -913,10 +913,10 @@ body {
 /* Vocabulary Grid - limit items */
 .vocab-grid {
   display: grid;
-  grid-template-columns: repeat(2, 1fr);
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
   gap: 12px;
   max-height: 100%;
-  overflow: hidden;
+  overflow-y: auto;
 }
 
 .vocab-card {
@@ -1220,8 +1220,10 @@ body.fullscreen-mode [class*="header"] {
 .fullscreen-mode.theme-playful .vocab-grid,
 .fullscreen-mode.theme-colorful .vocab-grid,
 .fullscreen-mode .vocab-grid {
-  grid-template-columns: repeat(4, 1fr) !important;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr)) !important;
   gap: 16px !important;
+  max-height: calc(100vh - 300px) !important;
+  overflow-y: auto !important;
 }
 
 .fullscreen-mode.theme-playful .vocab-card,
@@ -1742,12 +1744,11 @@ function extractContent(slide, type) {
     html += '</ul>';
   }
   
-  // Vocabulary - limit to 4 items
+  // Vocabulary - show ALL items (no limit)
   if (slide.vocabulary && Array.isArray(slide.vocabulary)) {
-    const vocabToShow = slide.vocabulary.slice(0, 4);
     if (currentTheme === 'playful' || currentTheme === 'colorful') {
       html += '<div class="vocab-grid">';
-      vocabToShow.forEach(v => {
+      slide.vocabulary.forEach(v => {
         html += `
           <div class="vocab-card">
             <div class="word">${escapeHtml(v.word || '')}</div>
@@ -1756,26 +1757,19 @@ function extractContent(slide, type) {
         `;
       });
       html += '</div>';
-      if (slide.vocabulary.length > 4) {
-        html += `<p style="color:#6b7280;font-size:0.8rem;margin-top:8px;text-align:center;">+ ${slide.vocabulary.length - 4} more words</p>`;
-      }
     } else {
       html += '<ul>';
-      vocabToShow.forEach(v => {
+      slide.vocabulary.forEach(v => {
         html += `<li><strong>${escapeHtml(v.word || '')}</strong> - ${escapeHtml(v.meaning || v.th || '')}${v.example ? `<br><em style="color:#6b7280;font-size:0.85rem">Ex: ${escapeHtml(v.example)}</em>` : ''}</li>`;
       });
       html += '</ul>';
-      if (slide.vocabulary.length > 4) {
-        html += `<p style="color:#6b7280;font-size:0.85rem;">+ ${slide.vocabulary.length - 4} more words</p>`;
-      }
     }
   }
   
-  // Examples - limit to 4 items
+  // Examples - show ALL items (no limit)
   if (slide.examples && Array.isArray(slide.examples)) {
-    const examplesToShow = slide.examples.slice(0, 4);
     html += '<ul>';
-    examplesToShow.forEach(ex => {
+    slide.examples.forEach(ex => {
       if (typeof ex === 'string') {
         html += `<li>${escapeHtml(ex)}</li>`;
       } else if (ex.en) {
@@ -1783,9 +1777,6 @@ function extractContent(slide, type) {
       }
     });
     html += '</ul>';
-    if (slide.examples.length > 4) {
-      html += `<p style="color:#6b7280;font-size:0.85rem;">+ ${slide.examples.length - 4} more examples</p>`;
-    }
   }
   
   // Highlights
@@ -1812,11 +1803,10 @@ function extractContent(slide, type) {
     html += `<p style="margin-top:16px;"><strong>Keywords:</strong> ${slide.keywords.map(k => `<span style="background:#f1f5f9;padding:4px 10px;border-radius:20px;margin-right:6px;font-size:0.9rem;">${escapeHtml(k)}</span>`).join('')}</p>`;
   }
   
-  // Dialogue lines - limit to 6
+  // Dialogue lines - show ALL lines (no limit)
   if (slide.lines && Array.isArray(slide.lines)) {
-    const linesToShow = slide.lines.slice(0, 6);
     html += '<div class="dialogue-box">';
-    linesToShow.forEach(line => {
+    slide.lines.forEach(line => {
       if (typeof line === 'string') {
         html += `<p class="dialogue-line">${escapeHtml(line)}</p>`;
       } else if (line.speaker) {
@@ -1825,16 +1815,12 @@ function extractContent(slide, type) {
       }
     });
     html += '</div>';
-    if (slide.lines.length > 6) {
-      html += `<p style="color:#6b7280;font-size:0.85rem;">+ ${slide.lines.length - 6} more lines...</p>`;
-    }
   }
   
-  // Guided practice items - limit to 2 per slide and smaller font
+  // Guided practice items - show ALL items (no limit)
   if (slide.items && Array.isArray(slide.items) && type === 'guided_practice') {
-    const itemsToShow = slide.items.slice(0, 2); // Show max 2 questions
     html += '<div class="practice-questions">';
-    itemsToShow.forEach((item, i) => {
+    slide.items.forEach((item, i) => {
       const q = item.q || item.question || '';
       html += `<div class="practice-item">
         <p class="practice-question"><strong>Q${i+1}:</strong> ${escapeHtml(q)}</p>
@@ -1847,9 +1833,6 @@ function extractContent(slide, type) {
         </div>` : ''}
       </div>`;
     });
-    if (slide.items.length > 2) {
-      html += `<p style="color:#6b7280;font-size:0.85rem;margin-top:8px;">+ ${slide.items.length - 2} more questions...</p>`;
-    }
     html += '</div>';
   }
   
