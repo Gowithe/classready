@@ -12,6 +12,8 @@
     --text-main: #1e293b;
     --text-muted: #64748b;
     --danger: #ef4444;
+    --success: #22c55e;
+    --warning: #f59e0b;
   }
 
   body { background-color: var(--bg-soft); }
@@ -20,272 +22,640 @@
   .welcome-banner {
     background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
     border-radius: 20px;
-    padding: 2.5rem;
+    padding: 2rem;
     color: white;
-    margin-bottom: 2.5rem;
+    margin-bottom: 2rem;
     box-shadow: 0 10px 25px rgba(102, 126, 234, 0.25);
     display: flex;
     justify-content: space-between;
     align-items: center;
     flex-wrap: wrap;
-    gap: 1.5rem;
+    gap: 1rem;
   }
-  .welcome-text h1 { margin: 0 0 0.5rem; font-size: 2rem; }
-  .welcome-text p { margin: 0; opacity: 0.9; font-size: 1.1rem; }
+  .welcome-text h1 { margin: 0 0 0.3rem; font-size: 1.8rem; }
+  .welcome-text p { margin: 0; opacity: 0.9; font-size: 1rem; }
 
-  /* Main Action Buttons */
-  .action-bar {
-    display: flex; gap: 10px; flex-wrap: wrap;
-  }
+  .action-bar { display: flex; gap: 10px; flex-wrap: wrap; }
   .btn-action {
     background: rgba(255, 255, 255, 0.2);
     border: 1px solid rgba(255, 255, 255, 0.3);
     color: white;
-    padding: 0.8rem 1.2rem;
+    padding: 0.7rem 1rem;
     border-radius: 12px;
     font-weight: 700;
     text-decoration: none;
     transition: all 0.2s;
     display: inline-flex; align-items: center; gap: 8px;
-    backdrop-filter: blur(5px);
+    font-size: 0.9rem;
   }
-  .btn-action:hover {
-    background: rgba(255, 255, 255, 0.3);
-    transform: translateY(-2px);
+  .btn-action:hover { background: rgba(255, 255, 255, 0.3); transform: translateY(-2px); }
+  .btn-action.primary { background: white; color: var(--primary); }
+
+  /* Stats Cards */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1rem;
+    margin-bottom: 2rem;
   }
-  .btn-action.primary {
-    background: white; color: var(--primary);
+  .stat-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border: 1px solid rgba(0,0,0,0.05);
+    display: flex;
+    align-items: center;
+    gap: 1rem;
   }
-  .btn-action.primary:hover {
-    background: #f0f4ff; color: var(--primary-dark);
+  .stat-icon {
+    width: 56px;
+    height: 56px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+  }
+  .stat-icon.purple { background: linear-gradient(135deg, #667eea, #764ba2); }
+  .stat-icon.green { background: linear-gradient(135deg, #22c55e, #16a34a); }
+  .stat-icon.orange { background: linear-gradient(135deg, #f59e0b, #d97706); }
+  .stat-icon.blue { background: linear-gradient(135deg, #3b82f6, #2563eb); }
+  .stat-info h3 { margin: 0; font-size: 1.8rem; color: var(--text-main); }
+  .stat-info p { margin: 0; font-size: 0.85rem; color: var(--text-muted); }
+
+  /* Dashboard Grid */
+  .dashboard-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  @media (max-width: 1024px) {
+    .dashboard-grid { grid-template-columns: 1fr; }
   }
 
-  /* Section Styles */
+  /* Card */
+  .card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border: 1px solid rgba(0,0,0,0.05);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .card-header h3 { margin: 0; font-size: 1.1rem; color: var(--text-main); }
+  .card-body { padding: 1.5rem; }
+
+  /* Chart Container */
+  .chart-container {
+    position: relative;
+    height: 280px;
+  }
+
+  /* Alert List */
+  .alert-list { list-style: none; padding: 0; margin: 0; }
+  .alert-item {
+    padding: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    align-items: flex-start;
+    gap: 0.75rem;
+  }
+  .alert-item:last-child { border-bottom: none; }
+  .alert-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+    flex-shrink: 0;
+  }
+  .alert-icon.danger { background: #fee2e2; }
+  .alert-icon.warning { background: #fef3c7; }
+  .alert-icon.success { background: #dcfce7; }
+  .alert-content h4 { margin: 0 0 2px; font-size: 0.9rem; color: var(--text-main); }
+  .alert-content p { margin: 0; font-size: 0.8rem; color: var(--text-muted); }
+
+  /* Student List */
+  .student-list { list-style: none; padding: 0; margin: 0; }
+  .student-item {
+    padding: 0.75rem 1rem;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .student-item:last-child { border-bottom: none; }
+  .student-info { display: flex; align-items: center; gap: 0.75rem; }
+  .student-avatar {
+    width: 36px;
+    height: 36px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-weight: 700;
+    font-size: 0.85rem;
+  }
+  .avatar-gold { background: linear-gradient(135deg, #fbbf24, #f59e0b); color: white; }
+  .avatar-silver { background: linear-gradient(135deg, #9ca3af, #6b7280); color: white; }
+  .avatar-bronze { background: linear-gradient(135deg, #d97706, #b45309); color: white; }
+  .avatar-default { background: #e2e8f0; color: #64748b; }
+  .avatar-danger { background: #fee2e2; color: #dc2626; }
+  .student-name { font-weight: 600; font-size: 0.9rem; color: var(--text-main); }
+  .student-class { font-size: 0.75rem; color: var(--text-muted); }
+  .student-score {
+    font-weight: 700;
+    font-size: 0.9rem;
+    padding: 4px 10px;
+    border-radius: 20px;
+  }
+  .score-high { background: #dcfce7; color: #166534; }
+  .score-mid { background: #fef3c7; color: #92400e; }
+  .score-low { background: #fee2e2; color: #991b1b; }
+
+  /* Classroom Progress */
+  .classroom-item {
+    padding: 1rem;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .classroom-item:last-child { border-bottom: none; }
+  .classroom-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+  }
+  .classroom-name { font-weight: 700; font-size: 0.95rem; color: var(--text-main); }
+  .classroom-stat { font-size: 0.8rem; color: var(--text-muted); }
+  .progress-bar {
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+  }
+  .progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s ease;
+  }
+  .progress-fill.green { background: linear-gradient(90deg, #22c55e, #16a34a); }
+  .progress-fill.yellow { background: linear-gradient(90deg, #f59e0b, #d97706); }
+  .progress-fill.red { background: linear-gradient(90deg, #ef4444, #dc2626); }
+
+  /* Section Header */
   .section-header {
     display: flex; justify-content: space-between; align-items: center;
     margin-bottom: 1.5rem; padding-left: 0.5rem; border-left: 5px solid var(--primary);
   }
-  .section-header h3 { margin: 0; font-size: 1.4rem; color: var(--text-main); padding-left: 10px; }
+  .section-header h3 { margin: 0; font-size: 1.3rem; color: var(--text-main); padding-left: 10px; }
 
   /* Topic Grid */
   .topic-grid {
     display: grid;
-    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 3rem;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+    margin-bottom: 2rem;
   }
 
-  /* Card Design */
   .topic-card {
     background: white;
     border-radius: 16px;
     box-shadow: 0 4px 6px rgba(0,0,0,0.02);
     border: 1px solid rgba(0,0,0,0.05);
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-    display: flex; flex-direction: column;
+    transition: all 0.2s;
     overflow: hidden;
     position: relative;
   }
   .topic-card::before {
-    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 6px;
+    content: ""; position: absolute; top: 0; left: 0; right: 0; height: 5px;
     background: linear-gradient(90deg, var(--primary), var(--secondary));
   }
-  .topic-card:hover {
-    transform: translateY(-5px);
-    box-shadow: 0 12px 20px rgba(0,0,0,0.08);
-  }
+  .topic-card:hover { transform: translateY(-4px); box-shadow: 0 10px 20px rgba(0,0,0,0.08); }
 
-  .card-body { padding: 1.5rem; flex: 1; }
+  .card-body-topic { padding: 1.25rem; }
   .card-title {
-    font-size: 1.2rem; font-weight: 800; color: var(--text-main);
-    margin: 0 0 0.5rem; display: block; text-decoration: none;
+    font-size: 1.1rem; font-weight: 800; color: var(--text-main);
+    margin: 0 0 0.4rem; display: block; text-decoration: none;
   }
   .card-title:hover { color: var(--primary); }
   .card-desc {
-    font-size: 0.9rem; color: var(--text-muted); margin: 0;
+    font-size: 0.85rem; color: var(--text-muted); margin: 0;
     display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; overflow: hidden;
   }
 
-  /* Quick Links (Pills) */
   .card-tools {
-    padding: 0 1.5rem 1rem;
-    display: flex; flex-wrap: wrap; gap: 8px;
+    padding: 0 1.25rem 1rem;
+    display: flex; flex-wrap: wrap; gap: 6px;
   }
   .tool-pill {
-    font-size: 0.8rem; font-weight: 700; padding: 6px 12px;
+    font-size: 0.75rem; font-weight: 700; padding: 5px 10px;
     border-radius: 20px; text-decoration: none; transition: all 0.15s;
-    border: 1px solid transparent;
   }
   .pill-slides { background: #eef2ff; color: var(--primary); }
-  .pill-slides:hover { background: #e0e7ff; border-color: var(--primary); }
-  
   .pill-game { background: #f0fdf4; color: #166534; }
-  .pill-game:hover { background: #dcfce7; border-color: #22c55e; }
-  
   .pill-practice { background: #fffbeb; color: #92400e; }
-  .pill-practice:hover { background: #fef3c7; border-color: #f59e0b; }
 
-  /* Card Footer */
-  .card-footer {
-    padding: 1rem 1.5rem;
+  .card-footer-topic {
+    padding: 0.75rem 1.25rem;
     background: #f9fafb;
     border-top: 1px solid #f1f5f9;
     display: flex; justify-content: space-between; align-items: center;
   }
   .btn-icon {
     background: none; border: none; cursor: pointer;
-    font-size: 0.9rem; color: var(--text-muted);
-    padding: 6px; border-radius: 6px; transition: all 0.2s;
+    font-size: 0.85rem; color: var(--text-muted);
+    padding: 5px; border-radius: 6px; transition: all 0.2s;
     display: flex; align-items: center; gap: 4px; text-decoration: none;
   }
   .btn-icon:hover { background: #e2e8f0; color: var(--text-main); }
   .btn-icon.danger:hover { background: #fee2e2; color: var(--danger); }
 
-  /* Recent List */
-  .recent-list {
-    list-style: none; padding: 0; margin: 0;
-    background: white; border-radius: 12px; overflow: hidden;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-  }
-  .recent-item {
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid #f1f5f9;
-    display: flex; justify-content: space-between; align-items: center;
-    transition: background 0.15s;
-  }
-  .recent-item:last-child { border-bottom: none; }
-  .recent-item:hover { background: #f8fafc; }
-  .recent-name { font-weight: 600; color: var(--text-main); }
-  .recent-link { color: var(--primary); text-decoration: none; font-weight: 700; font-size: 0.9rem; }
-
   /* Empty State */
   .empty-state {
-    text-align: center; padding: 3rem; background: white; border-radius: 16px;
-    border: 2px dashed #cbd5e1; color: var(--text-muted);
+    text-align: center; padding: 2rem; color: var(--text-muted);
   }
+  .empty-state-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+
+  /* Badge */
+  .badge {
+    display: inline-block;
+    padding: 2px 8px;
+    border-radius: 10px;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+  .badge-new { background: #dbeafe; color: #2563eb; }
+
+  /* View All Link */
+  .view-all {
+    font-size: 0.85rem;
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+  }
+  .view-all:hover { text-decoration: underline; }
 
   @media (max-width: 640px) {
-    .welcome-banner { padding: 1.5rem; flex-direction: column; align-items: flex-start; }
+    .welcome-banner { padding: 1.25rem; flex-direction: column; align-items: flex-start; }
     .action-bar { width: 100%; }
-    .btn-action { flex: 1; justify-content: center; }
+    .btn-action { flex: 1; justify-content: center; font-size: 0.8rem; padding: 0.6rem 0.8rem; }
+    .stats-grid { grid-template-columns: repeat(2, 1fr); }
   }
 </style>
 {% endblock %}
 
 {% block content %}
 
+<!-- Welcome Banner -->
 <div class="welcome-banner">
   <div class="welcome-text">
-    <h1>👋 Welcome, Teacher!</h1>
-    <p>Manage your lessons, games, and classrooms efficiently.</p>
+    <h1>👋 สวัสดี, {{ session.username or 'Teacher' }}!</h1>
+    <p>ยินดีต้อนรับสู่ Teacher Platform</p>
   </div>
   <div class="action-bar">
-    <a href="{{ url_for('classrooms') }}" class="btn-action primary">
-      🏫 จัดการห้องเรียน
-    </a>
-    <a href="{{ url_for('my_create_topic') }}" class="btn-action">
-      ➕ Create Topic
-    </a>
-    <a href="{{ url_for('ai_slides') }}" class="btn-action">
-      ✨ AI Slides
-    </a>
+    <a href="{{ url_for('classrooms') }}" class="btn-action primary">🏫 ห้องเรียน</a>
+    <a href="{{ url_for('my_create_topic') }}" class="btn-action">➕ สร้าง Topic</a>
+    <a href="{{ url_for('ai_slides') }}" class="btn-action">✨ AI Slides</a>
     {% if session.role == 'admin' %}
-      <a href="{{ url_for('admin_dashboard') }}" class="btn-action">⚙️ Admin</a>
+    <a href="{{ url_for('admin_dashboard') }}" class="btn-action">⚙️ Admin</a>
     {% endif %}
   </div>
 </div>
 
-{% if recent %}
-<div style="margin-bottom: 3rem;">
-  <div class="section-header">
-    <h3>🕒 Recently Opened</h3>
+<!-- Stats Overview -->
+<div class="stats-grid">
+  <div class="stat-card">
+    <div class="stat-icon purple">📚</div>
+    <div class="stat-info">
+      <h3>{{ stats.total_topics }}</h3>
+      <p>Topics ทั้งหมด</p>
+    </div>
   </div>
-  <ul class="recent-list">
-    {% for item in recent %}
-      <li class="recent-item">
-        <div class="recent-name">📄 {{ item.name }}</div>
-        <a href="{{ url_for('topic_detail', topic_id=item.topic_id) }}" class="recent-link">View Lesson →</a>
-      </li>
-    {% endfor %}
-  </ul>
+  <div class="stat-card">
+    <div class="stat-icon green">🏫</div>
+    <div class="stat-info">
+      <h3>{{ stats.total_classrooms }}</h3>
+      <p>ห้องเรียน</p>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon blue">👨‍🎓</div>
+    <div class="stat-info">
+      <h3>{{ stats.total_students }}</h3>
+      <p>นักเรียนทั้งหมด</p>
+    </div>
+  </div>
+  <div class="stat-card">
+    <div class="stat-icon orange">📝</div>
+    <div class="stat-info">
+      <h3>{{ stats.total_submissions }}</h3>
+      <p>การส่งงานทั้งหมด</p>
+    </div>
+  </div>
 </div>
-{% endif %}
 
+<!-- Dashboard Grid -->
+<div class="dashboard-grid">
+  <!-- Left Column -->
+  <div>
+    <!-- Classroom Progress Chart -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <div class="card-header">
+        <h3>📊 ความก้าวหน้าแต่ละห้องเรียน</h3>
+        <a href="{{ url_for('classrooms') }}" class="view-all">ดูทั้งหมด →</a>
+      </div>
+      <div class="card-body">
+        {% if classroom_progress %}
+        <div class="chart-container">
+          <canvas id="progressChart"></canvas>
+        </div>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-state-icon">📊</div>
+          <p>ยังไม่มีข้อมูลห้องเรียน</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Classroom Submission Status -->
+    <div class="card">
+      <div class="card-header">
+        <h3>🏫 สถานะการส่งงานแต่ละห้อง</h3>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        {% if classroom_progress %}
+        {% for cp in classroom_progress %}
+        <div class="classroom-item">
+          <div class="classroom-header">
+            <span class="classroom-name">{{ cp.name }}</span>
+            <span class="classroom-stat">ส่งแล้ว {{ cp.submitted }}/{{ cp.total }} คน ({{ cp.percentage }}%)</span>
+          </div>
+          <div class="progress-bar">
+            <div class="progress-fill {% if cp.percentage >= 80 %}green{% elif cp.percentage >= 50 %}yellow{% else %}red{% endif %}" 
+                 style="width: {{ cp.percentage }}%"></div>
+          </div>
+        </div>
+        {% endfor %}
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-state-icon">🏫</div>
+          <p>ยังไม่มีห้องเรียน</p>
+          <a href="{{ url_for('classrooms') }}" class="btn-action primary" style="margin-top: 0.5rem; display: inline-flex;">➕ สร้างห้องเรียน</a>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <!-- Right Column -->
+  <div>
+    <!-- Alerts -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <div class="card-header">
+        <h3>🔔 แจ้งเตือน</h3>
+        <span class="badge badge-new">{{ alerts|length }} รายการ</span>
+      </div>
+      <div class="card-body" style="padding: 0; max-height: 300px; overflow-y: auto;">
+        {% if alerts %}
+        <ul class="alert-list">
+          {% for alert in alerts[:10] %}
+          <li class="alert-item">
+            <div class="alert-icon {{ alert.type }}">
+              {% if alert.type == 'danger' %}⚠️{% elif alert.type == 'warning' %}⏰{% else %}✅{% endif %}
+            </div>
+            <div class="alert-content">
+              <h4>{{ alert.title }}</h4>
+              <p>{{ alert.message }}</p>
+            </div>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-state-icon">🎉</div>
+          <p>ไม่มีแจ้งเตือน</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Top Performers -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <div class="card-header">
+        <h3>🏆 นักเรียนคะแนนสูงสุด</h3>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        {% if top_students %}
+        <ul class="student-list">
+          {% for student in top_students[:5] %}
+          <li class="student-item">
+            <div class="student-info">
+              <div class="student-avatar {% if loop.index == 1 %}avatar-gold{% elif loop.index == 2 %}avatar-silver{% elif loop.index == 3 %}avatar-bronze{% else %}avatar-default{% endif %}">
+                {{ loop.index }}
+              </div>
+              <div>
+                <div class="student-name">{{ student.name }}</div>
+                <div class="student-class">{{ student.classroom }}</div>
+              </div>
+            </div>
+            <span class="student-score score-high">{{ student.avg_score }}%</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-state-icon">🏆</div>
+          <p>ยังไม่มีข้อมูลคะแนน</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+
+    <!-- Need Help -->
+    <div class="card">
+      <div class="card-header">
+        <h3>🆘 ต้องช่วยเหลือ</h3>
+      </div>
+      <div class="card-body" style="padding: 0;">
+        {% if struggling_students %}
+        <ul class="student-list">
+          {% for student in struggling_students[:5] %}
+          <li class="student-item">
+            <div class="student-info">
+              <div class="student-avatar avatar-danger">!</div>
+              <div>
+                <div class="student-name">{{ student.name }}</div>
+                <div class="student-class">{{ student.classroom }}</div>
+              </div>
+            </div>
+            <span class="student-score score-low">{{ student.avg_score }}%</span>
+          </li>
+          {% endfor %}
+        </ul>
+        {% else %}
+        <div class="empty-state">
+          <div class="empty-state-icon">✨</div>
+          <p>ไม่มีนักเรียนที่ต้องช่วยเหลือ</p>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- My Topics Section -->
 <div class="section-header">
-  <h3>📚 My Topics</h3>
+  <h3>📚 Topics ของฉัน</h3>
 </div>
 
 {% if my_topics %}
-  <div class="topic-grid">
-    {% for topic in my_topics %}
-    <div class="topic-card">
-      <div class="card-body">
-        <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="card-title">
-          {{ topic.name }}
-        </a>
-        <p class="card-desc">{{ topic.description or 'No description provided.' }}</p>
-      </div>
-      
-      <div class="card-tools">
-        <a href="{{ url_for('view_slides', topic_id=topic.id) }}" class="tool-pill pill-slides">📽 Slides</a>
-        <a href="{{ url_for('game', topic_id=topic.id) }}" class="tool-pill pill-game">🎮 Game</a>
-        <a href="{{ url_for('practice', topic_id=topic.id) }}" class="tool-pill pill-practice">📝 Practice</a>
-      </div>
+<div class="topic-grid">
+  {% for topic in my_topics[:6] %}
+  <div class="topic-card">
+    <div class="card-body-topic">
+      <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="card-title">
+        {{ topic.name }}
+      </a>
+      <p class="card-desc">{{ topic.description or 'ไม่มีคำอธิบาย' }}</p>
+    </div>
+    
+    <div class="card-tools">
+      <a href="{{ url_for('view_slides', topic_id=topic.id) }}" class="tool-pill pill-slides">📽 Slides</a>
+      <a href="{{ url_for('game', topic_id=topic.id) }}" class="tool-pill pill-game">🎮 Game</a>
+      <a href="{{ url_for('practice', topic_id=topic.id) }}" class="tool-pill pill-practice">📝 Practice</a>
+    </div>
 
-      <div class="card-footer">
-        <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="btn-icon">
-          📂 Open
-        </a>
-        <div style="display:flex; gap:4px;">
-          <a href="{{ url_for('my_edit_topic', topic_id=topic.id) }}" class="btn-icon" title="Edit">
-            ✏️
-          </a>
-          <form method="POST" action="{{ url_for('my_delete_topic', topic_id=topic.id) }}" style="display:inline;">
-            <button class="btn-icon danger" onclick="return confirm('Are you sure you want to delete this topic?');" title="Delete">
-              🗑
-            </button>
-          </form>
-        </div>
+    <div class="card-footer-topic">
+      <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="btn-icon">📂 เปิด</a>
+      <div style="display:flex; gap:4px;">
+        <a href="{{ url_for('my_edit_topic', topic_id=topic.id) }}" class="btn-icon" title="แก้ไข">✏️</a>
+        <form method="POST" action="{{ url_for('my_delete_topic', topic_id=topic.id) }}" style="display:inline;">
+          <button class="btn-icon danger" onclick="return confirm('ต้องการลบ topic นี้?');" title="ลบ">🗑</button>
+        </form>
       </div>
     </div>
-    {% endfor %}
   </div>
+  {% endfor %}
+</div>
+
+{% if my_topics|length > 6 %}
+<div style="text-align: center; margin-bottom: 2rem;">
+  <a href="{{ url_for('my_topics') }}" class="btn-action primary" style="border: 1px solid #e2e8f0;">ดู Topics ทั้งหมด ({{ my_topics|length }}) →</a>
+</div>
+{% endif %}
+
 {% else %}
-  <div class="empty-state">
-    <div style="font-size: 3rem; margin-bottom: 1rem;">📭</div>
-    <h3>You have no topics yet.</h3>
-    <p>Get started by creating your first lesson topic.</p>
-    <a href="{{ url_for('my_create_topic') }}" class="btn-action primary" style="margin-top:1rem; display:inline-flex; border:1px solid #ccc;">
-      ➕ Create My Topic
-    </a>
+<div class="empty-state" style="background: white; border-radius: 16px; border: 2px dashed #cbd5e1; margin-bottom: 2rem;">
+  <div class="empty-state-icon">📭</div>
+  <h3 style="margin: 0.5rem 0;">ยังไม่มี Topics</h3>
+  <p>เริ่มต้นสร้าง Topic แรกของคุณ</p>
+  <a href="{{ url_for('my_create_topic') }}" class="btn-action primary" style="margin-top:1rem; display:inline-flex; border:1px solid #ccc;">
+    ➕ สร้าง Topic
+  </a>
+</div>
+{% endif %}
+
+{% if recent %}
+<!-- Recently Opened -->
+<div class="section-header">
+  <h3>🕒 เปิดล่าสุด</h3>
+</div>
+<div class="card" style="margin-bottom: 2rem;">
+  <div class="card-body" style="padding: 0;">
+    <ul class="student-list">
+      {% for item in recent[:5] %}
+      <li class="student-item">
+        <div class="student-info">
+          <div class="student-avatar avatar-default">📄</div>
+          <div>
+            <div class="student-name">{{ item.name }}</div>
+          </div>
+        </div>
+        <a href="{{ url_for('topic_detail', topic_id=item.topic_id) }}" class="view-all">เปิด →</a>
+      </li>
+      {% endfor %}
+    </ul>
   </div>
+</div>
 {% endif %}
 
 {% if session.role == 'admin' %}
-<div class="section-header" style="margin-top: 4rem; border-color: #334155;">
-  <h3 style="color: #334155;">🛡️ All Topics (Admin View)</h3>
+<div class="section-header" style="border-color: #334155;">
+  <h3 style="color: #334155;">🛡️ All Topics (Admin)</h3>
 </div>
 {% if topics %}
-  <div class="topic-grid">
-    {% for topic in topics %}
-    <div class="topic-card" style="opacity: 0.9;">
-      <div class="card-body">
-        <div style="font-size:0.8rem; color:#64748b; margin-bottom:4px;">ID: {{ topic.id }}</div>
-        <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="card-title">
-          {{ topic.name }}
-        </a>
-        <p class="card-desc">{{ topic.description or '-' }}</p>
-      </div>
-      <div class="card-footer">
-        <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="btn-icon">Open</a>
-        <span style="font-size:0.8rem; color:#94a3b8;">Admin Mode</span>
-      </div>
+<div class="topic-grid">
+  {% for topic in topics[:6] %}
+  <div class="topic-card" style="opacity: 0.9;">
+    <div class="card-body-topic">
+      <div style="font-size:0.75rem; color:#64748b; margin-bottom:4px;">ID: {{ topic.id }}</div>
+      <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="card-title">{{ topic.name }}</a>
+      <p class="card-desc">{{ topic.description or '-' }}</p>
     </div>
-    {% endfor %}
+    <div class="card-footer-topic">
+      <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="btn-icon">เปิด</a>
+      <span style="font-size:0.75rem; color:#94a3b8;">Admin</span>
+    </div>
   </div>
+  {% endfor %}
+</div>
 {% else %}
-  <p style="color:#64748b; padding-left:1rem;">No topics in the system.</p>
+<p style="color:#64748b; padding-left:1rem;">ไม่มี topics ในระบบ</p>
 {% endif %}
 {% endif %}
+
+<!-- Chart.js -->
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+{% if classroom_progress %}
+const ctx = document.getElementById('progressChart');
+if (ctx) {
+  new Chart(ctx, {
+    type: 'bar',
+    data: {
+      labels: [{% for cp in classroom_progress %}'{{ cp.name }}'{% if not loop.last %}, {% endif %}{% endfor %}],
+      datasets: [{
+        label: 'ส่งงานแล้ว (%)',
+        data: [{% for cp in classroom_progress %}{{ cp.percentage }}{% if not loop.last %}, {% endif %}{% endfor %}],
+        backgroundColor: [
+          {% for cp in classroom_progress %}
+          {% if cp.percentage >= 80 %}'rgba(34, 197, 94, 0.8)'{% elif cp.percentage >= 50 %}'rgba(245, 158, 11, 0.8)'{% else %}'rgba(239, 68, 68, 0.8)'{% endif %}{% if not loop.last %}, {% endif %}
+          {% endfor %}
+        ],
+        borderRadius: 8,
+        borderSkipped: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      maintainAspectRatio: false,
+      plugins: {
+        legend: { display: false }
+      },
+      scales: {
+        y: {
+          beginAtZero: true,
+          max: 100,
+          ticks: {
+            callback: function(value) { return value + '%'; }
+          }
+        }
+      }
+    }
+  });
+}
+{% endif %}
+</script>
 
 {% endblock %}
