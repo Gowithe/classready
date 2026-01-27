@@ -157,7 +157,118 @@ def dashboard():
     all_topics = Topic.get_all() if _is_admin() else my_topics
     recent = AttemptHistory.get_recent_by_user(user_id, limit=5)
     classrooms = Classroom.get_by_owner(user_id)
-    return render_template("dashboard.html", my_topics=my_topics, topics=all_topics, recent=recent, classrooms=classrooms)
+    
+    # ========== Dashboard Statistics ==========
+    
+    # Basic stats
+    stats = {
+        "total_topics": len(my_topics),
+        "total_classrooms": len(classrooms),
+        "total_students": 0,
+        "total_submissions": 0
+    }
+    
+    # Count total students
+    for c in classrooms:
+        students = ClassroomStudent.get_by_classroom(c["id"])
+        stats["total_students"] += len(students)
+    
+    # Classroom progress & submissions
+    classroom_progress = []
+    all_submissions = []
+    
+    for c in classrooms:
+        students = ClassroomStudent.get_by_classroom(c["id"])
+        assignments = Assignment.get_by_classroom(c["id"])
+        
+        total_students = len(students)
+        submitted_count = 0
+        
+        for a in assignments:
+            status = Assignment.get_submissions_status(a["id"])
+            submitted_count += len(status.get("submitted", []))
+            all_submissions.extend(status.get("submissions", []))
+        
+        # Calculate submission rate
+        total_possible = total_students * len(assignments) if assignments else 0
+        percentage = int((submitted_count / total_possible * 100)) if total_possible > 0 else 0
+        
+        classroom_progress.append({
+            "id": c["id"],
+            "name": c["name"],
+            "total": total_students,
+            "submitted": submitted_count,
+            "percentage": percentage
+        })
+    
+    stats["total_submissions"] = len(all_submissions)
+    
+    # ========== Alerts ==========
+    alerts = []
+    
+    for c in classrooms:
+        assignments = Assignment.get_by_classroom(c["id"])
+        for a in assignments:
+            status = Assignment.get_submissions_status(a["id"])
+            not_submitted = status.get("not_submitted", [])
+            
+            # Alert: Students who haven't submitted
+            if not_submitted:
+                alerts.append({
+                    "type": "warning",
+                    "title": f"{len(not_submitted)} คนยังไม่ส่งงาน",
+                    "message": f"งาน '{a['title']}' ห้อง {c['name']}"
+                })
+            
+            # Alert: Low scores
+            for sub in status.get("submissions", []):
+                if sub.get("percentage", 100) < 50:
+                    alerts.append({
+                        "type": "danger",
+                        "title": f"{sub.get('student_name', 'นักเรียน')} คะแนนต่ำ",
+                        "message": f"ได้ {sub.get('percentage', 0):.0f}% ในงาน '{a['title']}'"
+                    })
+    
+    # ========== Top & Struggling Students ==========
+    student_scores = {}  # {name: {classroom, scores: [], avg}}
+    
+    for sub in all_submissions:
+        name = sub.get("student_name", "").strip()
+        if not name:
+            continue
+        
+        if name not in student_scores:
+            student_scores[name] = {
+                "name": name,
+                "classroom": sub.get("classroom", "-"),
+                "scores": []
+            }
+        student_scores[name]["scores"].append(sub.get("percentage", 0))
+    
+    # Calculate averages
+    for name, data in student_scores.items():
+        if data["scores"]:
+            data["avg_score"] = int(sum(data["scores"]) / len(data["scores"]))
+        else:
+            data["avg_score"] = 0
+    
+    # Sort for top performers and struggling students
+    sorted_students = sorted(student_scores.values(), key=lambda x: x["avg_score"], reverse=True)
+    top_students = [s for s in sorted_students if s["avg_score"] >= 70][:5]
+    struggling_students = [s for s in sorted_students if s["avg_score"] < 50][:5]
+    
+    return render_template(
+        "dashboard.html",
+        my_topics=my_topics,
+        topics=all_topics,
+        recent=recent,
+        classrooms=classrooms,
+        stats=stats,
+        classroom_progress=classroom_progress,
+        alerts=alerts[:20],  # Limit alerts
+        top_students=top_students,
+        struggling_students=struggling_students
+    )
 
 @app.route("/topic/<int:topic_id>")
 @login_required
