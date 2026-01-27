@@ -838,22 +838,52 @@ Return ONE JSON object ONLY (valid JSON, no extra text) with:
 }}
 
 ========================
-A) SLIDES - CREATE 24-30 SLIDES
+A) SLIDES - CREATE 30-40 SLIDES (MORE IS BETTER!)
 ========================
 Make this lesson RICH, DETAILED, and CLASSROOM-READY!
 
+⚠️ CRITICAL RULE: SPLIT CONTENT INTO MULTIPLE SLIDES!
+- Each slide should display content that fits on ONE SCREEN without scrolling
+- NEVER put too much content on one slide - SPLIT into multiple slides instead
+- More slides = Better! Teachers prefer many clear slides over few crowded ones
+
 REQUIRED SLIDE SEQUENCE (follow this order):
+
 1. hook (1 slide) - Engaging warm-up with thought-provoking question
+
 2. objectives (1 slide) - 4-5 clear, measurable learning goals
+
 3. context (1-2 slides) - Real-world situations where this language is used
-4. vocabulary (3-4 slides) - 18-24 essential words with meanings, examples, IPA
+
+4. vocabulary (5-8 slides) - SPLIT vocabulary across multiple slides!
+   ⚠️ MAX 4-5 words per slide! If you have 20 words, create 4-5 vocabulary slides!
+   - "Vocabulary 1" (words 1-4)
+   - "Vocabulary 2" (words 5-8)
+   - "Vocabulary 3" (words 9-12)
+   - etc.
+
 5. concept (2-3 slides) - Grammar patterns with highlights and common mistakes
+
 6. pronunciation (1-2 slides) - Sound tips, stress patterns, linking
-7. examples (2-3 slides) - 15-20 model sentences with translations
-8. guided_practice (2-3 slides) - 10-15 MCQ exercises
-9. dialogue (2-3 slides) - 2 different role-play scenarios (10-12 lines each)
+
+7. examples (3-5 slides) - SPLIT examples across multiple slides!
+   ⚠️ MAX 4-5 examples per slide! If you have 15 examples, create 3-4 slides!
+   - "Examples 1" (sentences 1-4)
+   - "Examples 2" (sentences 5-8)
+   - etc.
+
+8. guided_practice (3-4 slides) - SPLIT practice questions!
+   ⚠️ MAX 3-4 questions per slide!
+
+9. dialogue (3-6 slides) - SPLIT dialogues across multiple slides!
+   ⚠️ MAX 6 lines per slide! If dialogue has 12 lines, split into 2 slides!
+   - "Dialogue Part 1" (lines 1-6)
+   - "Dialogue Part 2" (lines 7-12)
+
 10. production (2 slides) - Speaking/writing tasks for fluency
+
 11. review (2 slides) - Summary + quick check questions
+
 12. exit_ticket (1 slide) - Final assessment questions
 
 SLIDE TYPE SPECIFICATIONS:
@@ -867,46 +897,50 @@ type="objectives"
   EXAMPLE: ["Learn 15+ vocabulary words", "Master the request pattern 'Can I/Could I'", "Practice ordering in role-play"]
 
 type="context"
-  fields: title, subtitle, content (6-10 bullet points about real situations), teacher_notes
+  fields: title, subtitle, content (4-6 bullet points max), teacher_notes
   
-type="vocabulary" (IMPORTANT: RICH CONTENT!)
-  fields: title, subtitle, vocabulary (6-8 items per slide, 3-4 vocabulary slides total)
+type="vocabulary" (⚠️ MAX 4-5 WORDS PER SLIDE!)
+  fields: title, subtitle, vocabulary (4-5 items MAXIMUM per slide)
   Each vocabulary item MUST have:
     - word: the English word
     - meaning: Thai meaning
     - example: full sentence using the word
     - ipa: pronunciation in IPA (e.g., /ˈɔːrdər/)
   optional: example_th, pronunciation_tip
+  ⚠️ If you have 20 vocabulary words, create 4-5 separate vocabulary slides!
 
 type="concept"
-  fields: title, subtitle, pattern (clear structure, multiple lines), highlights (3-5 items with label+note), common_mistakes (3-5 with ❌ wrong → ✅ correct format), teacher_notes
+  fields: title, subtitle, pattern (clear structure), highlights (3-4 items max), common_mistakes (2-3 max), teacher_notes
 
 type="pronunciation"
-  fields: title, subtitle, content (5-8 tips), examples (4-6 with en and optional th), teacher_notes
+  fields: title, subtitle, content (4-5 tips max), examples (3-4 max), teacher_notes
 
-type="examples"
-  fields: title, subtitle, examples (8-12 items per slide, each with en and th), teacher_notes
+type="examples" (⚠️ MAX 4-5 EXAMPLES PER SLIDE!)
+  fields: title, subtitle, examples (4-5 items MAXIMUM per slide, each with en and th), teacher_notes
+  ⚠️ If you have 15 examples, create 3-4 separate example slides!
 
-type="guided_practice"
-  fields: title, subtitle, items (5-8 MCQ per slide, each with q, choices[4], answer), teacher_notes
+type="guided_practice" (⚠️ MAX 3-4 QUESTIONS PER SLIDE!)
+  fields: title, subtitle, items (3-4 MCQ MAXIMUM per slide, each with q, choices[4], answer), teacher_notes
 
-type="dialogue"
-  fields: title, subtitle, scenario (situation description), lines (10-12 lines, each with speaker and text), teacher_notes
+type="dialogue" (⚠️ MAX 6 LINES PER SLIDE!)
+  fields: title, subtitle, scenario (situation description), lines (6 lines MAXIMUM per slide), teacher_notes
+  ⚠️ If dialogue has 12 lines, split into "Part 1" and "Part 2" slides!
 
 type="production"
-  fields: title, subtitle, tasks (5-7 specific activities), teacher_notes
+  fields: title, subtitle, tasks (4-5 activities max), teacher_notes
 
 type="review"
-  fields: title, subtitle, summary (6-10 bullet points), teacher_notes
+  fields: title, subtitle, summary (5-6 bullet points max), teacher_notes
 
 type="exit_ticket"
-  fields: title, subtitle, questions (3-5 final check questions), teacher_notes
+  fields: title, subtitle, questions (3-4 questions max), teacher_notes
 
 CRITICAL REQUIREMENTS:
+- ⚠️ SPLIT CONTENT! Never crowd a slide - create more slides instead!
 - Include teacher_notes for EVERY slide (1-3 helpful sentences)
 - Vocabulary slides: Include IPA pronunciation for every word
 - Examples: Always include both English and Thai translation
-- Dialogues: Make them realistic and natural (10-12 lines each)
+- Dialogues: Split long dialogues into Part 1, Part 2, etc.
 - Guided practice: Questions should test understanding, not memory
 - Make content PRACTICAL and relevant to students' real lives
 
