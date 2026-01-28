@@ -551,7 +551,7 @@
 
 {% if my_topics|length > 6 %}
 <div style="text-align: center; margin-bottom: 2rem;">
-  <a href="{{ url_for('my_topics') }}" class="btn-action primary" style="border: 1px solid #e2e8f0;">ดู Topics ทั้งหมด ({{ my_topics|length }}) →</a>
+  <span style="color: #64748b;">แสดง 6 จาก {{ my_topics|length }} Topics</span>
 </div>
 {% endif %}
 
