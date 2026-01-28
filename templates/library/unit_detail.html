@@ -1,0 +1,537 @@
+{% extends "base.html" %}
+{% block title %}{{ unit.name }} - คลังบทเรียน{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root {
+    --primary: #667eea;
+    --secondary: #764ba2;
+  }
+  
+  .breadcrumb {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+    font-size: 0.9rem;
+    color: #64748b;
+  }
+  .breadcrumb a { color: var(--primary); text-decoration: none; }
+  .breadcrumb a:hover { text-decoration: underline; }
+  
+  .unit-hero {
+    background: white;
+    border-radius: 20px;
+    overflow: hidden;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    margin-bottom: 2rem;
+  }
+  
+  .hero-header {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    padding: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    flex-wrap: wrap;
+    gap: 1.5rem;
+  }
+  
+  .hero-info h1 {
+    margin: 0 0 0.5rem;
+    font-size: 1.8rem;
+  }
+  .hero-meta {
+    display: flex;
+    gap: 1.5rem;
+    flex-wrap: wrap;
+    opacity: 0.9;
+    font-size: 0.95rem;
+  }
+  .hero-meta span {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+  }
+  
+  .hero-actions {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  
+  .btn-clone {
+    padding: 0.9rem 2rem;
+    background: white;
+    color: var(--primary);
+    border: none;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 1rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s;
+  }
+  .btn-clone:hover { transform: translateY(-2px); box-shadow: 0 4px 12px rgba(0,0,0,0.15); }
+  .btn-clone:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+  .btn-clone.locked {
+    background: rgba(255,255,255,0.2);
+    color: white;
+  }
+  
+  .btn-premium {
+    padding: 0.9rem 2rem;
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 1rem;
+    cursor: pointer;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .btn-premium:hover { filter: brightness(1.1); }
+  
+  .hero-body {
+    padding: 2rem;
+  }
+  
+  .unit-description {
+    font-size: 1.05rem;
+    color: #475569;
+    line-height: 1.7;
+    margin-bottom: 1.5rem;
+  }
+  
+  .unit-badges {
+    display: flex;
+    gap: 0.75rem;
+    flex-wrap: wrap;
+    margin-bottom: 1.5rem;
+  }
+  .badge {
+    padding: 6px 14px;
+    border-radius: 20px;
+    font-size: 0.85rem;
+    font-weight: 600;
+  }
+  .badge-free { background: #dcfce7; color: #166534; }
+  .badge-premium { background: #fef3c7; color: #92400e; }
+  .badge-time { background: #dbeafe; color: #1d4ed8; }
+  .badge-difficulty { background: #f3e8ff; color: #7c3aed; }
+  
+  .content-grid {
+    display: grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 2rem;
+  }
+  @media (max-width: 900px) {
+    .content-grid { grid-template-columns: 1fr; }
+  }
+  
+  .card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    overflow: hidden;
+  }
+  .card-header {
+    padding: 1.25rem 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-weight: 700;
+    font-size: 1.1rem;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .card-body { padding: 1.5rem; }
+  
+  /* Slides Preview */
+  .slides-preview {
+    display: grid;
+    gap: 1rem;
+  }
+  .slide-item {
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 12px;
+    border-left: 4px solid var(--primary);
+  }
+  .slide-item h4 {
+    margin: 0 0 0.25rem;
+    font-size: 0.95rem;
+    color: #1e293b;
+  }
+  .slide-item p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #64748b;
+  }
+  .slide-locked {
+    text-align: center;
+    padding: 2rem;
+    background: #f1f5f9;
+    border-radius: 12px;
+    color: #64748b;
+  }
+  .slide-locked-icon { font-size: 2.5rem; margin-bottom: 0.5rem; }
+  
+  /* What's Included */
+  .includes-list {
+    list-style: none;
+    padding: 0;
+    margin: 0;
+  }
+  .includes-list li {
+    padding: 0.75rem 0;
+    border-bottom: 1px solid #f1f5f9;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.95rem;
+  }
+  .includes-list li:last-child { border-bottom: none; }
+  .includes-icon {
+    width: 36px;
+    height: 36px;
+    border-radius: 10px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1rem;
+  }
+  
+  /* Rating Section */
+  .rating-section {
+    margin-top: 2rem;
+  }
+  .rating-display {
+    display: flex;
+    align-items: center;
+    gap: 1rem;
+    margin-bottom: 1rem;
+  }
+  .rating-big {
+    font-size: 2.5rem;
+    font-weight: 800;
+    color: #1e293b;
+  }
+  .rating-stars {
+    color: #f59e0b;
+    font-size: 1.5rem;
+  }
+  .rating-count {
+    color: #64748b;
+    font-size: 0.9rem;
+  }
+  
+  .your-rating {
+    margin-top: 1rem;
+    padding-top: 1rem;
+    border-top: 1px solid #f1f5f9;
+  }
+  .your-rating h4 {
+    margin: 0 0 0.75rem;
+    font-size: 0.95rem;
+    color: #64748b;
+  }
+  .star-input {
+    display: flex;
+    gap: 0.5rem;
+  }
+  .star-btn {
+    background: none;
+    border: none;
+    font-size: 1.8rem;
+    cursor: pointer;
+    color: #e2e8f0;
+    transition: all 0.15s;
+  }
+  .star-btn:hover, .star-btn.active { color: #f59e0b; transform: scale(1.1); }
+  
+  /* Stats */
+  .stats-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 1rem;
+  }
+  .stat-item {
+    text-align: center;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 12px;
+  }
+  .stat-value {
+    font-size: 1.5rem;
+    font-weight: 800;
+    color: var(--primary);
+  }
+  .stat-label {
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+  
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 20px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: #1e293b;
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    font-weight: 600;
+    z-index: 1000;
+    display: none;
+  }
+  .toast.show { display: block; animation: slideUp 0.3s ease; }
+  @keyframes slideUp {
+    from { opacity: 0; transform: translateX(-50%) translateY(20px); }
+    to { opacity: 1; transform: translateX(-50%) translateY(0); }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+
+<div class="breadcrumb">
+  <a href="{{ url_for('library') }}">📚 คลังบทเรียน</a>
+  <span>›</span>
+  <a href="{{ url_for('library_subject', subject_id=unit.subject_id) }}">{{ unit.subject_name }}</a>
+  <span>›</span>
+  <span>{{ unit.name }}</span>
+</div>
+
+<div class="unit-hero">
+  <div class="hero-header">
+    <div class="hero-info">
+      <h1>{{ unit.subject_icon or '📖' }} {{ unit.name }}</h1>
+      <div class="hero-meta">
+        <span>📚 {{ unit.subject_name }}</span>
+        <span>⏱️ {{ unit.estimated_time }} นาที</span>
+        <span>📥 {{ unit.clone_count }} ครูใช้งาน</span>
+        <span>⭐ {{ "%.1f"|format(unit.avg_rating or 0) }} ({{ unit.rating_count }} รีวิว)</span>
+      </div>
+    </div>
+    <div class="hero-actions">
+      {% if can_access %}
+        {% if has_cloned %}
+        <button class="btn-clone" disabled>✅ เพิ่มแล้ว</button>
+        {% else %}
+        <button class="btn-clone" id="btnClone" onclick="cloneUnit()">
+          📥 เพิ่มไปยัง Topics ของฉัน
+        </button>
+        {% endif %}
+      {% else %}
+      <button class="btn-clone locked" disabled>🔒 Premium Only</button>
+      <a href="{{ url_for('premium_page') }}" class="btn-premium">👑 อัปเกรด Premium</a>
+      {% endif %}
+    </div>
+  </div>
+  
+  <div class="hero-body">
+    <div class="unit-badges">
+      {% if unit.is_free %}
+      <span class="badge badge-free">🔓 ฟรี</span>
+      {% else %}
+      <span class="badge badge-premium">👑 Premium</span>
+      {% endif %}
+      <span class="badge badge-time">⏱️ {{ unit.estimated_time }} นาที</span>
+      <span class="badge badge-difficulty">📊 {{ unit.difficulty or 'medium' | capitalize }}</span>
+    </div>
+    
+    {% if unit.description %}
+    <p class="unit-description">{{ unit.description }}</p>
+    {% endif %}
+  </div>
+</div>
+
+<div class="content-grid">
+  <div>
+    <!-- Slides Preview -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <div class="card-header">🎬 ตัวอย่าง Slides</div>
+      <div class="card-body">
+        <div class="slides-preview">
+          {% if slides_preview %}
+            {% for slide in slides_preview[:5] %}
+            <div class="slide-item">
+              <h4>{{ slide.title or 'Slide ' ~ loop.index }}</h4>
+              <p>{{ slide.subtitle or slide.type or '' }}</p>
+            </div>
+            {% endfor %}
+            
+            {% if not can_access and slides_preview|length >= 3 %}
+            <div class="slide-locked">
+              <div class="slide-locked-icon">🔒</div>
+              <p>อัปเกรด Premium เพื่อดูเนื้อหาทั้งหมด</p>
+              <a href="{{ url_for('premium_page') }}" class="btn-premium" style="margin-top: 1rem;">
+                👑 อัปเกรด Premium
+              </a>
+            </div>
+            {% endif %}
+          {% else %}
+          <div class="slide-locked">
+            <div class="slide-locked-icon">📭</div>
+            <p>ยังไม่มีข้อมูล Slides</p>
+          </div>
+          {% endif %}
+        </div>
+      </div>
+    </div>
+    
+    <!-- Rating Section -->
+    <div class="card">
+      <div class="card-header">⭐ คะแนนและรีวิว</div>
+      <div class="card-body">
+        <div class="rating-display">
+          <div class="rating-big">{{ "%.1f"|format(unit.avg_rating or 0) }}</div>
+          <div>
+            <div class="rating-stars">
+              {% for i in range(5) %}
+                {% if i < (unit.avg_rating or 0)|int %}⭐{% else %}☆{% endif %}
+              {% endfor %}
+            </div>
+            <div class="rating-count">จาก {{ unit.rating_count }} รีวิว</div>
+          </div>
+        </div>
+        
+        {% if can_access %}
+        <div class="your-rating">
+          <h4>ให้คะแนนบทเรียนนี้:</h4>
+          <div class="star-input" id="starInput">
+            {% for i in range(1, 6) %}
+            <button class="star-btn {% if user_rating and user_rating.rating >= i %}active{% endif %}" 
+                    data-rating="{{ i }}" onclick="rateUnit({{ i }})">
+              ★
+            </button>
+            {% endfor %}
+          </div>
+        </div>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+  
+  <div>
+    <!-- What's Included -->
+    <div class="card" style="margin-bottom: 1.5rem;">
+      <div class="card-header">📦 สิ่งที่ได้รับ</div>
+      <div class="card-body" style="padding: 0.5rem 1.5rem;">
+        <ul class="includes-list">
+          <li>
+            <div class="includes-icon" style="background: #eef2ff;">🎬</div>
+            <span>Slides พร้อมสอน {{ total_slides }} แผ่น</span>
+          </li>
+          <li>
+            <div class="includes-icon" style="background: #f0fdf4;">🎮</div>
+            <span>เกม Bamboozle 3 ชุด</span>
+          </li>
+          <li>
+            <div class="includes-icon" style="background: #fef3c7;">📝</div>
+            <span>แบบฝึกหัด MCQ 25+ ข้อ</span>
+          </li>
+          <li>
+            <div class="includes-icon" style="background: #fce7f3;">📖</div>
+            <span>คำศัพท์พร้อม IPA</span>
+          </li>
+          <li>
+            <div class="includes-icon" style="background: #e0e7ff;">💬</div>
+            <span>บทสนทนาตัวอย่าง</span>
+          </li>
+        </ul>
+      </div>
+    </div>
+    
+    <!-- Stats -->
+    <div class="card">
+      <div class="card-header">📊 สถิติ</div>
+      <div class="card-body">
+        <div class="stats-grid">
+          <div class="stat-item">
+            <div class="stat-value">{{ unit.clone_count }}</div>
+            <div class="stat-label">ครูใช้งาน</div>
+          </div>
+          <div class="stat-item">
+            <div class="stat-value">{{ unit.view_count }}</div>
+            <div class="stat-label">การเข้าชม</div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script>
+const unitId = {{ unit.id }};
+
+function showToast(msg) {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.classList.add('show');
+  setTimeout(() => toast.classList.remove('show'), 3000);
+}
+
+async function cloneUnit() {
+  const btn = document.getElementById('btnClone');
+  btn.disabled = true;
+  btn.innerHTML = '⏳ กำลังเพิ่ม...';
+  
+  try {
+    const res = await fetch(`/library/unit/${unitId}/clone`, { method: 'POST' });
+    const data = await res.json();
+    
+    if (data.ok) {
+      btn.innerHTML = '✅ เพิ่มแล้ว';
+      showToast('🎉 เพิ่มบทเรียนสำเร็จ!');
+      
+      setTimeout(() => {
+        if (confirm('ต้องการไปยัง Topic ที่สร้างใหม่หรือไม่?')) {
+          window.location.href = '/topic/' + data.topic_id;
+        }
+      }, 500);
+    } else {
+      btn.disabled = false;
+      btn.innerHTML = '📥 เพิ่มไปยัง Topics ของฉัน';
+      showToast('❌ ' + (data.error || 'เกิดข้อผิดพลาด'));
+    }
+  } catch (e) {
+    btn.disabled = false;
+    btn.innerHTML = '📥 เพิ่มไปยัง Topics ของฉัน';
+    showToast('❌ เกิดข้อผิดพลาด');
+  }
+}
+
+async function rateUnit(rating) {
+  try {
+    const res = await fetch(`/library/unit/${unitId}/rate`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ rating })
+    });
+    const data = await res.json();
+    
+    if (data.ok) {
+      // Update stars UI
+      document.querySelectorAll('.star-btn').forEach((btn, i) => {
+        btn.classList.toggle('active', i < rating);
+      });
+      showToast('⭐ ขอบคุณสำหรับคะแนน!');
+    }
+  } catch (e) {
+    showToast('❌ เกิดข้อผิดพลาด');
+  }
+}
+</script>
+
+{% endblock %}

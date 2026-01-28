@@ -1,0 +1,391 @@
+{% extends "base.html" %}
+{% block title %}📚 คลังบทเรียน - Teacher Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+  :root {
+    --primary: #667eea;
+    --secondary: #764ba2;
+  }
+  
+  .page-header {
+    background: linear-gradient(135deg, var(--primary), var(--secondary));
+    color: white;
+    padding: 2.5rem 2rem;
+    border-radius: 20px;
+    margin-bottom: 2rem;
+  }
+  .page-header h1 { margin: 0 0 0.5rem; font-size: 2rem; }
+  .page-header p { margin: 0; opacity: 0.9; }
+  
+  .header-actions {
+    display: flex;
+    gap: 1rem;
+    margin-top: 1.5rem;
+    flex-wrap: wrap;
+  }
+  
+  .search-box {
+    flex: 1;
+    min-width: 250px;
+    display: flex;
+    background: rgba(255,255,255,0.2);
+    border-radius: 12px;
+    overflow: hidden;
+  }
+  .search-box input {
+    flex: 1;
+    border: none;
+    background: transparent;
+    padding: 0.75rem 1rem;
+    color: white;
+    font-size: 1rem;
+  }
+  .search-box input::placeholder { color: rgba(255,255,255,0.7); }
+  .search-box button {
+    background: white;
+    border: none;
+    padding: 0 1.25rem;
+    color: var(--primary);
+    font-weight: 700;
+    cursor: pointer;
+  }
+  
+  .premium-badge {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: white;
+    padding: 0.75rem 1.5rem;
+    border-radius: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .premium-badge:hover { filter: brightness(1.1); }
+  .premium-badge.active { background: linear-gradient(135deg, #22c55e, #16a34a); }
+  
+  .section { margin-bottom: 2.5rem; }
+  .section-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 1.25rem;
+  }
+  .section-header h2 {
+    margin: 0;
+    font-size: 1.4rem;
+    color: #1e293b;
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  .view-all {
+    color: var(--primary);
+    text-decoration: none;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  .view-all:hover { text-decoration: underline; }
+  
+  /* Subject Cards */
+  .subjects-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+    gap: 1.25rem;
+  }
+  
+  .subject-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border: 1px solid rgba(0,0,0,0.05);
+    transition: all 0.2s;
+    text-decoration: none;
+    display: block;
+  }
+  .subject-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  }
+  
+  .subject-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 16px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+    margin-bottom: 1rem;
+  }
+  
+  .subject-card h3 {
+    margin: 0 0 0.5rem;
+    font-size: 1.2rem;
+    color: #1e293b;
+  }
+  .subject-card p {
+    margin: 0 0 1rem;
+    font-size: 0.9rem;
+    color: #64748b;
+    display: -webkit-box;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+  
+  .subject-meta {
+    display: flex;
+    gap: 1rem;
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+  .subject-meta span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  
+  /* Unit Cards */
+  .units-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.25rem;
+  }
+  
+  .unit-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    border: 1px solid rgba(0,0,0,0.05);
+    transition: all 0.2s;
+  }
+  .unit-card:hover {
+    transform: translateY(-4px);
+    box-shadow: 0 8px 20px rgba(0,0,0,0.08);
+  }
+  
+  .unit-header {
+    padding: 1.25rem;
+    display: flex;
+    gap: 1rem;
+  }
+  
+  .unit-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    flex-shrink: 0;
+  }
+  
+  .unit-info { flex: 1; }
+  .unit-info h4 {
+    margin: 0 0 4px;
+    font-size: 1rem;
+    color: #1e293b;
+  }
+  .unit-info p {
+    margin: 0;
+    font-size: 0.85rem;
+    color: #64748b;
+  }
+  
+  .unit-badge {
+    padding: 4px 10px;
+    border-radius: 20px;
+    font-size: 0.7rem;
+    font-weight: 700;
+  }
+  .badge-free { background: #dcfce7; color: #166534; }
+  .badge-premium { background: #fef3c7; color: #92400e; }
+  
+  .unit-stats {
+    padding: 0 1.25rem 1rem;
+    display: flex;
+    gap: 1rem;
+    font-size: 0.8rem;
+    color: #64748b;
+  }
+  .unit-stats span {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+  }
+  
+  .unit-footer {
+    padding: 1rem 1.25rem;
+    background: #f8fafc;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  
+  .rating {
+    display: flex;
+    align-items: center;
+    gap: 4px;
+    color: #f59e0b;
+    font-weight: 600;
+    font-size: 0.9rem;
+  }
+  
+  .btn-view {
+    padding: 0.5rem 1rem;
+    background: var(--primary);
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .btn-view:hover { filter: brightness(1.1); }
+  .btn-view.locked {
+    background: #e2e8f0;
+    color: #64748b;
+  }
+  
+  /* Empty State */
+  .empty-state {
+    text-align: center;
+    padding: 3rem;
+    color: #64748b;
+  }
+  .empty-state-icon { font-size: 3rem; margin-bottom: 1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="page-header">
+  <h1>📚 คลังบทเรียน</h1>
+  <p>บทเรียนสำเร็จรูป พร้อม Slides, Games, และแบบฝึกหัด เปิดสอนได้ทันที!</p>
+  
+  <div class="header-actions">
+    <form class="search-box" action="{{ url_for('library_search') }}" method="GET">
+      <input type="text" name="q" placeholder="ค้นหาบทเรียน...">
+      <button type="submit">🔍</button>
+    </form>
+    
+    {% if is_premium %}
+    <span class="premium-badge active">👑 Premium Active</span>
+    {% else %}
+    <a href="{{ url_for('premium_page') }}" class="premium-badge">👑 อัปเกรด Premium</a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Popular Units -->
+{% if popular_units %}
+<div class="section">
+  <div class="section-header">
+    <h2>🔥 บทเรียนยอดนิยม</h2>
+  </div>
+  <div class="units-grid">
+    {% for unit in popular_units %}
+    <div class="unit-card">
+      <div class="unit-header">
+        <div class="unit-icon" style="background: {{ unit.color or '#667eea' }}20;">
+          {{ unit.subject_icon or '📖' }}
+        </div>
+        <div class="unit-info">
+          <h4>{{ unit.name }}</h4>
+          <p>{{ unit.subject_name }}</p>
+        </div>
+        <span class="unit-badge {% if unit.is_free %}badge-free{% else %}badge-premium{% endif %}">
+          {% if unit.is_free %}🔓 ฟรี{% else %}👑 Premium{% endif %}
+        </span>
+      </div>
+      <div class="unit-stats">
+        <span>📥 {{ unit.clone_count }} ครู</span>
+        <span>⏱️ {{ unit.estimated_time }} นาที</span>
+      </div>
+      <div class="unit-footer">
+        <div class="rating">
+          ⭐ {{ "%.1f"|format(unit.avg_rating or 0) }}
+        </div>
+        <a href="{{ url_for('library_unit_detail', unit_id=unit.id) }}" class="btn-view">
+          ดูบทเรียน →
+        </a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- Free Units -->
+{% if free_units %}
+<div class="section">
+  <div class="section-header">
+    <h2>🎁 บทเรียนฟรี</h2>
+    <a href="{{ url_for('library_search') }}?free_only=1" class="view-all">ดูทั้งหมด →</a>
+  </div>
+  <div class="units-grid">
+    {% for unit in free_units %}
+    <div class="unit-card">
+      <div class="unit-header">
+        <div class="unit-icon" style="background: #dcfce7;">
+          {{ unit.subject_icon or '📖' }}
+        </div>
+        <div class="unit-info">
+          <h4>{{ unit.name }}</h4>
+          <p>{{ unit.subject_name }}</p>
+        </div>
+        <span class="unit-badge badge-free">🔓 ฟรี</span>
+      </div>
+      <div class="unit-stats">
+        <span>📥 {{ unit.clone_count }} ครู</span>
+        <span>⏱️ {{ unit.estimated_time }} นาที</span>
+      </div>
+      <div class="unit-footer">
+        <div class="rating">⭐ {{ "%.1f"|format(unit.avg_rating or 0) }}</div>
+        <a href="{{ url_for('library_unit_detail', unit_id=unit.id) }}" class="btn-view">ดูบทเรียน →</a>
+      </div>
+    </div>
+    {% endfor %}
+  </div>
+</div>
+{% endif %}
+
+<!-- All Subjects -->
+<div class="section">
+  <div class="section-header">
+    <h2>📖 วิชาทั้งหมด</h2>
+  </div>
+  
+  {% if subjects %}
+  <div class="subjects-grid">
+    {% for subject in subjects %}
+    <a href="{{ url_for('library_subject', subject_id=subject.id) }}" class="subject-card">
+      <div class="subject-icon" style="background: {{ subject.color or '#667eea' }}20;">
+        {{ subject.icon or '📚' }}
+      </div>
+      <h3>{{ subject.name }}</h3>
+      <p>{{ subject.description or 'บทเรียนสำหรับ ' + subject.name }}</p>
+      <div class="subject-meta">
+        <span>📖 {{ subject.unit_count or 0 }} บทเรียน</span>
+        <span>🎁 {{ subject.free_count or 0 }} ฟรี</span>
+        <span>📚 {{ subject.grade_level or '-' }}</span>
+      </div>
+    </a>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty-state">
+    <div class="empty-state-icon">📚</div>
+    <h3>ยังไม่มีวิชาในคลัง</h3>
+    <p>กำลังเตรียมบทเรียนอยู่ โปรดรอสักครู่</p>
+  </div>
+  {% endif %}
+</div>
+
+{% endblock %}

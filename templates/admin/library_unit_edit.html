@@ -1,0 +1,188 @@
+{% extends "base.html" %}
+{% block title %}{% if unit %}แก้ไขบทเรียน{% else %}เพิ่มบทเรียน{% endif %} - Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+  .form-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    max-width: 800px;
+    margin: 0 auto;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  }
+  .form-card h2 { margin: 0 0 0.5rem; color: #1e293b; }
+  .form-card .subtitle { color: #64748b; margin-bottom: 1.5rem; }
+  
+  .form-group { margin-bottom: 1.25rem; }
+  .form-group label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: #334155; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 1rem;
+  }
+  .form-group textarea { resize: vertical; min-height: 100px; font-family: monospace; }
+  .form-group small { color: #64748b; font-size: 0.8rem; }
+  
+  .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
+  
+  .checkbox-group {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    padding: 1rem;
+    background: #f8fafc;
+    border-radius: 10px;
+  }
+  .checkbox-group input { width: auto; }
+  
+  .section-title {
+    font-weight: 700;
+    color: #1e293b;
+    margin: 2rem 0 1rem;
+    padding-bottom: 0.5rem;
+    border-bottom: 2px solid #e2e8f0;
+  }
+  
+  .btn-submit {
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 1rem;
+  }
+  .btn-submit:hover { filter: brightness(1.1); }
+  
+  .btn-back {
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+  }
+  
+  .import-section {
+    background: #fffbeb;
+    border: 1px solid #fbbf24;
+    border-radius: 12px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .import-section h4 { margin: 0 0 0.75rem; color: #92400e; }
+  .import-row { display: flex; gap: 1rem; align-items: center; }
+  .import-row input { flex: 1; }
+  .btn-import {
+    padding: 0.75rem 1.5rem;
+    background: #f59e0b;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('admin_library') }}" class="btn-back">← กลับ</a>
+
+<div class="form-card">
+  <h2>{% if unit %}✏️ แก้ไขบทเรียน{% else %}➕ เพิ่มบทเรียนใหม่{% endif %}</h2>
+  <p class="subtitle">วิชา: {{ subject.icon }} {{ subject.name }}</p>
+  
+  {% if unit %}
+  <div class="import-section">
+    <h4>📥 Import จาก Topic ที่มีอยู่</h4>
+    <div class="import-row">
+      <input type="number" id="topicId" placeholder="ใส่ Topic ID">
+      <button class="btn-import" onclick="importFromTopic()">Import</button>
+    </div>
+  </div>
+  {% endif %}
+  
+  <form method="POST">
+    <div class="form-group">
+      <label>ชื่อบทเรียน *</label>
+      <input type="text" name="name" value="{{ unit.name if unit else '' }}" required placeholder="เช่น Unit 1: Greetings">
+    </div>
+    
+    <div class="form-group">
+      <label>คำอธิบาย</label>
+      <textarea name="description" placeholder="อธิบายเกี่ยวกับบทเรียนนี้" rows="2">{{ unit.description if unit else '' }}</textarea>
+    </div>
+    
+    <div class="form-row">
+      <div class="form-group">
+        <label>ลำดับบท</label>
+        <input type="number" name="unit_number" value="{{ unit.unit_number if unit else 1 }}" min="1">
+      </div>
+      <div class="form-group">
+        <label>เวลาโดยประมาณ (นาที)</label>
+        <input type="number" name="estimated_time" value="{{ unit.estimated_time if unit else 60 }}" min="1">
+      </div>
+      <div class="form-group">
+        <label>&nbsp;</label>
+        <div class="checkbox-group">
+          <input type="checkbox" name="is_free" value="1" {% if unit and unit.is_free %}checked{% endif %}>
+          <label style="margin:0;">🎁 ฟรี</label>
+        </div>
+      </div>
+    </div>
+    
+    {% if unit %}
+    <div class="section-title">📦 เนื้อหา (JSON)</div>
+    
+    <div class="form-group">
+      <label>Slides JSON</label>
+      <textarea name="slides_json" rows="6" placeholder='{"slides": [...]}'>{{ unit.slides_json if unit else '' }}</textarea>
+      <small>Format เดียวกับ topics.slides_json</small>
+    </div>
+    
+    <div class="form-group">
+      <label>Game JSON</label>
+      <textarea name="game_json" rows="4" placeholder='{"1": [...], "2": [...], "3": [...]}'>{{ unit.game_json if unit else '' }}</textarea>
+      <small>3 sets x 24 tiles</small>
+    </div>
+    
+    <div class="form-group">
+      <label>Practice JSON</label>
+      <textarea name="practice_json" rows="4" placeholder='[{"question": "", "choices": [], "correct_index": 0}]'>{{ unit.practice_json if unit else '' }}</textarea>
+      <small>Array of MCQ questions</small>
+    </div>
+    {% endif %}
+    
+    <button type="submit" class="btn-submit">💾 บันทึก</button>
+  </form>
+</div>
+
+{% if unit %}
+<script>
+async function importFromTopic() {
+  const topicId = document.getElementById('topicId').value;
+  if (!topicId) { alert('กรุณาใส่ Topic ID'); return; }
+  
+  if (!confirm('Import เนื้อหาจาก Topic #' + topicId + '? (จะเขียนทับข้อมูลเดิม)')) return;
+  
+  try {
+    const res = await fetch('/admin/library/unit/{{ unit.id }}/import-from-topic/' + topicId, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      alert('✅ Import สำเร็จ!');
+      location.reload();
+    } else {
+      alert('❌ ' + (data.error || 'เกิดข้อผิดพลาด'));
+    }
+  } catch (e) {
+    alert('❌ เกิดข้อผิดพลาด');
+  }
+}
+</script>
+{% endif %}
+{% endblock %}

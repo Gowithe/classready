@@ -1,0 +1,165 @@
+{% extends "base.html" %}
+{% block title %}🔍 ค้นหาบทเรียน{% endblock %}
+
+{% block extra_css %}
+<style>
+  .search-header {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 2rem;
+    border-radius: 20px;
+    margin-bottom: 2rem;
+  }
+  .search-header h1 { margin: 0 0 1rem; font-size: 1.8rem; }
+  
+  .search-form {
+    display: flex;
+    gap: 1rem;
+    flex-wrap: wrap;
+  }
+  .search-input {
+    flex: 1;
+    min-width: 250px;
+    padding: 0.9rem 1.25rem;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+  }
+  .search-select {
+    padding: 0.9rem 1.25rem;
+    border: none;
+    border-radius: 12px;
+    font-size: 1rem;
+    min-width: 150px;
+  }
+  .search-btn {
+    padding: 0.9rem 2rem;
+    background: white;
+    color: #667eea;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    cursor: pointer;
+  }
+  
+  .results-info {
+    margin-bottom: 1.5rem;
+    color: #64748b;
+  }
+  
+  .results-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+    gap: 1.25rem;
+  }
+  
+  .unit-card {
+    background: white;
+    border-radius: 16px;
+    overflow: hidden;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    transition: all 0.2s;
+  }
+  .unit-card:hover { transform: translateY(-4px); box-shadow: 0 8px 20px rgba(0,0,0,0.08); }
+  
+  .unit-header { padding: 1.25rem; display: flex; gap: 1rem; }
+  .unit-icon {
+    width: 50px;
+    height: 50px;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.5rem;
+    background: #eef2ff;
+  }
+  .unit-info { flex: 1; }
+  .unit-info h4 { margin: 0 0 4px; font-size: 1rem; color: #1e293b; }
+  .unit-info p { margin: 0; font-size: 0.85rem; color: #64748b; }
+  
+  .unit-badge { padding: 4px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 700; }
+  .badge-free { background: #dcfce7; color: #166534; }
+  .badge-premium { background: #fef3c7; color: #92400e; }
+  
+  .unit-footer {
+    padding: 1rem 1.25rem;
+    background: #f8fafc;
+    border-top: 1px solid #f1f5f9;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .btn-view {
+    padding: 0.5rem 1rem;
+    background: #667eea;
+    color: white;
+    border: none;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.85rem;
+    text-decoration: none;
+  }
+  
+  .empty-state { text-align: center; padding: 4rem; color: #64748b; }
+  .empty-state-icon { font-size: 4rem; margin-bottom: 1rem; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="search-header">
+  <h1>🔍 ค้นหาบทเรียน</h1>
+  <form class="search-form" method="GET">
+    <input type="text" name="q" class="search-input" placeholder="พิมพ์คำค้นหา..." value="{{ query }}">
+    <select name="subject_id" class="search-select">
+      <option value="">ทุกวิชา</option>
+      {% for s in subjects %}
+      <option value="{{ s.id }}" {% if selected_subject == s.id %}selected{% endif %}>{{ s.name }}</option>
+      {% endfor %}
+    </select>
+    <label style="display:flex;align-items:center;gap:0.5rem;color:white;">
+      <input type="checkbox" name="free_only" value="1" {% if free_only %}checked{% endif %}> ฟรีเท่านั้น
+    </label>
+    <button type="submit" class="search-btn">🔍 ค้นหา</button>
+  </form>
+</div>
+
+{% if query %}
+<div class="results-info">
+  พบ {{ results|length }} ผลลัพธ์สำหรับ "{{ query }}"
+</div>
+{% endif %}
+
+{% if results %}
+<div class="results-grid">
+  {% for unit in results %}
+  <div class="unit-card">
+    <div class="unit-header">
+      <div class="unit-icon">{{ unit.subject_icon or '📖' }}</div>
+      <div class="unit-info">
+        <h4>{{ unit.name }}</h4>
+        <p>{{ unit.subject_name }}</p>
+      </div>
+      <span class="unit-badge {% if unit.is_free %}badge-free{% else %}badge-premium{% endif %}">
+        {% if unit.is_free %}🔓 ฟรี{% else %}👑{% endif %}
+      </span>
+    </div>
+    <div class="unit-footer">
+      <span style="font-size:0.85rem;color:#64748b;">⏱️ {{ unit.estimated_time }} นาที</span>
+      <a href="{{ url_for('library_unit_detail', unit_id=unit.id) }}" class="btn-view">ดู →</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% elif query %}
+<div class="empty-state">
+  <div class="empty-state-icon">🔍</div>
+  <h3>ไม่พบผลลัพธ์</h3>
+  <p>ลองค้นหาด้วยคำอื่น</p>
+</div>
+{% else %}
+<div class="empty-state">
+  <div class="empty-state-icon">💡</div>
+  <h3>พิมพ์คำค้นหาเพื่อเริ่มต้น</h3>
+</div>
+{% endif %}
+{% endblock %}

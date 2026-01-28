@@ -1,0 +1,114 @@
+{% extends "base.html" %}
+{% block title %}🛡️ จัดการคลังบทเรียน{% endblock %}
+
+{% block extra_css %}
+<style>
+  .admin-header {
+    background: linear-gradient(135deg, #1e293b, #334155);
+    color: white;
+    padding: 2rem;
+    border-radius: 20px;
+    margin-bottom: 2rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 1rem;
+  }
+  .admin-header h1 { margin: 0; font-size: 1.8rem; }
+  
+  .btn-add {
+    padding: 0.75rem 1.5rem;
+    background: #22c55e;
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    text-decoration: none;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+  }
+  
+  .subjects-list { display: flex; flex-direction: column; gap: 1rem; }
+  
+  .subject-row {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    display: flex;
+    align-items: center;
+    gap: 1.5rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  
+  .subject-icon {
+    width: 60px;
+    height: 60px;
+    border-radius: 14px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 1.8rem;
+  }
+  
+  .subject-info { flex: 1; }
+  .subject-info h3 { margin: 0 0 0.25rem; font-size: 1.2rem; color: #1e293b; }
+  .subject-info p { margin: 0; font-size: 0.9rem; color: #64748b; }
+  .subject-meta { display: flex; gap: 1rem; margin-top: 0.5rem; font-size: 0.85rem; color: #94a3b8; }
+  
+  .subject-actions { display: flex; gap: 0.5rem; }
+  .btn-action {
+    padding: 0.5rem 1rem;
+    border: none;
+    border-radius: 8px;
+    font-weight: 600;
+    font-size: 0.85rem;
+    text-decoration: none;
+    cursor: pointer;
+  }
+  .btn-edit { background: #dbeafe; color: #2563eb; }
+  .btn-units { background: #f0fdf4; color: #166534; }
+  .btn-delete { background: #fee2e2; color: #dc2626; }
+  
+  .empty-state { text-align: center; padding: 4rem; color: #64748b; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="admin-header">
+  <h1>🛡️ จัดการคลังบทเรียน</h1>
+  <a href="{{ url_for('admin_library_subject_create') }}" class="btn-add">➕ เพิ่มวิชา</a>
+</div>
+
+{% if subjects %}
+<div class="subjects-list">
+  {% for subject in subjects %}
+  <div class="subject-row">
+    <div class="subject-icon" style="background: {{ subject.color or '#667eea' }}20;">
+      {{ subject.icon or '📚' }}
+    </div>
+    <div class="subject-info">
+      <h3>{{ subject.name }}</h3>
+      <p>{{ subject.description or '-' }}</p>
+      <div class="subject-meta">
+        <span>📖 {{ subject.unit_count or 0 }} บทเรียน</span>
+        <span>🎁 {{ subject.free_count or 0 }} ฟรี</span>
+        <span>📚 {{ subject.grade_level or '-' }}</span>
+      </div>
+    </div>
+    <div class="subject-actions">
+      <a href="{{ url_for('library_subject', subject_id=subject.id) }}" class="btn-action btn-units">📖 ดูบทเรียน</a>
+      <a href="{{ url_for('admin_library_subject_edit', subject_id=subject.id) }}" class="btn-action btn-edit">✏️ แก้ไข</a>
+      <a href="{{ url_for('admin_library_unit_create', subject_id=subject.id) }}" class="btn-action btn-add" style="background:#dcfce7;color:#166534;">➕ เพิ่มบท</a>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% else %}
+<div class="empty-state">
+  <h3>ยังไม่มีวิชา</h3>
+  <a href="{{ url_for('admin_library_subject_create') }}" class="btn-add" style="margin-top:1rem;">➕ เพิ่มวิชาแรก</a>
+</div>
+{% endif %}
+{% endblock %}

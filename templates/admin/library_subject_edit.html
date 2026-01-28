@@ -1,0 +1,100 @@
+{% extends "base.html" %}
+{% block title %}{% if subject %}แก้ไขวิชา{% else %}เพิ่มวิชา{% endif %} - Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+  .form-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    max-width: 600px;
+    margin: 0 auto;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  }
+  .form-card h2 { margin: 0 0 1.5rem; color: #1e293b; }
+  
+  .form-group { margin-bottom: 1.25rem; }
+  .form-group label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: #334155; }
+  .form-group input, .form-group select, .form-group textarea {
+    width: 100%;
+    padding: 0.75rem 1rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 10px;
+    font-size: 1rem;
+  }
+  .form-group textarea { resize: vertical; min-height: 100px; }
+  
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  
+  .btn-submit {
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    margin-top: 1rem;
+  }
+  .btn-submit:hover { filter: brightness(1.1); }
+  
+  .btn-back {
+    display: inline-block;
+    margin-bottom: 1.5rem;
+    color: #667eea;
+    text-decoration: none;
+    font-weight: 600;
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<a href="{{ url_for('admin_library') }}" class="btn-back">← กลับ</a>
+
+<div class="form-card">
+  <h2>{% if subject %}✏️ แก้ไขวิชา{% else %}➕ เพิ่มวิชาใหม่{% endif %}</h2>
+  
+  <form method="POST">
+    <div class="form-group">
+      <label>ชื่อวิชา *</label>
+      <input type="text" name="name" value="{{ subject.name if subject else '' }}" required placeholder="เช่น English ป.6">
+    </div>
+    
+    <div class="form-group">
+      <label>คำอธิบาย</label>
+      <textarea name="description" placeholder="อธิบายเกี่ยวกับวิชานี้">{{ subject.description if subject else '' }}</textarea>
+    </div>
+    
+    <div class="form-row">
+      <div class="form-group">
+        <label>ระดับชั้น</label>
+        <input type="text" name="grade_level" value="{{ subject.grade_level if subject else '' }}" placeholder="เช่น ป.6, ม.1">
+      </div>
+      <div class="form-group">
+        <label>ประเภท</label>
+        <select name="subject_type">
+          <option value="english" {% if subject and subject.subject_type == 'english' %}selected{% endif %}>English</option>
+          <option value="math" {% if subject and subject.subject_type == 'math' %}selected{% endif %}>Math</option>
+          <option value="science" {% if subject and subject.subject_type == 'science' %}selected{% endif %}>Science</option>
+          <option value="other" {% if subject and subject.subject_type == 'other' %}selected{% endif %}>Other</option>
+        </select>
+      </div>
+    </div>
+    
+    <div class="form-row">
+      <div class="form-group">
+        <label>Icon (Emoji)</label>
+        <input type="text" name="icon" value="{{ subject.icon if subject else '📚' }}" placeholder="📚">
+      </div>
+      <div class="form-group">
+        <label>สี</label>
+        <input type="color" name="color" value="{{ subject.color if subject else '#667eea' }}">
+      </div>
+    </div>
+    
+    <button type="submit" class="btn-submit">💾 บันทึก</button>
+  </form>
+</div>
+{% endblock %}

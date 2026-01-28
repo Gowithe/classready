@@ -1,0 +1,189 @@
+{% extends "base.html" %}
+{% block title %}👑 Premium - Teacher Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+  .premium-hero {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 3rem 2rem;
+    border-radius: 24px;
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  .premium-hero h1 { font-size: 2.5rem; margin: 0 0 0.5rem; }
+  .premium-hero p { font-size: 1.1rem; opacity: 0.9; margin: 0; }
+  
+  .current-status {
+    background: #dcfce7;
+    border: 2px solid #22c55e;
+    border-radius: 16px;
+    padding: 1.5rem;
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  .current-status h3 { margin: 0 0 0.5rem; color: #166534; }
+  .current-status p { margin: 0; color: #15803d; }
+  
+  .plans-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2rem;
+  }
+  
+  .plan-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    border: 2px solid #e2e8f0;
+    transition: all 0.2s;
+    position: relative;
+  }
+  .plan-card:hover { transform: translateY(-4px); box-shadow: 0 8px 24px rgba(0,0,0,0.1); }
+  .plan-card.popular { border-color: #667eea; }
+  .plan-card.popular::before {
+    content: '⭐ แนะนำ';
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 4px 16px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+  
+  .plan-name { font-size: 1.3rem; font-weight: 800; color: #1e293b; margin: 0 0 0.5rem; }
+  .plan-price { margin: 1rem 0; }
+  .plan-price .amount { font-size: 2.5rem; font-weight: 900; color: #667eea; }
+  .plan-price .period { font-size: 0.9rem; color: #64748b; }
+  .plan-save { background: #fef3c7; color: #92400e; padding: 4px 12px; border-radius: 20px; font-size: 0.8rem; font-weight: 700; display: inline-block; margin-bottom: 1rem; }
+  
+  .plan-features { list-style: none; padding: 0; margin: 1.5rem 0; }
+  .plan-features li { padding: 0.5rem 0; display: flex; align-items: center; gap: 0.5rem; font-size: 0.95rem; color: #475569; }
+  .plan-features li::before { content: '✓'; color: #22c55e; font-weight: 700; }
+  
+  .btn-subscribe {
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    border: none;
+    border-radius: 12px;
+    font-weight: 800;
+    font-size: 1rem;
+    cursor: pointer;
+  }
+  .btn-subscribe:hover { filter: brightness(1.1); }
+  .btn-subscribe:disabled { opacity: 0.6; cursor: not-allowed; }
+  
+  .features-section { margin-top: 3rem; }
+  .features-section h2 { text-align: center; margin-bottom: 2rem; color: #1e293b; }
+  .features-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+    gap: 1.5rem;
+  }
+  .feature-item {
+    background: white;
+    padding: 1.5rem;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+  }
+  .feature-icon { font-size: 2.5rem; margin-bottom: 0.75rem; }
+  .feature-item h4 { margin: 0 0 0.5rem; color: #1e293b; }
+  .feature-item p { margin: 0; font-size: 0.9rem; color: #64748b; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="premium-hero">
+  <h1>👑 Premium</h1>
+  <p>ปลดล็อคบทเรียนทั้งหมด เข้าถึงเนื้อหาครบถ้วน!</p>
+</div>
+
+{% if current_sub %}
+<div class="current-status">
+  <h3>✅ คุณเป็นสมาชิก Premium แล้ว!</h3>
+  <p>หมดอายุ: {{ current_sub.expires_at[:10] }}</p>
+</div>
+{% endif %}
+
+<div class="plans-grid">
+  {% for plan in plans %}
+  <div class="plan-card {% if plan.duration_days == 365 %}popular{% endif %}">
+    <div class="plan-name">{{ plan.name }}</div>
+    <div class="plan-price">
+      <span class="amount">฿{{ plan.price|int }}</span>
+      <span class="period">/ {% if plan.duration_days == 30 %}เดือน{% elif plan.duration_days == 365 %}ปี{% else %}{{ plan.duration_days }} วัน{% endif %}</span>
+    </div>
+    {% if plan.duration_days == 365 %}
+    <div class="plan-save">ประหยัด 40%!</div>
+    {% endif %}
+    <p style="color:#64748b; font-size:0.9rem;">{{ plan.description }}</p>
+    <ul class="plan-features">
+      <li>เข้าถึงบทเรียนทั้งหมด</li>
+      <li>Slides, Games, แบบฝึกหัดครบ</li>
+      <li>Clone ไปใช้ได้ไม่จำกัด</li>
+      <li>อัปเดตเนื้อหาใหม่ตลอด</li>
+      {% if plan.duration_days == 365 %}
+      <li>Priority Support</li>
+      {% endif %}
+    </ul>
+    <button class="btn-subscribe" onclick="subscribe({{ plan.id }})" {% if current_sub %}disabled{% endif %}>
+      {% if current_sub %}สมัครแล้ว{% else %}สมัครเลย{% endif %}
+    </button>
+  </div>
+  {% endfor %}
+</div>
+
+<div class="features-section">
+  <h2>🎁 สิ่งที่ได้รับ</h2>
+  <div class="features-grid">
+    <div class="feature-item">
+      <div class="feature-icon">📚</div>
+      <h4>บทเรียนครบทุกวิชา</h4>
+      <p>English ป.1-ม.6 และอื่นๆ อีกมากมาย</p>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">🎬</div>
+      <h4>Slides พร้อมสอน</h4>
+      <p>ออกแบบสวยงาม ใช้ได้ทันที</p>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">🎮</div>
+      <h4>เกมสนุก</h4>
+      <p>Bamboozle, Memory Match และอื่นๆ</p>
+    </div>
+    <div class="feature-item">
+      <div class="feature-icon">📝</div>
+      <h4>แบบฝึกหัดครบ</h4>
+      <p>MCQ, Fill Blanks, Unscramble</p>
+    </div>
+  </div>
+</div>
+
+<script>
+async function subscribe(planId) {
+  if (!confirm('ยืนยันการสมัคร Premium?')) return;
+  
+  try {
+    const res = await fetch('/premium/subscribe/' + planId, { method: 'POST' });
+    const data = await res.json();
+    if (data.ok) {
+      alert('🎉 สมัคร Premium สำเร็จ!');
+      location.reload();
+    } else {
+      alert('❌ ' + (data.error || 'เกิดข้อผิดพลาด'));
+    }
+  } catch (e) {
+    alert('❌ เกิดข้อผิดพลาด');
+  }
+}
+</script>
+{% endblock %}
