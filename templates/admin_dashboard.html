@@ -11,10 +11,7 @@
   <div style="display:flex;gap:10px;flex-wrap:wrap;">
     <a class="btn" href="{{ url_for('dashboard') }}">← Back to Dashboard</a>
     <a class="btn" href="{{ url_for('admin_create_topic') }}">➕ Create Topic</a>
-
-    <form method="POST" action="{{ url_for('admin_seed') }}" style="display:inline;">
-      <button class="btn" type="submit">🌱 Seed Demo</button>
-    </form>
+    <a class="btn" href="{{ url_for('admin_library') }}" style="background:#22c55e;">📚 จัดการคลังบทเรียน</a>
   </div>
 </div>
 
@@ -54,7 +51,6 @@
               <a class="btn" href="{{ url_for('admin_edit_topic', topic_id=tid) }}">✏ Edit</a>
               <a class="btn" href="{{ url_for('topic_detail', topic_id=tid) }}">📌 Open</a>
               <a class="btn" href="{{ url_for('game', topic_id=tid) }}">🎮 Game</a>
-              <a class="btn" href="{{ url_for('admin_game_questions', topic_id=tid) }}">Game Q's</a>
 
               <form method="POST" action="{{ url_for('admin_delete_topic', topic_id=tid) }}" style="display:inline;" onsubmit="return confirm('Delete this topic?');">
                 <button class="btn" type="submit" style="background:#ef4444;">🗑 Delete</button>
@@ -66,7 +62,9 @@
     </table>
   </div>
 {% else %}
-  <div class="card" style="padding:14px;">No topics yet. Click <b>Create Topic</b> or <b>Seed Demo</b>.</div>
+  <div class="card" style="padding:14px;">
+    No topics yet. Click <b>Create Topic</b> to get started.
+  </div>
 {% endif %}
 
 {% endblock %}
