@@ -202,6 +202,8 @@
             <a href="{{ url_for('admin_dashboard') }}">Admin</a>
             {% endif %}
             <a href="{{ url_for('logout') }}">Logout ({{ session.email }})</a>
+            <a href="{{ url_for('library') }}">📚 คลังบทเรียน</a>
+            <a href="{{ url_for('admin_library') }}">📚 จัดการคลัง</a>
         </nav>
     </header>
     {% endif %}
