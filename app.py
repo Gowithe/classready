@@ -2079,6 +2079,10 @@ def library_unit_detail(unit_id):
                            total_slides=len(slides_preview) if can_access else "?")
 
 
+# ==============================================================================
+# 2. แก้ไข library_clone_unit (ประมาณบรรทัด 2082-2150)
+# ==============================================================================
+
 @app.route("/library/unit/<int:unit_id>/clone", methods=["POST"])
 @login_required
 def library_clone_unit(unit_id):
@@ -2095,7 +2099,6 @@ def library_clone_unit(unit_id):
     
     # Check if already cloned
     if LibraryClone.has_cloned(session["user_id"], unit_id):
-        # Return existing topic
         clones = LibraryClone.get_by_user(session["user_id"])
         for c in clones:
             if c["unit_id"] == unit_id:
@@ -2108,41 +2111,48 @@ def library_clone_unit(unit_id):
         description=unit.get("description") or f"จาก Library: {unit.get('subject_name', '')}",
         slides_json=unit.get("slides_json") or "{}",
         topic_type="library",
-        pdf_file=None
+        pdf_file=unit.get("pdf_file")
     )
     
-    # Copy game questions if available
+    # Copy game questions
     if unit.get("game_json"):
         try:
             game_data = json.loads(unit["game_json"])
-            for set_no, questions in game_data.items():
+            for set_no_str, questions in game_data.items():
                 if isinstance(questions, list):
-                    for q in questions:
+                    for idx, q in enumerate(questions):
                         GameQuestion.create(
                             topic_id=topic["id"],
-                            set_no=int(set_no),
+                            set_no=int(set_no_str),
+                            tile_no=q.get("tile_no", idx + 1),
                             question=q.get("question", ""),
                             answer=q.get("answer", ""),
                             points=q.get("points", 10)
                         )
-        except:
-            pass
+        except Exception as e:
+            print(f"Error copying game: {e}")
     
-    # Copy practice questions if available
+    # Copy practice questions - ใช้ format เดียวกับ _save_practice_only
     if unit.get("practice_json"):
         try:
             practice_data = json.loads(unit["practice_json"])
             if isinstance(practice_data, list):
                 for q in practice_data:
-                    PracticeQuestion.create(
-                        topic_id=topic["id"],
-                        question=q.get("question", ""),
-                        choices=q.get("choices", []),
-                        correct_index=q.get("correct_index", 0),
-                        explanation=q.get("explain", q.get("explanation", ""))
-                    )
-        except:
-            pass
+                    prompt = q.get("question", "")
+                    choices = q.get("choices", [])
+                    ci = q.get("correct_index", 0)
+                    
+                    if prompt and choices:
+                        # Format ที่ DB ใช้: question = JSON, correct_answer = string
+                        correct_answer = str(choices[ci]).strip() if ci < len(choices) else ""
+                        PracticeQuestion.create(
+                            topic_id=topic["id"],
+                            q_type="multiple_choice",
+                            question=json.dumps({"prompt": prompt, "choices": choices}, ensure_ascii=False),
+                            correct_answer=correct_answer
+                        )
+        except Exception as e:
+            print(f"Error copying practice: {e}")
     
     # Record clone
     LibraryClone.create(session["user_id"], unit_id, topic["id"])
@@ -2319,7 +2329,15 @@ def admin_library_unit_create(subject_id):
         name = request.form.get("name", "").strip()
         if not name:
             flash("กรุณาใส่ชื่อบทเรียน", "error")
-            return render_template("admin/library_unit_edit.html", subject=subject, unit=None)
+            return render_template("admin/library_unit_edit.html", subject=subject, unit=None, slides_count=0, game_count=0, practice_count=0)
+        
+        # Handle PDF upload
+        pdf_filename = None
+        if "pdf_file" in request.files:
+            pdf = request.files["pdf_file"]
+            if pdf and pdf.filename and pdf.filename.endswith(".pdf"):
+                pdf_filename = secure_filename(f"lib_{subject_id}_{int(datetime.utcnow().timestamp())}_{pdf.filename}")
+                pdf.save(os.path.join(app.config["UPLOAD_FOLDER"], pdf_filename))
         
         unit = LibraryUnit.create(
             subject_id=subject_id,
@@ -2327,12 +2345,13 @@ def admin_library_unit_create(subject_id):
             unit_number=int(request.form.get("unit_number", 1)),
             description=request.form.get("description", ""),
             is_free=request.form.get("is_free") == "1",
-            estimated_time=int(request.form.get("estimated_time", 60))
+            estimated_time=int(request.form.get("estimated_time", 60)),
+            pdf_file=pdf_filename
         )
-        flash("สร้างบทเรียนสำเร็จ", "success")
+        flash("สร้างบทเรียนสำเร็จ! ตอนนี้สามารถ Generate เนื้อหาได้", "success")
         return redirect(url_for("admin_library_unit_edit", unit_id=unit["id"]))
     
-    return render_template("admin/library_unit_edit.html", subject=subject, unit=None)
+    return render_template("admin/library_unit_edit.html", subject=subject, unit=None, slides_count=0, game_count=0, practice_count=0)
 
 
 @app.route("/admin/library/unit/<int:unit_id>/edit", methods=["GET", "POST"])
@@ -2349,6 +2368,19 @@ def admin_library_unit_edit(unit_id):
     subject = LibrarySubject.get_by_id(unit["subject_id"])
     
     if request.method == "POST":
+        # Handle PDF upload
+        pdf_filename = unit.get("pdf_file")
+        if "pdf_file" in request.files:
+            pdf = request.files["pdf_file"]
+            if pdf and pdf.filename and pdf.filename.endswith(".pdf"):
+                pdf_filename = secure_filename(f"lib_{unit['subject_id']}_{int(datetime.utcnow().timestamp())}_{pdf.filename}")
+                pdf.save(os.path.join(app.config["UPLOAD_FOLDER"], pdf_filename))
+        
+        # Get JSON from form (if edited manually)
+        slides_json = request.form.get("slides_json", unit.get("slides_json") or "{}")
+        game_json = request.form.get("game_json", unit.get("game_json") or "{}")
+        practice_json = request.form.get("practice_json", unit.get("practice_json") or "[]")
+        
         LibraryUnit.update(
             unit_id,
             name=request.form.get("name", "").strip(),
@@ -2356,15 +2388,146 @@ def admin_library_unit_edit(unit_id):
             description=request.form.get("description", ""),
             is_free=1 if request.form.get("is_free") == "1" else 0,
             estimated_time=int(request.form.get("estimated_time", 60)),
-            slides_json=request.form.get("slides_json", ""),
-            game_json=request.form.get("game_json", ""),
-            practice_json=request.form.get("practice_json", "")
+            pdf_file=pdf_filename,
+            slides_json=slides_json,
+            game_json=game_json,
+            practice_json=practice_json
         )
         flash("บันทึกสำเร็จ", "success")
         return redirect(url_for("admin_library_unit_edit", unit_id=unit_id))
     
-    return render_template("admin/library_unit_edit.html", subject=subject, unit=unit)
+    # Reload unit after potential update
+    unit = LibraryUnit.get_by_id(unit_id)
+    
+    # Calculate content stats
+    slides_count = 0
+    game_count = 0
+    practice_count = 0
+    
+    if unit.get("slides_json"):
+        try:
+            slides_data = json.loads(unit["slides_json"])
+            if isinstance(slides_data, dict):
+                slides = slides_data.get("slides", [])
+            else:
+                slides = slides_data
+            slides_count = len(slides) if isinstance(slides, list) else 0
+        except:
+            pass
+    
+    if unit.get("game_json"):
+        try:
+            game_data = json.loads(unit["game_json"])
+            for questions in game_data.values():
+                if isinstance(questions, list):
+                    game_count += len(questions)
+        except:
+            pass
+    
+    if unit.get("practice_json"):
+        try:
+            practice_data = json.loads(unit["practice_json"])
+            practice_count = len(practice_data) if isinstance(practice_data, list) else 0
+        except:
+            pass
+    
+    return render_template("admin/library_unit_edit.html", 
+                           subject=subject, 
+                           unit=unit,
+                           slides_count=slides_count,
+                           game_count=game_count,
+                           practice_count=practice_count)
 
+@app.route("/admin/library/unit/<int:unit_id>/generate/<gen_type>", methods=["POST"])
+@login_required
+def admin_library_unit_generate(unit_id, gen_type):
+    """Admin: Generate เนื้อหาด้วย AI"""
+    if not _is_admin():
+        return jsonify({"ok": False, "error": "Forbidden"}), 403
+    
+    unit = LibraryUnit.get_by_id(unit_id)
+    if not unit:
+        return jsonify({"ok": False, "error": "Unit not found"}), 404
+    
+    if gen_type not in ["all", "slides", "game", "practice"]:
+        return jsonify({"ok": False, "error": "Invalid type"}), 400
+    
+    topic_name = unit["name"]
+    
+    try:
+        # Generate content using AI
+        bundle = generate_lesson_bundle(topic_name)
+        
+        if not bundle:
+            return jsonify({"ok": False, "error": "AI generation failed"}), 500
+        
+        # Prepare updates
+        updates = {}
+        result = {"ok": True}
+        
+        # Slides
+        if gen_type in ["all", "slides"]:
+            slides = bundle.get("slides") or []
+            slides_json = json.dumps({"slides": slides}, ensure_ascii=False)
+            updates["slides_json"] = slides_json
+            result["slides_count"] = len(slides)
+            result["slides_json"] = slides_json
+        
+        # Game - convert from AI format to library format
+        if gen_type in ["all", "game"]:
+            game_raw = bundle.get("game") or {}
+            game_data = {}
+            total_game = 0
+            
+            for set_no in [1, 2, 3]:
+                set_key = str(set_no)
+                questions = game_raw.get(set_key) or game_raw.get(f"set{set_no}") or []
+                if questions:
+                    game_data[set_key] = []
+                    for idx, q in enumerate(questions):
+                        game_data[set_key].append({
+                            "tile_no": idx + 1,
+                            "question": q.get("question", ""),
+                            "answer": q.get("answer", ""),
+                            "points": q.get("points", 10)
+                        })
+                        total_game += 1
+            
+            game_json = json.dumps(game_data, ensure_ascii=False)
+            updates["game_json"] = game_json
+            result["game_count"] = total_game
+            result["game_json"] = game_json
+        
+        # Practice - convert from AI format to library format
+        if gen_type in ["all", "practice"]:
+            practice_raw = bundle.get("practice") or []
+            practice_data = []
+            
+            for q in practice_raw:
+                practice_data.append({
+                    "question": q.get("question", ""),
+                    "choices": q.get("choices", []),
+                    "correct_index": q.get("correct_index", 0)
+                })
+            
+            practice_json = json.dumps(practice_data, ensure_ascii=False)
+            updates["practice_json"] = practice_json
+            result["practice_count"] = len(practice_data)
+            result["practice_json"] = practice_json
+        
+        # Save to database
+        if updates:
+            LibraryUnit.update(unit_id, **updates)
+        
+        return jsonify(result)
+        
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# ==============================================================================
+# 1. แก้ไข admin_library_import_from_topic (ประมาณบรรทัด 2369-2403)
+# ==============================================================================
 
 @app.route("/admin/library/unit/<int:unit_id>/import-from-topic/<int:topic_id>", methods=["POST"])
 @login_required
@@ -2387,11 +2550,47 @@ def admin_library_import_from_topic(unit_id, topic_id):
     for set_no in [1, 2, 3]:
         questions = GameQuestion.get_by_topic_and_set(topic_id, set_no)
         if questions:
-            game_data[str(set_no)] = [{"question": q["question"], "answer": q["answer"], "points": q["points"]} for q in questions]
+            game_data[str(set_no)] = [
+                {
+                    "tile_no": q.get("tile_no", idx + 1),
+                    "question": q["question"], 
+                    "answer": q["answer"], 
+                    "points": q.get("points", 10)
+                } 
+                for idx, q in enumerate(questions)
+            ]
     
     # Copy practice questions
+    # Format ใน DB: question = JSON{"prompt": "...", "choices": [...]}, correct_answer = "คำตอบที่ถูก"
     practice_questions = PracticeQuestion.get_by_topic(topic_id)
-    practice_data = [{"question": q["question"], "choices": json.loads(q["choices_json"]) if q.get("choices_json") else [], "correct_index": q["correct_index"], "explain": q.get("explanation", "")} for q in practice_questions]
+    practice_data = []
+    for q in practice_questions:
+        try:
+            # Parse question JSON
+            q_data = json.loads(q["question"])
+            prompt = q_data.get("prompt", "")
+            choices = q_data.get("choices", [])
+            correct_answer = q.get("correct_answer", "")
+            
+            # Find correct_index
+            correct_index = 0
+            for idx, choice in enumerate(choices):
+                if str(choice).strip() == str(correct_answer).strip():
+                    correct_index = idx
+                    break
+            
+            practice_data.append({
+                "question": prompt,
+                "choices": choices,
+                "correct_index": correct_index
+            })
+        except:
+            # Fallback for old format
+            practice_data.append({
+                "question": q["question"],
+                "choices": [],
+                "correct_index": 0
+            })
     
     LibraryUnit.update(
         unit_id,
@@ -2401,6 +2600,7 @@ def admin_library_import_from_topic(unit_id, topic_id):
     )
     
     return jsonify({"ok": True})
+
 
 # ==============================================================================
 # Errors
