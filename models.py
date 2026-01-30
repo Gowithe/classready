@@ -101,6 +101,7 @@ def init_db() -> None:
       rating_count INTEGER DEFAULT 0,
       sort_order INTEGER DEFAULT 0,
       is_active INTEGER DEFAULT 1,
+      pdf_file TEXT,
       created_at TEXT NOT NULL,
       updated_at TEXT NOT NULL,
       FOREIGN KEY(subject_id) REFERENCES library_subjects(id)
@@ -364,19 +365,23 @@ class LibrarySubject:
     """วิชาในคลังบทเรียน"""
     
     @staticmethod
-    def create(name: str, description: str = "", grade_level: str = "", 
-               subject_type: str = "english", icon: str = "📚", color: str = "#667eea") -> Dict[str, Any]:
+    def create(subject_id: int, name: str, unit_number: int = 1, description: str = "",
+               slides_json: str = "", game_json: str = "", practice_json: str = "",
+               is_free: bool = False, estimated_time: int = 60, pdf_file: str = None) -> Dict[str, Any]:
         conn = get_db()
         c = conn.cursor()
         now = datetime.utcnow().isoformat()
-        c.execute("""
-            INSERT INTO library_subjects (name, description, grade_level, subject_type, icon, color, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?)
-        """, (name, description, grade_level, subject_type, icon, color, now, now))
+        c.execute('''
+            INSERT INTO library_units 
+            (subject_id, name, unit_number, description, slides_json, game_json, practice_json, 
+             is_free, estimated_time, pdf_file, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (subject_id, name, unit_number, description, slides_json, game_json, practice_json,
+              1 if is_free else 0, estimated_time, pdf_file, now, now))
         conn.commit()
-        subject_id = c.lastrowid
+        unit_id = c.lastrowid
         conn.close()
-        return LibrarySubject.get_by_id(subject_id)
+        return LibraryUnit.get_by_id(unit_id)
     
     @staticmethod
     def get_by_id(subject_id: int) -> Optional[Dict[str, Any]]:
@@ -431,7 +436,7 @@ class LibraryUnit:
     @staticmethod
     def create(subject_id: int, name: str, unit_number: int = 1, description: str = "",
                slides_json: str = "", game_json: str = "", practice_json: str = "",
-               is_free: bool = False, estimated_time: int = 60) -> Dict[str, Any]:
+               is_free: bool = False, estimated_time: int = 60, pdf_file: str = None) -> Dict[str, Any]:
         conn = get_db()
         c = conn.cursor()
         now = datetime.utcnow().isoformat()
