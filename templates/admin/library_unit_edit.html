@@ -3,186 +3,276 @@
 
 {% block extra_css %}
 <style>
-  .form-card {
-    background: white;
-    border-radius: 20px;
-    padding: 2rem;
-    max-width: 800px;
-    margin: 0 auto;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+  .page-header {
+    background: linear-gradient(135deg, #1e293b, #334155);
+    color: white;
+    padding: 1.5rem 2rem;
+    border-radius: 16px;
+    margin-bottom: 1.5rem;
   }
-  .form-card h2 { margin: 0 0 0.5rem; color: #1e293b; }
-  .form-card .subtitle { color: #64748b; margin-bottom: 1.5rem; }
+  .page-header h2 { margin: 0 0 0.25rem; }
+  .page-header p { margin: 0; opacity: 0.8; }
+  
+  .form-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; }
+  @media (max-width: 900px) { .form-grid { grid-template-columns: 1fr; } }
+  
+  .card {
+    background: white;
+    border-radius: 16px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
+    overflow: hidden;
+    margin-bottom: 1.5rem;
+  }
+  .card-header {
+    padding: 1rem 1.5rem;
+    border-bottom: 1px solid #f1f5f9;
+    font-weight: 700;
+    color: #1e293b;
+  }
+  .card-body { padding: 1.5rem; }
   
   .form-group { margin-bottom: 1.25rem; }
   .form-group label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: #334155; }
   .form-group input, .form-group select, .form-group textarea {
-    width: 100%;
-    padding: 0.75rem 1rem;
-    border: 1px solid #e2e8f0;
-    border-radius: 10px;
-    font-size: 1rem;
+    width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 1rem;
   }
-  .form-group textarea { resize: vertical; min-height: 100px; font-family: monospace; }
-  .form-group small { color: #64748b; font-size: 0.8rem; }
+  .form-group textarea { resize: vertical; min-height: 100px; font-family: inherit; }
+  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
   
-  .form-row { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 1rem; }
-  
-  .checkbox-group {
-    display: flex;
-    align-items: center;
-    gap: 0.5rem;
-    padding: 1rem;
-    background: #f8fafc;
-    border-radius: 10px;
+  .checkbox-label {
+    display: flex; align-items: center; gap: 0.5rem;
+    padding: 0.75rem 1rem; background: #f0fdf4; border-radius: 10px; cursor: pointer;
   }
-  .checkbox-group input { width: auto; }
+  .checkbox-label input { width: auto; }
   
-  .section-title {
-    font-weight: 700;
-    color: #1e293b;
-    margin: 2rem 0 1rem;
-    padding-bottom: 0.5rem;
-    border-bottom: 2px solid #e2e8f0;
+  .pdf-box {
+    border: 2px dashed #cbd5e1; border-radius: 12px; padding: 2rem; text-align: center; background: #f8fafc;
+  }
+  .pdf-box.has-file { border-color: #22c55e; background: #f0fdf4; }
+  .pdf-current { background: #dbeafe; padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; }
+  .pdf-current a { color: #2563eb; font-weight: 600; }
+  
+  .ai-section {
+    background: linear-gradient(135deg, #fef3c7, #fde68a);
+    border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem;
+  }
+  .ai-section h4 { margin: 0 0 0.5rem; color: #92400e; }
+  .ai-section p { margin: 0 0 1rem; font-size: 0.9rem; color: #a16207; }
+  .ai-buttons { display: flex; gap: 0.75rem; flex-wrap: wrap; }
+  
+  .btn-ai {
+    padding: 0.75rem 1.25rem; border: none; border-radius: 10px;
+    font-weight: 700; font-size: 0.9rem; cursor: pointer;
+  }
+  .btn-ai:disabled { opacity: 0.6; cursor: not-allowed; }
+  .btn-ai.all { background: #f59e0b; color: white; }
+  .btn-ai.slides { background: #8b5cf6; color: white; }
+  .btn-ai.game { background: #22c55e; color: white; }
+  .btn-ai.practice { background: #3b82f6; color: white; }
+  
+  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem; }
+  .stat-box { background: #f8fafc; padding: 1rem; border-radius: 10px; text-align: center; }
+  .stat-box .number { font-size: 1.5rem; font-weight: 800; color: #667eea; }
+  .stat-box .label { font-size: 0.8rem; color: #64748b; }
+  
+  .json-editor {
+    font-family: monospace; font-size: 0.85rem; min-height: 150px;
+    background: #1e293b; color: #e2e8f0; border: none; border-radius: 10px;
   }
   
   .btn-submit {
-    width: 100%;
-    padding: 1rem;
+    width: 100%; padding: 1rem;
     background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white;
-    border: none;
-    border-radius: 12px;
-    font-weight: 700;
-    font-size: 1rem;
-    cursor: pointer;
-    margin-top: 1rem;
+    color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 1rem; cursor: pointer;
   }
-  .btn-submit:hover { filter: brightness(1.1); }
+  .btn-back { display: inline-block; color: #667eea; text-decoration: none; font-weight: 600; margin-bottom: 1rem; }
   
-  .btn-back {
-    display: inline-block;
-    margin-bottom: 1.5rem;
-    color: #667eea;
-    text-decoration: none;
-    font-weight: 600;
+  .loading-overlay {
+    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000;
   }
+  .loading-overlay.show { display: flex; }
+  .loading-box { background: white; padding: 2rem 3rem; border-radius: 16px; text-align: center; }
+  .loading-spinner {
+    width: 50px; height: 50px; border: 4px solid #e2e8f0; border-top-color: #667eea;
+    border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
   
-  .import-section {
-    background: #fffbeb;
-    border: 1px solid #fbbf24;
-    border-radius: 12px;
-    padding: 1.25rem;
-    margin-bottom: 1.5rem;
+  .toast {
+    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
+    background: #1e293b; color: white; padding: 1rem 2rem; border-radius: 12px;
+    font-weight: 600; z-index: 1001; display: none;
   }
-  .import-section h4 { margin: 0 0 0.75rem; color: #92400e; }
-  .import-row { display: flex; gap: 1rem; align-items: center; }
-  .import-row input { flex: 1; }
-  .btn-import {
-    padding: 0.75rem 1.5rem;
-    background: #f59e0b;
-    color: white;
-    border: none;
-    border-radius: 8px;
-    font-weight: 700;
-    cursor: pointer;
-  }
+  .toast.show { display: block; }
 </style>
 {% endblock %}
 
 {% block content %}
 <a href="{{ url_for('admin_library') }}" class="btn-back">← กลับ</a>
 
-<div class="form-card">
-  <h2>{% if unit %}✏️ แก้ไขบทเรียน{% else %}➕ เพิ่มบทเรียนใหม่{% endif %}</h2>
-  <p class="subtitle">วิชา: {{ subject.icon }} {{ subject.name }}</p>
-  
-  {% if unit %}
-  <div class="import-section">
-    <h4>📥 Import จาก Topic ที่มีอยู่</h4>
-    <div class="import-row">
-      <input type="number" id="topicId" placeholder="ใส่ Topic ID">
-      <button class="btn-import" onclick="importFromTopic()">Import</button>
-    </div>
-  </div>
-  {% endif %}
-  
-  <form method="POST">
-    <div class="form-group">
-      <label>ชื่อบทเรียน *</label>
-      <input type="text" name="name" value="{{ unit.name if unit else '' }}" required placeholder="เช่น Unit 1: Greetings">
-    </div>
-    
-    <div class="form-group">
-      <label>คำอธิบาย</label>
-      <textarea name="description" placeholder="อธิบายเกี่ยวกับบทเรียนนี้" rows="2">{{ unit.description if unit else '' }}</textarea>
-    </div>
-    
-    <div class="form-row">
-      <div class="form-group">
-        <label>ลำดับบท</label>
-        <input type="number" name="unit_number" value="{{ unit.unit_number if unit else 1 }}" min="1">
-      </div>
-      <div class="form-group">
-        <label>เวลาโดยประมาณ (นาที)</label>
-        <input type="number" name="estimated_time" value="{{ unit.estimated_time if unit else 60 }}" min="1">
-      </div>
-      <div class="form-group">
-        <label>&nbsp;</label>
-        <div class="checkbox-group">
+<div class="page-header">
+  <h2>{% if unit %}✏️ แก้ไขบทเรียน{% else %}➕ สร้างบทเรียนใหม่{% endif %}</h2>
+  <p>วิชา: {{ subject.icon }} {{ subject.name }}</p>
+</div>
+
+<form method="POST" enctype="multipart/form-data">
+<div class="form-grid">
+  <div>
+    <div class="card">
+      <div class="card-header">📝 ข้อมูลพื้นฐาน</div>
+      <div class="card-body">
+        <div class="form-group">
+          <label>ชื่อบทเรียน *</label>
+          <input type="text" name="name" id="unitName" value="{{ unit.name if unit else '' }}" required placeholder="เช่น Unit 1: Greetings">
+        </div>
+        <div class="form-group">
+          <label>คำอธิบาย</label>
+          <textarea name="description" rows="2" placeholder="อธิบายสั้นๆ">{{ unit.description if unit else '' }}</textarea>
+        </div>
+        <div class="form-row">
+          <div class="form-group">
+            <label>ลำดับบท</label>
+            <input type="number" name="unit_number" value="{{ unit.unit_number if unit else 1 }}" min="1">
+          </div>
+          <div class="form-group">
+            <label>เวลา (นาที)</label>
+            <input type="number" name="estimated_time" value="{{ unit.estimated_time if unit else 60 }}" min="1">
+          </div>
+        </div>
+        <label class="checkbox-label">
           <input type="checkbox" name="is_free" value="1" {% if unit and unit.is_free %}checked{% endif %}>
-          <label style="margin:0;">🎁 ฟรี</label>
+          🎁 บทเรียนฟรี
+        </label>
+      </div>
+    </div>
+    
+    <div class="card">
+      <div class="card-header">📄 ไฟล์ PDF</div>
+      <div class="card-body">
+        <div class="pdf-box {% if unit and unit.pdf_file %}has-file{% endif %}" id="pdfBox">
+          <div style="font-size:2.5rem;">📤</div>
+          <p>คลิกเพื่อเลือกไฟล์ PDF</p>
+          <input type="file" name="pdf_file" accept=".pdf" id="pdfInput" style="display:none;" onchange="showPdfName(this)">
+          <button type="button" class="btn-ai slides" onclick="document.getElementById('pdfInput').click()">📁 เลือกไฟล์</button>
+          {% if unit and unit.pdf_file %}
+          <div class="pdf-current">📄 ปัจจุบัน: <a href="{{ url_for('uploaded_file', filename=unit.pdf_file) }}" target="_blank">{{ unit.pdf_file }}</a></div>
+          {% endif %}
+          <div class="pdf-current" id="newPdf" style="display:none;">📄 ใหม่: <span id="newPdfName"></span></div>
         </div>
       </div>
     </div>
     
     {% if unit %}
-    <div class="section-title">📦 เนื้อหา (JSON)</div>
-    
-    <div class="form-group">
-      <label>Slides JSON</label>
-      <textarea name="slides_json" rows="6" placeholder='{"slides": [...]}'>{{ unit.slides_json if unit else '' }}</textarea>
-      <small>Format เดียวกับ topics.slides_json</small>
+    <div class="card">
+      <div class="card-header">🤖 AI Generate</div>
+      <div class="card-body">
+        <div class="ai-section">
+          <h4>✨ สร้างเนื้อหาอัตโนมัติ</h4>
+          <p>ใช้ AI สร้าง Slides, Game และแบบฝึกหัด</p>
+          <div class="ai-buttons">
+            <button type="button" class="btn-ai all" onclick="generateContent('all')">🚀 Generate ทั้งหมด</button>
+            <button type="button" class="btn-ai slides" onclick="generateContent('slides')">🎬 Slides</button>
+            <button type="button" class="btn-ai game" onclick="generateContent('game')">🎮 Game</button>
+            <button type="button" class="btn-ai practice" onclick="generateContent('practice')">📝 Practice</button>
+          </div>
+        </div>
+        <div class="stats-grid">
+          <div class="stat-box"><div class="number" id="statSlides">{{ slides_count }}</div><div class="label">Slides</div></div>
+          <div class="stat-box"><div class="number" id="statGame">{{ game_count }}</div><div class="label">Game Q</div></div>
+          <div class="stat-box"><div class="number" id="statPractice">{{ practice_count }}</div><div class="label">Practice Q</div></div>
+        </div>
+      </div>
     </div>
     
-    <div class="form-group">
-      <label>Game JSON</label>
-      <textarea name="game_json" rows="4" placeholder='{"1": [...], "2": [...], "3": [...]}'>{{ unit.game_json if unit else '' }}</textarea>
-      <small>3 sets x 24 tiles</small>
-    </div>
-    
-    <div class="form-group">
-      <label>Practice JSON</label>
-      <textarea name="practice_json" rows="4" placeholder='[{"question": "", "choices": [], "correct_index": 0}]'>{{ unit.practice_json if unit else '' }}</textarea>
-      <small>Array of MCQ questions</small>
+    <div class="card">
+      <div class="card-header" style="cursor:pointer;" onclick="document.getElementById('jsonSection').style.display = document.getElementById('jsonSection').style.display === 'none' ? 'block' : 'none'">
+        📦 JSON (คลิกเพื่อแสดง/ซ่อน)
+      </div>
+      <div class="card-body" id="jsonSection" style="display:none;">
+        <div class="form-group"><label>Slides JSON</label><textarea name="slides_json" class="json-editor" id="slidesJson">{{ unit.slides_json if unit else '{}' }}</textarea></div>
+        <div class="form-group"><label>Game JSON</label><textarea name="game_json" class="json-editor" id="gameJson">{{ unit.game_json if unit else '{}' }}</textarea></div>
+        <div class="form-group"><label>Practice JSON</label><textarea name="practice_json" class="json-editor" id="practiceJson">{{ unit.practice_json if unit else '[]' }}</textarea></div>
+      </div>
     </div>
     {% endif %}
-    
-    <button type="submit" class="btn-submit">💾 บันทึก</button>
-  </form>
-</div>
-
-{% if unit %}
-<script>
-async function importFromTopic() {
-  const topicId = document.getElementById('topicId').value;
-  if (!topicId) { alert('กรุณาใส่ Topic ID'); return; }
+  </div>
   
-  if (!confirm('Import เนื้อหาจาก Topic #' + topicId + '? (จะเขียนทับข้อมูลเดิม)')) return;
+  <div>
+    <div class="card">
+      <div class="card-header">💾 บันทึก</div>
+      <div class="card-body">
+        <button type="submit" class="btn-submit">{% if unit %}💾 บันทึก{% else %}➕ สร้างบทเรียน{% endif %}</button>
+        {% if not unit %}<p style="color:#64748b; font-size:0.85rem; margin-top:1rem; text-align:center;">หลังสร้างแล้ว สามารถ Generate เนื้อหาได้</p>{% endif %}
+      </div>
+    </div>
+    {% if unit %}
+    <div class="card">
+      <div class="card-header">📋 สรุป</div>
+      <div class="card-body">
+        <p><strong>ID:</strong> {{ unit.id }}</p>
+        <p><strong>สถานะ:</strong> {% if unit.is_free %}🎁 ฟรี{% else %}👑 Premium{% endif %}</p>
+        <p><strong>Clone:</strong> {{ unit.clone_count }} ครั้ง</p>
+        <p><strong>เข้าชม:</strong> {{ unit.view_count }} ครั้ง</p>
+      </div>
+    </div>
+    <div class="card">
+      <div class="card-body">
+        <a href="{{ url_for('library_unit_detail', unit_id=unit.id) }}" class="btn-ai slides" style="width:100%;text-align:center;text-decoration:none;display:block;" target="_blank">👁️ ดูหน้าบทเรียน</a>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+</form>
+
+<div class="loading-overlay" id="loading"><div class="loading-box"><div class="loading-spinner"></div><div id="loadingText">กำลัง Generate...</div></div></div>
+<div class="toast" id="toast"></div>
+
+<script>
+const unitId = {{ unit.id if unit else 'null' }};
+
+function showPdfName(input) {
+  if (input.files[0]) {
+    document.getElementById('newPdfName').textContent = input.files[0].name;
+    document.getElementById('newPdf').style.display = 'block';
+    document.getElementById('pdfBox').classList.add('has-file');
+  }
+}
+
+function showToast(msg) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), 3000);
+}
+
+async function generateContent(type) {
+  if (!unitId) { showToast('❌ บันทึกบทเรียนก่อน'); return; }
+  
+  document.getElementById('loading').classList.add('show');
+  document.getElementById('loadingText').textContent = 'กำลัง Generate ' + type + '... (30-60 วินาที)';
   
   try {
-    const res = await fetch('/admin/library/unit/{{ unit.id }}/import-from-topic/' + topicId, { method: 'POST' });
+    const res = await fetch('/admin/library/unit/' + unitId + '/generate/' + type, { method: 'POST' });
     const data = await res.json();
+    
     if (data.ok) {
-      alert('✅ Import สำเร็จ!');
-      location.reload();
+      showToast('✅ Generate สำเร็จ!');
+      if (data.slides_count !== undefined) document.getElementById('statSlides').textContent = data.slides_count;
+      if (data.game_count !== undefined) document.getElementById('statGame').textContent = data.game_count;
+      if (data.practice_count !== undefined) document.getElementById('statPractice').textContent = data.practice_count;
+      if (data.slides_json) document.getElementById('slidesJson').value = data.slides_json;
+      if (data.game_json) document.getElementById('gameJson').value = data.game_json;
+      if (data.practice_json) document.getElementById('practiceJson').value = data.practice_json;
     } else {
-      alert('❌ ' + (data.error || 'เกิดข้อผิดพลาด'));
+      showToast('❌ ' + (data.error || 'Error'));
     }
   } catch (e) {
-    alert('❌ เกิดข้อผิดพลาด');
+    showToast('❌ ' + e.message);
+  } finally {
+    document.getElementById('loading').classList.remove('show');
   }
 }
 </script>
-{% endif %}
 {% endblock %}
