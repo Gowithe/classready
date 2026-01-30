@@ -848,11 +848,24 @@ class Topic:
 
     @staticmethod
     def delete(topic_id: int) -> None:
-        GameQuestion.delete_by_topic(topic_id)
-        PracticeQuestion.delete_by_topic(topic_id)
+        """ลบ Topic พร้อมข้อมูลที่เกี่ยวข้องทั้งหมด"""
         conn = get_db()
         c = conn.cursor()
+        
+        # ลบข้อมูลที่เกี่ยวข้องทั้งหมดก่อน
+        c.execute("DELETE FROM library_clones WHERE topic_id = ?", (topic_id,))
+        c.execute("""
+            DELETE FROM practice_submissions 
+            WHERE link_id IN (SELECT id FROM practice_links WHERE topic_id = ?)
+        """, (topic_id,))
+        c.execute("DELETE FROM practice_links WHERE topic_id = ?", (topic_id,))
+        c.execute("DELETE FROM assignments WHERE topic_id = ?", (topic_id,))
+        c.execute("DELETE FROM game_sessions WHERE topic_id = ?", (topic_id,))
+        c.execute("DELETE FROM attempt_history WHERE topic_id = ?", (topic_id,))
+        c.execute("DELETE FROM game_questions WHERE topic_id = ?", (topic_id,))
+        c.execute("DELETE FROM practice_questions WHERE topic_id = ?", (topic_id,))
         c.execute("DELETE FROM topics WHERE id = ?", (topic_id,))
+        
         conn.commit()
         conn.close()
 
