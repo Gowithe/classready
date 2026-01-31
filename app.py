@@ -37,6 +37,8 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.units import cm
 from reportlab.lib.utils import simpleSplit
 
+from functools import wraps
+from flask import abort, session
 # from models import (..., PaymentTransaction)  # <-- INVALID (old pasted line). Kept as comment.
 import requests
 import urllib.parse
@@ -81,6 +83,14 @@ def login_required(f):
         if "user_id" not in session:
             flash("Please log in first.", "error")
             return redirect(url_for("login"))
+        return f(*args, **kwargs)
+    return decorated
+
+def admin_required(f):
+    @wraps(f)
+    def decorated(*args, **kwargs):
+        if not _is_admin():
+            abort(403)
         return f(*args, **kwargs)
     return decorated
 
@@ -2343,11 +2353,8 @@ def premium_subscribe(plan_id):
 
 @app.route("/admin/library")
 @login_required
+@admin_required
 def admin_library():
-    # Admin: จัดการคลังบทเรียน
-    if not _is_admin():
-        abort(403)
-    
     subjects = LibrarySubject.get_all_active()
     return render_template("admin/library.html", subjects=subjects)
 
