@@ -7,6 +7,7 @@ import os
 import sqlite3
 from datetime import datetime
 from typing import Optional, List, Dict, Any
+from typing import Tuple
 from datetime import datetime, timedelta
 from typing import Any, Dict, List, Optional
 import json
@@ -167,6 +168,20 @@ def init_db() -> None:
       FOREIGN KEY(plan_id) REFERENCES subscription_plans(id)
     )
     """)
+
+    # ================== Usage Limits (Freemium) ==================
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS user_usage (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      user_id INTEGER UNIQUE NOT NULL,
+      ai_generate_count INTEGER DEFAULT 0,
+      ai_generate_reset_date TEXT,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY(user_id) REFERENCES users(id)
+    )
+    """)
+
 
     # ---------------- users ----------------
     c.execute("""
@@ -1420,3 +1435,157 @@ class Assignment:
             "total": len(students),
             "submissions": submissions
         }
+
+
+# ==============================================================================
+# FREEMIUM SYSTEM - UsageLimits
+# (Added by merger - original snippet from models_usage.py)
+# ==============================================================================
+
+# ==============================================================================
+# FREEMIUM SYSTEM - UsageLimits Class
+# Copy class นี้ไปวางใน models.py (ท้ายไฟล์)
+# ==============================================================================
+# อย่าลืมเพิ่ม Tuple ใน import:
+# from typing import Dict, List, Any, Optional, Tuple
+# ==============================================================================
+
+class UsageLimits:
+    """ระบบจำกัดการใช้งาน Freemium"""
+    
+    # ค่า Limits
+    FREE_TOPICS = 5
+    FREE_CLASSROOMS = 2
+    FREE_STUDENTS_PER_CLASSROOM = 50
+    FREE_AI_GENERATE_PER_MONTH = 3
+    
+    @staticmethod
+    def get_or_create(user_id: int) -> Dict[str, Any]:
+        """ดึงหรือสร้าง usage record"""
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM user_usage WHERE user_id = ?", (user_id,))
+        row = c.fetchone()
+        
+        if not row:
+            now = datetime.utcnow().isoformat()
+            first_of_month = datetime.utcnow().replace(day=1).isoformat()[:10]
+            c.execute("""
+                INSERT INTO user_usage (user_id, ai_generate_count, ai_generate_reset_date, created_at, updated_at)
+                VALUES (?, 0, ?, ?, ?)
+            """, (user_id, first_of_month, now, now))
+            conn.commit()
+            c.execute("SELECT * FROM user_usage WHERE user_id = ?", (user_id,))
+            row = c.fetchone()
+        
+        conn.close()
+        return dict(row) if row else {}
+    
+    @staticmethod
+    def get_user_stats(user_id: int) -> Dict[str, Any]:
+        """ดึงสถิติการใช้งานของ user"""
+        conn = get_db()
+        c = conn.cursor()
+        
+        # นับ Topics
+        c.execute("SELECT COUNT(*) FROM topics WHERE owner_id = ?", (user_id,))
+        topic_count = c.fetchone()[0]
+        
+        # นับ Classrooms
+        c.execute("SELECT COUNT(*) FROM classrooms WHERE owner_id = ?", (user_id,))
+        classroom_count = c.fetchone()[0]
+        
+        # ดึง usage record
+        usage = UsageLimits.get_or_create(user_id)
+        
+        # Reset AI count ถ้าเดือนใหม่
+        today = datetime.utcnow().strftime("%Y-%m")
+        reset_month = (usage.get("ai_generate_reset_date") or "")[:7]
+        
+        if today != reset_month:
+            # เดือนใหม่ - reset count
+            c.execute("""
+                UPDATE user_usage 
+                SET ai_generate_count = 0, ai_generate_reset_date = ?, updated_at = ?
+                WHERE user_id = ?
+            """, (datetime.utcnow().replace(day=1).isoformat()[:10], datetime.utcnow().isoformat(), user_id))
+            conn.commit()
+            usage["ai_generate_count"] = 0
+        
+        conn.close()
+        
+        return {
+            "topic_count": topic_count,
+            "classroom_count": classroom_count,
+            "ai_generate_count": usage.get("ai_generate_count", 0),
+        }
+    
+    @staticmethod
+    def can_create_topic(user_id: int, is_premium: bool) -> Tuple[bool, str]:
+        """ตรวจสอบว่าสร้าง Topic ได้ไหม"""
+        if is_premium:
+            return True, ""
+        
+        stats = UsageLimits.get_user_stats(user_id)
+        if stats["topic_count"] >= UsageLimits.FREE_TOPICS:
+            return False, f"บัญชีฟรีสร้างได้ {UsageLimits.FREE_TOPICS} Topics (ใช้ไปแล้ว {stats['topic_count']})"
+        return True, ""
+    
+    @staticmethod
+    def can_create_classroom(user_id: int, is_premium: bool) -> Tuple[bool, str]:
+        """ตรวจสอบว่าสร้าง Classroom ได้ไหม"""
+        if is_premium:
+            return True, ""
+        
+        stats = UsageLimits.get_user_stats(user_id)
+        if stats["classroom_count"] >= UsageLimits.FREE_CLASSROOMS:
+            return False, f"บัญชีฟรีสร้างได้ {UsageLimits.FREE_CLASSROOMS} ห้องเรียน (ใช้ไปแล้ว {stats['classroom_count']})"
+        return True, ""
+    
+    @staticmethod
+    def can_add_student(user_id: int, classroom_id: int, is_premium: bool) -> Tuple[bool, str]:
+        """ตรวจสอบว่าเพิ่มนักเรียนได้ไหม"""
+        if is_premium:
+            return True, ""
+        
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT COUNT(*) FROM classroom_students WHERE classroom_id = ?", (classroom_id,))
+        student_count = c.fetchone()[0]
+        conn.close()
+        
+        if student_count >= UsageLimits.FREE_STUDENTS_PER_CLASSROOM:
+            return False, f"บัญชีฟรีเพิ่มนักเรียนได้ {UsageLimits.FREE_STUDENTS_PER_CLASSROOM} คน/ห้อง"
+        return True, ""
+    
+    @staticmethod
+    def can_ai_generate(user_id: int, is_premium: bool) -> Tuple[bool, str]:
+        """ตรวจสอบว่าใช้ AI Generate ได้ไหม"""
+        if is_premium:
+            return True, ""
+        
+        stats = UsageLimits.get_user_stats(user_id)
+        if stats["ai_generate_count"] >= UsageLimits.FREE_AI_GENERATE_PER_MONTH:
+            return False, f"บัญชีฟรีใช้ AI ได้ {UsageLimits.FREE_AI_GENERATE_PER_MONTH} ครั้ง/เดือน (ใช้ไปแล้ว {stats['ai_generate_count']})"
+        return True, ""
+    
+    @staticmethod
+    def increment_ai_generate(user_id: int) -> None:
+        """เพิ่มจำนวนครั้งที่ใช้ AI Generate"""
+        conn = get_db()
+        c = conn.cursor()
+        UsageLimits.get_or_create(user_id)  # ensure record exists
+        c.execute("""
+            UPDATE user_usage 
+            SET ai_generate_count = ai_generate_count + 1, updated_at = ?
+            WHERE user_id = ?
+        """, (datetime.utcnow().isoformat(), user_id))
+        conn.commit()
+        conn.close()
+    
+    @staticmethod
+    def can_export_scores(is_premium: bool) -> Tuple[bool, str]:
+        """ตรวจสอบว่า Export คะแนนได้ไหม"""
+        if is_premium:
+            return True, ""
+        return False, "บัญชีฟรีไม่สามารถ Export คะแนนได้"
