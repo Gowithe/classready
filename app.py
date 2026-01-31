@@ -28,7 +28,8 @@ from models import (
     get_db, init_db, User, Topic, GameQuestion, PracticeQuestion, AttemptHistory,
     PracticeLink, PracticeSubmission, GameSession, Classroom, ClassroomStudent, Assignment,
     LibrarySubject, LibraryUnit, UserSubscription, LibraryClone, LibraryRating, SubscriptionPlan,
-    UsageLimits,)
+    UsageLimits, PaymentTransaction,
+)
 from ai_generator import generate_lesson_bundle
 
 from reportlab.lib.pagesizes import A4
@@ -36,9 +37,20 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.units import cm
 from reportlab.lib.utils import simpleSplit
 
+# from models import (..., PaymentTransaction)  # <-- INVALID (old pasted line). Kept as comment.
+import requests
+import urllib.parse
+from dotenv import load_dotenv
+load_dotenv()  # โหลดค่าจากไฟล์ .env เข้า os.environ
+
 init_db()  # ensure DB tables exist (Render + Persistent Disk)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-prod")
+
+# Payment Config - แก้ไขตามข้อมูลของคุณ
+PROMPTPAY_ID = os.environ.get("PROMPTPAY_ID", "1234567890123")  # เลขบัตรประชาชน 13 หลัก
+PROMPTPAY_NAME = os.environ.get("PROMPTPAY_NAME", "ชื่อบัญชี")
+EASYSLIP_API_KEY = os.environ.get("EASYSLIP_API_KEY", "your_api_key")
 
 # -----------------------------------------------------------------------------
 # SQLite on Render Persistent Disk (recommended for now)
@@ -2858,12 +2870,283 @@ def api_generate_from_pdf(topic_id):
         _save_all(topic_id, bundle.get("slides") or [], bundle.get("game") or {}, bundle.get("practice") or [])
     
     return jsonify({"ok": True})
+"""  # end LEGACY block
+
+def _crc16_ccitt(data: bytes) -> int:
+    """Calculate CRC16-CCITT (XModem)"""
+    crc = 0xFFFF
+    for byte in data:
+        crc ^= byte << 8
+        for _ in range(8):
+            if crc & 0x8000:
+                crc = (crc << 1) ^ 0x1021
+            else:
+                crc <<= 1
+            crc &= 0xFFFF
+    return crc
+
+
+def generate_promptpay_qr_payload(promptpay_id: str, amount: float) -> str:
+    """
+    Generate PromptPay EMVCo QR payload
+    promptpay_id: เลขบัตรประชาชน 13 หลัก หรือ เบอร์โทร 10 หลัก
+    amount: จำนวนเงิน (บาท)
+    """
+    promptpay_id = promptpay_id.replace("-", "").replace(" ", "")
+    
+    def tlv(tag: str, value: str) -> str:
+        return f"{tag}{len(value):02d}{value}"
+    
+    # Determine ID type and format
+    if len(promptpay_id) == 10:  # Phone number
+        # Format: 0066 + 9 digits (remove leading 0)
+        formatted_id = "0066" + promptpay_id[1:]
+        id_tag = "01"  # Phone
+    elif len(promptpay_id) == 13:  # National ID
+        formatted_id = promptpay_id
+        id_tag = "02"  # National ID
+    else:
+        raise ValueError("Invalid PromptPay ID")
+    
+    # Build Merchant Account Information (Tag 29)
+    aid = tlv("00", "A000000677010111")  # PromptPay AID
+    mobile_or_id = tlv(id_tag, formatted_id)
+    merchant_info = tlv("29", aid + mobile_or_id)
+    
+    # Build full payload
+    payload = ""
+    payload += tlv("00", "01")           # Payload Format Indicator
+    payload += tlv("01", "12")           # Point of Initiation Method (12 = Dynamic)
+    payload += merchant_info             # Merchant Account (Tag 29)
+    payload += tlv("52", "0000")         # Merchant Category Code
+    payload += tlv("53", "764")          # Transaction Currency (764 = THB)
+    payload += tlv("54", f"{amount:.2f}") # Transaction Amount
+    payload += tlv("58", "TH")           # Country Code
+    payload += "6304"                    # CRC placeholder
+    
+    # Calculate and append CRC
+    crc = _crc16_ccitt(payload.encode('utf-8'))
+    payload = payload[:-4] + f"6304{crc:04X}"
+    
+    return payload
+
+
+def get_promptpay_qr_image_url(promptpay_id: str, amount: float, size: int = 300) -> str:
+    """Generate QR code image URL using free API"""
+    payload = generate_promptpay_qr_payload(promptpay_id, amount)
+    encoded = urllib.parse.quote(payload)
+    return f"https://api.qrserver.com/v1/create-qr-code/?size={size}x{size}&data={encoded}"
+
+    
+def verify_slip_with_easyslip(image_base64: str, api_key: str) -> dict:
+    """
+    ส่งสลิปไปตรวจสอบที่ EasySlip API
+    Returns: {"success": bool, "data": dict, "error": str}
+    """
+    try:
+        response = requests.post(
+            "https://developer.easyslip.com/api/v1/verify",
+            json={"image": image_base64},
+            headers={
+                "Authorization": f"Bearer {api_key}",
+                "Content-Type": "application/json"
+            },
+            timeout=30
+        )
+        result = response.json()
+        
+        if response.status_code == 200 and result.get("status") == 200:
+            return {
+                "success": True,
+                "data": result.get("data", {}),
+                "error": None
+            }
+        else:
+            return {
+                "success": False,
+                "data": None,
+                "error": result.get("message", f"HTTP {response.status_code}")
+            }
+    except requests.Timeout:
+        return {"success": False, "data": None, "error": "Request timeout"}
+    except Exception as e:
+        return {"success": False, "data": None, "error": str(e)}
+
+
+def validate_slip_amount(slip_data: dict, expected_amount: float, tolerance: float = 0.0) -> dict:
+    """
+    ตรวจสอบจำนวนเงินในสลิป
+    tolerance: ความคลาดเคลื่อนที่ยอมรับได้ (บาท)
+    """
+    try:
+        slip_amount = float(slip_data.get("amount", {}).get("amount", 0))
+    except:
+        slip_amount = 0
+    
+    is_valid = slip_amount >= (expected_amount - tolerance)
+    
+    return {
+        "valid": is_valid,
+        "slip_amount": slip_amount,
+        "expected_amount": expected_amount,
+        "difference": slip_amount - expected_amount,
+        "error": None if is_valid else f"จำนวนเงินไม่ตรง (โอน {slip_amount:.2f} / ต้องการ {expected_amount:.2f} บาท)"
+    }
+
+    
+@app.route("/payment/create/<int:plan_id>", methods=["POST"])
+@login_required
+def payment_create(plan_id):
+    """สร้างรายการชำระเงินใหม่"""
+    user_id = session["user_id"]
+    
+    # ตรวจสอบว่าเป็น Premium อยู่แล้วหรือไม่
+    if is_premium_user(user_id):
+        return jsonify({"ok": False, "error": "คุณเป็น Premium อยู่แล้ว"}), 400
+    
+    # หา plan
+    plan = SubscriptionPlan.get_by_id(plan_id)
+    if not plan:
+        return jsonify({"ok": False, "error": "ไม่พบแพ็คเกจ"}), 404
+    
+    # ตรวจสอบว่ามี pending transaction อยู่หรือไม่
+    pending = PaymentTransaction.get_pending_by_user(user_id, plan_id)
+    if pending:
+        return jsonify({
+            "ok": True,
+            "redirect": url_for("payment_page", ref_code=pending["reference_code"])
+        })
+    
+    # สร้าง transaction ใหม่
+    txn = PaymentTransaction.create(
+        user_id=user_id,
+        plan_id=plan_id,
+        amount=plan["price"]
+    )
+    
+    return jsonify({
+        "ok": True,
+        "redirect": url_for("payment_page", ref_code=txn["reference_code"])
+    })
+
+
+@app.route("/payment/<ref_code>")
+@login_required
+def payment_page(ref_code):
+    """หน้าชำระเงิน - แสดง QR Code"""
+    txn = PaymentTransaction.get_by_reference(ref_code)
+    
+    if not txn:
+        flash("ไม่พบรายการชำระเงิน", "error")
+        return redirect(url_for("pricing"))
+    
+    if txn["user_id"] != session["user_id"]:
+        abort(403)
+    
+    if txn["status"] == "completed":
+        flash("ชำระเงินเรียบร้อยแล้ว!", "success")
+        return redirect(url_for("dashboard"))
+    
+    # สร้าง QR Code URL
+    qr_url = get_promptpay_qr_image_url(PROMPTPAY_ID, txn["amount"])
+    
+    return render_template("payment.html",
+                           txn=txn,
+                           qr_url=qr_url,
+                           promptpay_id=PROMPTPAY_ID,
+                           promptpay_name=PROMPTPAY_NAME)
+
+
+@app.route("/payment/<ref_code>/verify", methods=["POST"])
+@login_required
+def payment_verify(ref_code):
+    """อัปโหลดและตรวจสอบสลิป"""
+    txn = PaymentTransaction.get_by_reference(ref_code)
+    
+    if not txn:
+        return jsonify({"ok": False, "error": "ไม่พบรายการ"}), 404
+    
+    if txn["user_id"] != session["user_id"]:
+        return jsonify({"ok": False, "error": "ไม่มีสิทธิ์"}), 403
+    
+    if txn["status"] == "completed":
+        return jsonify({"ok": False, "error": "ชำระเงินเรียบร้อยแล้ว"}), 400
+    
+    # รับไฟล์สลิป
+    if "slip" not in request.files:
+        return jsonify({"ok": False, "error": "กรุณาอัปโหลดสลิป"}), 400
+    
+    slip_file = request.files["slip"]
+    if not slip_file or not slip_file.filename:
+        return jsonify({"ok": False, "error": "กรุณาเลือกไฟล์"}), 400
+    
+    # อ่านและ encode เป็น base64
+    slip_bytes = slip_file.read()
+    slip_base64 = base64.b64encode(slip_bytes).decode("utf-8")
+    
+    # บันทึกไฟล์สลิป
+    slip_filename = f"slip_{ref_code}_{secrets.token_hex(4)}.jpg"
+    slip_path = os.path.join(app.config["UPLOAD_FOLDER"], slip_filename)
+    with open(slip_path, "wb") as f:
+        f.write(slip_bytes)
+    
+    # อัปเดตสถานะเป็น verifying
+    PaymentTransaction.update_status(txn["id"], "verifying", slip_image=slip_filename)
+    
+    # ส่งไปตรวจสอบที่ EasySlip
+    easyslip_result = verify_slip_with_easyslip(slip_base64, EASYSLIP_API_KEY)
+    
+    if not easyslip_result["success"]:
+        PaymentTransaction.update_status(txn["id"], "failed", 
+                                         easyslip_data=json.dumps({"error": easyslip_result["error"]}))
+        return jsonify({
+            "ok": False, 
+            "error": f"ไม่สามารถตรวจสอบสลิปได้: {easyslip_result['error']}"
+        }), 400
+    
+    # ตรวจสอบจำนวนเงิน
+    slip_data = easyslip_result["data"]
+    validation = validate_slip_amount(slip_data, txn["amount"])
+    
+    # บันทึกข้อมูล EasySlip
+    PaymentTransaction.update_status(txn["id"], 
+                                     "completed" if validation["valid"] else "failed",
+                                     easyslip_data=json.dumps(slip_data))
+    
+    if not validation["valid"]:
+        return jsonify({"ok": False, "error": validation["error"]}), 400
+    
+    # ✅ สำเร็จ - สร้าง Subscription
+    plan = SubscriptionPlan.get_by_id(txn["plan_id"])
+    UserSubscription.create(
+        user_id=txn["user_id"],
+        plan_id=txn["plan_id"],
+        duration_days=plan["duration_days"],
+        payment_ref=ref_code
+    )
+    
+    return jsonify({
+        "ok": True,
+        "message": "🎉 ชำระเงินสำเร็จ! คุณเป็น Premium แล้ว",
+        "redirect": url_for("dashboard")
+    })
+
+
+@app.route("/admin/payments")
+@login_required
+def admin_payments():
+    """Admin: ดูรายการชำระเงินทั้งหมด"""
+    if not _is_admin():
+        abort(403)
+    
+    transactions = PaymentTransaction.get_all_for_admin(100)
+    return render_template("admin/payments.html", transactions=transactions)
 
 
 # ==============================================================================
 # Admin
 # ==============================================================================
-"""
+# """  # stray triple-quote kept as comment
 
 
 if __name__ == "__main__":
