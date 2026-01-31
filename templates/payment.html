@@ -1,0 +1,480 @@
+{% extends "base.html" %}
+{% block title %}ชำระเงิน - {{ txn.plan_name }}{% endblock %}
+
+{% block extra_css %}
+<style>
+  .payment-container {
+    max-width: 480px;
+    margin: 0 auto;
+    padding: 1rem;
+  }
+  
+  .payment-card {
+    background: white;
+    border-radius: 24px;
+    box-shadow: 0 4px 24px rgba(0,0,0,0.1);
+    overflow: hidden;
+  }
+  
+  .payment-header {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 2rem;
+    text-align: center;
+  }
+  .payment-header h2 { margin: 0 0 0.5rem; font-size: 1.5rem; }
+  .payment-header .plan-name { font-size: 1.1rem; opacity: 0.9; }
+  
+  .payment-body { padding: 1.5rem; }
+  
+  /* Order Info */
+  .order-info {
+    background: #f8fafc;
+    border-radius: 16px;
+    padding: 1.25rem;
+    margin-bottom: 1.5rem;
+  }
+  .order-row {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.5rem 0;
+  }
+  .order-row:not(:last-child) { border-bottom: 1px solid #e2e8f0; }
+  .order-label { color: #64748b; font-size: 0.9rem; }
+  .order-value { font-weight: 700; color: #1e293b; }
+  .order-amount { font-size: 1.75rem; color: #667eea; font-weight: 800; }
+  .order-ref { font-family: monospace; font-size: 0.85rem; background: #e2e8f0; padding: 2px 8px; border-radius: 4px; }
+  
+  /* QR Section */
+  .qr-section {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+  .qr-wrapper {
+    background: white;
+    border: 3px solid #667eea;
+    border-radius: 20px;
+    padding: 1rem;
+    display: inline-block;
+    margin-bottom: 1rem;
+  }
+  .qr-wrapper img { width: 220px; height: 220px; display: block; }
+  
+  .promptpay-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    background: linear-gradient(135deg, #1e40af, #3b82f6);
+    color: white;
+    padding: 0.5rem 1rem;
+    border-radius: 30px;
+    font-weight: 700;
+    font-size: 0.9rem;
+  }
+  .promptpay-badge img { height: 20px; }
+  
+  .receiver-box {
+    background: #dbeafe;
+    border-radius: 12px;
+    padding: 1rem;
+    margin-top: 1rem;
+    text-align: center;
+  }
+  .receiver-label { color: #3b82f6; font-size: 0.85rem; margin-bottom: 0.25rem; }
+  .receiver-name { font-weight: 800; color: #1e40af; font-size: 1.1rem; }
+  
+  /* Upload Section */
+  .upload-section { margin-bottom: 1.5rem; }
+  .upload-title { font-weight: 700; margin-bottom: 0.75rem; color: #1e293b; }
+  
+  .upload-box {
+    border: 2px dashed #cbd5e1;
+    border-radius: 16px;
+    padding: 2rem;
+    text-align: center;
+    cursor: pointer;
+    transition: all 0.2s;
+    background: #fafafa;
+  }
+  .upload-box:hover { border-color: #667eea; background: #f0f4ff; }
+  .upload-box.has-file { border-color: #22c55e; background: #f0fdf4; }
+  .upload-box.uploading { border-color: #f59e0b; background: #fffbeb; pointer-events: none; }
+  
+  .upload-icon { font-size: 3rem; margin-bottom: 0.75rem; }
+  .upload-text { color: #64748b; margin-bottom: 0.25rem; }
+  .upload-hint { font-size: 0.8rem; color: #94a3b8; }
+  .upload-filename { 
+    margin-top: 0.75rem; 
+    font-weight: 700; 
+    color: #22c55e;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  
+  /* Preview */
+  .preview-img {
+    max-width: 200px;
+    max-height: 200px;
+    margin-top: 1rem;
+    border-radius: 8px;
+    border: 2px solid #e2e8f0;
+  }
+  
+  /* Button */
+  .btn-verify {
+    width: 100%;
+    padding: 1rem;
+    background: linear-gradient(135deg, #22c55e, #16a34a);
+    color: white;
+    border: none;
+    border-radius: 14px;
+    font-weight: 700;
+    font-size: 1.1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 0.5rem;
+  }
+  .btn-verify:hover:not(:disabled) { filter: brightness(1.1); transform: translateY(-2px); }
+  .btn-verify:disabled { opacity: 0.5; cursor: not-allowed; transform: none; }
+  
+  /* Steps */
+  .steps {
+    display: flex;
+    justify-content: center;
+    gap: 0.5rem;
+    margin-bottom: 1.5rem;
+  }
+  .step {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+    font-size: 0.8rem;
+    color: #94a3b8;
+  }
+  .step.active { color: #667eea; font-weight: 700; }
+  .step.done { color: #22c55e; }
+  .step-num {
+    width: 24px;
+    height: 24px;
+    border-radius: 50%;
+    background: #e2e8f0;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  .step.active .step-num { background: #667eea; color: white; }
+  .step.done .step-num { background: #22c55e; color: white; }
+  .step-arrow { color: #cbd5e1; }
+  
+  /* Loading Overlay */
+  .loading-overlay {
+    position: fixed;
+    top: 0; left: 0; right: 0; bottom: 0;
+    background: rgba(0,0,0,0.7);
+    display: none;
+    justify-content: center;
+    align-items: center;
+    z-index: 1000;
+  }
+  .loading-overlay.show { display: flex; }
+  .loading-box {
+    background: white;
+    padding: 2.5rem 3rem;
+    border-radius: 20px;
+    text-align: center;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  }
+  .loading-spinner {
+    width: 60px;
+    height: 60px;
+    border: 5px solid #e2e8f0;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1.5rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-text { font-weight: 600; color: #1e293b; }
+  .loading-sub { font-size: 0.85rem; color: #64748b; margin-top: 0.5rem; }
+  
+  /* Toast */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    left: 50%;
+    transform: translateX(-50%);
+    padding: 1rem 2rem;
+    border-radius: 14px;
+    font-weight: 600;
+    z-index: 1001;
+    display: none;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.15);
+  }
+  .toast.show { display: block; animation: slideUp 0.3s ease; }
+  .toast.success { background: #22c55e; color: white; }
+  .toast.error { background: #ef4444; color: white; }
+  @keyframes slideUp { from { opacity: 0; transform: translateX(-50%) translateY(20px); } }
+  
+  /* Status Badge */
+  .status-badge {
+    display: inline-block;
+    padding: 0.25rem 0.75rem;
+    border-radius: 20px;
+    font-size: 0.75rem;
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+  .status-pending { background: #fef3c7; color: #92400e; }
+  .status-verifying { background: #dbeafe; color: #1e40af; }
+  .status-completed { background: #dcfce7; color: #166534; }
+  .status-failed { background: #fee2e2; color: #991b1b; }
+  
+  /* Back Link */
+  .back-link {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    color: #64748b;
+    text-decoration: none;
+    margin-bottom: 1rem;
+    font-size: 0.9rem;
+  }
+  .back-link:hover { color: #667eea; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="payment-container">
+  <a href="{{ url_for('pricing') }}" class="back-link">← กลับไปหน้าแพ็คเกจ</a>
+  
+  <div class="payment-card">
+    <div class="payment-header">
+      <h2>💳 ชำระเงิน</h2>
+      <div class="plan-name">{{ txn.plan_name }}</div>
+    </div>
+    
+    <div class="payment-body">
+      <!-- Steps -->
+      <div class="steps">
+        <div class="step active" id="step1">
+          <span class="step-num">1</span>
+          <span>สแกน QR</span>
+        </div>
+        <span class="step-arrow">→</span>
+        <div class="step" id="step2">
+          <span class="step-num">2</span>
+          <span>อัปโหลดสลิป</span>
+        </div>
+        <span class="step-arrow">→</span>
+        <div class="step" id="step3">
+          <span class="step-num">✓</span>
+          <span>สำเร็จ</span>
+        </div>
+      </div>
+      
+      <!-- Order Info -->
+      <div class="order-info">
+        <div class="order-row">
+          <span class="order-label">รหัสรายการ</span>
+          <span class="order-value order-ref">{{ txn.reference_code }}</span>
+        </div>
+        <div class="order-row">
+          <span class="order-label">แพ็คเกจ</span>
+          <span class="order-value">{{ txn.plan_name }}</span>
+        </div>
+        <div class="order-row">
+          <span class="order-label">จำนวนเงิน</span>
+          <span class="order-value order-amount">฿{{ "%.2f"|format(txn.amount) }}</span>
+        </div>
+      </div>
+      
+      <!-- QR Code -->
+      <div class="qr-section">
+        <div class="qr-wrapper">
+          <img src="{{ qr_url }}" alt="PromptPay QR Code" id="qrImage">
+        </div>
+        
+        <div class="promptpay-badge">
+          💙 PromptPay
+        </div>
+        
+        <div class="receiver-box">
+          <div class="receiver-label">โอนเงินไปยัง</div>
+          <div class="receiver-name">{{ promptpay_name }}</div>
+        </div>
+      </div>
+      
+      <!-- Upload Section -->
+      <div class="upload-section">
+        <div class="upload-title">📤 อัปโหลดสลิปการโอนเงิน</div>
+        <div class="upload-box" id="uploadBox" onclick="document.getElementById('slipInput').click()">
+          <input type="file" id="slipInput" accept="image/*" style="display:none" onchange="handleFileSelect(this)">
+          <div class="upload-icon" id="uploadIcon">📱</div>
+          <div class="upload-text" id="uploadText">คลิกหรือลากไฟล์มาวาง</div>
+          <div class="upload-hint">รองรับไฟล์ JPG, PNG ขนาดไม่เกิน 5MB</div>
+          <div class="upload-filename" id="fileName" style="display:none;"></div>
+          <img class="preview-img" id="previewImg" style="display:none;">
+        </div>
+      </div>
+      
+      <!-- Verify Button -->
+      <button class="btn-verify" id="btnVerify" onclick="verifySlip()" disabled>
+        ✅ ตรวจสอบและยืนยัน
+      </button>
+    </div>
+  </div>
+</div>
+
+<!-- Loading Overlay -->
+<div class="loading-overlay" id="loadingOverlay">
+  <div class="loading-box">
+    <div class="loading-spinner"></div>
+    <div class="loading-text" id="loadingText">กำลังตรวจสอบสลิป...</div>
+    <div class="loading-sub">กรุณารอสักครู่</div>
+  </div>
+</div>
+
+<!-- Toast -->
+<div class="toast" id="toast"></div>
+
+<script>
+const refCode = "{{ txn.reference_code }}";
+let selectedFile = null;
+
+// Toast
+function showToast(msg, type = 'success') {
+  const toast = document.getElementById('toast');
+  toast.textContent = msg;
+  toast.className = 'toast show ' + type;
+  setTimeout(() => toast.classList.remove('show'), 4000);
+}
+
+// Loading
+function showLoading(show, text = 'กำลังตรวจสอบสลิป...') {
+  document.getElementById('loadingOverlay').classList.toggle('show', show);
+  document.getElementById('loadingText').textContent = text;
+}
+
+// File Select
+function handleFileSelect(input) {
+  const file = input.files[0];
+  if (!file) return;
+  
+  // Validate
+  if (!file.type.match(/image\/(jpeg|jpg|png)/i)) {
+    showToast('กรุณาเลือกไฟล์รูปภาพ (JPG, PNG)', 'error');
+    return;
+  }
+  if (file.size > 5 * 1024 * 1024) {
+    showToast('ไฟล์ขนาดใหญ่เกินไป (ไม่เกิน 5MB)', 'error');
+    return;
+  }
+  
+  selectedFile = file;
+  
+  // Update UI
+  const uploadBox = document.getElementById('uploadBox');
+  const fileName = document.getElementById('fileName');
+  const previewImg = document.getElementById('previewImg');
+  const uploadIcon = document.getElementById('uploadIcon');
+  const uploadText = document.getElementById('uploadText');
+  
+  uploadBox.classList.add('has-file');
+  fileName.innerHTML = '✅ ' + file.name;
+  fileName.style.display = 'flex';
+  uploadIcon.textContent = '✅';
+  uploadText.textContent = 'เลือกไฟล์แล้ว';
+  
+  // Preview
+  const reader = new FileReader();
+  reader.onload = (e) => {
+    previewImg.src = e.target.result;
+    previewImg.style.display = 'block';
+  };
+  reader.readAsDataURL(file);
+  
+  // Enable button
+  document.getElementById('btnVerify').disabled = false;
+  
+  // Update steps
+  document.getElementById('step1').classList.remove('active');
+  document.getElementById('step1').classList.add('done');
+  document.getElementById('step2').classList.add('active');
+}
+
+// Drag & Drop
+const uploadBox = document.getElementById('uploadBox');
+uploadBox.addEventListener('dragover', (e) => {
+  e.preventDefault();
+  uploadBox.style.borderColor = '#667eea';
+  uploadBox.style.background = '#f0f4ff';
+});
+uploadBox.addEventListener('dragleave', () => {
+  uploadBox.style.borderColor = selectedFile ? '#22c55e' : '#cbd5e1';
+  uploadBox.style.background = selectedFile ? '#f0fdf4' : '#fafafa';
+});
+uploadBox.addEventListener('drop', (e) => {
+  e.preventDefault();
+  uploadBox.style.borderColor = '#cbd5e1';
+  uploadBox.style.background = '#fafafa';
+  if (e.dataTransfer.files[0]) {
+    document.getElementById('slipInput').files = e.dataTransfer.files;
+    handleFileSelect(document.getElementById('slipInput'));
+  }
+});
+
+// Verify Slip
+async function verifySlip() {
+  if (!selectedFile) {
+    showToast('กรุณาเลือกไฟล์สลิป', 'error');
+    return;
+  }
+  
+  showLoading(true, 'กำลังอัปโหลดและตรวจสอบสลิป...');
+  document.getElementById('btnVerify').disabled = true;
+  
+  const formData = new FormData();
+  formData.append('slip', selectedFile);
+  
+  try {
+    const response = await fetch('/payment/' + refCode + '/verify', {
+      method: 'POST',
+      body: formData
+    });
+    
+    const data = await response.json();
+    
+    if (data.ok) {
+      showLoading(false);
+      
+      // Update steps
+      document.getElementById('step2').classList.remove('active');
+      document.getElementById('step2').classList.add('done');
+      document.getElementById('step3').classList.add('done');
+      
+      showToast(data.message || '🎉 ชำระเงินสำเร็จ!', 'success');
+      
+      setTimeout(() => {
+        window.location.href = data.redirect || '/dashboard';
+      }, 2000);
+    } else {
+      showLoading(false);
+      showToast(data.error || 'เกิดข้อผิดพลาด', 'error');
+      document.getElementById('btnVerify').disabled = false;
+    }
+  } catch (err) {
+    showLoading(false);
+    showToast('เกิดข้อผิดพลาด: ' + err.message, 'error');
+    document.getElementById('btnVerify').disabled = false;
+  }
+}
+</script>
+{% endblock %}
