@@ -5,6 +5,7 @@
 # ==============================================================================
 import os
 import sqlite3
+import secrets
 from datetime import datetime
 from typing import Optional, List, Dict, Any
 from typing import Tuple
@@ -1589,3 +1590,112 @@ class UsageLimits:
         if is_premium:
             return True, ""
         return False, "บัญชีฟรีไม่สามารถ Export คะแนนได้"
+
+class PaymentTransaction:
+    """การชำระเงิน"""
+    
+    @staticmethod
+    def create(user_id: int, plan_id: int, amount: float) -> Dict[str, Any]:
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        # สร้าง reference code: PAY + timestamp + random
+        ref_code = f"PAY{datetime.utcnow().strftime('%Y%m%d%H%M%S')}{secrets.token_hex(3).upper()}"
+        
+        c.execute("""
+            INSERT INTO payment_transactions 
+            (user_id, plan_id, amount, reference_code, status, created_at, updated_at)
+            VALUES (?, ?, ?, ?, 'pending', ?, ?)
+        """, (user_id, plan_id, amount, ref_code, now, now))
+        conn.commit()
+        txn_id = c.lastrowid
+        conn.close()
+        return PaymentTransaction.get_by_id(txn_id)
+    
+    @staticmethod
+    def get_by_id(txn_id: int) -> Optional[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("""
+            SELECT pt.*, sp.name as plan_name, sp.duration_days
+            FROM payment_transactions pt
+            JOIN subscription_plans sp ON pt.plan_id = sp.id
+            WHERE pt.id = ?
+        """, (txn_id,))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+    
+    @staticmethod
+    def get_by_reference(ref_code: str) -> Optional[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("""
+            SELECT pt.*, sp.name as plan_name, sp.duration_days
+            FROM payment_transactions pt
+            JOIN subscription_plans sp ON pt.plan_id = sp.id
+            WHERE pt.reference_code = ?
+        """, (ref_code,))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+    
+    @staticmethod
+    def get_pending_by_user(user_id: int, plan_id: int = None) -> Optional[Dict[str, Any]]:
+        """หา pending transaction ของ user (ถ้ามี ไม่ต้องสร้างใหม่)"""
+        conn = get_db()
+        c = conn.cursor()
+        if plan_id:
+            c.execute("""
+                SELECT pt.*, sp.name as plan_name, sp.duration_days
+                FROM payment_transactions pt
+                JOIN subscription_plans sp ON pt.plan_id = sp.id
+                WHERE pt.user_id = ? AND pt.plan_id = ? AND pt.status = 'pending'
+                ORDER BY pt.created_at DESC LIMIT 1
+            """, (user_id, plan_id))
+        else:
+            c.execute("""
+                SELECT pt.*, sp.name as plan_name, sp.duration_days
+                FROM payment_transactions pt
+                JOIN subscription_plans sp ON pt.plan_id = sp.id
+                WHERE pt.user_id = ? AND pt.status = 'pending'
+                ORDER BY pt.created_at DESC LIMIT 1
+            """, (user_id,))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+    
+    @staticmethod
+    def update_status(txn_id: int, status: str, slip_image: str = None, easyslip_data: str = None) -> None:
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        verified_at = now if status == 'completed' else None
+        
+        c.execute("""
+            UPDATE payment_transactions 
+            SET status = ?, 
+                slip_image = COALESCE(?, slip_image), 
+                easyslip_data = COALESCE(?, easyslip_data),
+                verified_at = COALESCE(?, verified_at),
+                updated_at = ?
+            WHERE id = ?
+        """, (status, slip_image, easyslip_data, verified_at, now, txn_id))
+        conn.commit()
+        conn.close()
+    
+    @staticmethod
+    def get_all_for_admin(limit: int = 50) -> List[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("""
+            SELECT pt.*, sp.name as plan_name, u.username
+            FROM payment_transactions pt
+            JOIN subscription_plans sp ON pt.plan_id = sp.id
+            JOIN users u ON pt.user_id = u.id
+            ORDER BY pt.created_at DESC
+            LIMIT ?
+        """, (limit,))
+        rows = c.fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
