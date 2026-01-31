@@ -1,256 +1,292 @@
 <!DOCTYPE html>
 <html lang="en">
 <head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}Teacher Platform{% endblock %}</title>
-    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>{% block title %}Teacher Platform{% endblock %}</title>
 
-        :root {
-            --primary: #667eea;
-            --secondary: #764ba2;
-            --success: #48bb78;
-            --danger: #f56565;
-            --warning: #ed8936;
-            --text: #2d3748;
-            --light: #f7fafc;
-            --border: #e2e8f0;
-        }
+  <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
 
-        body {
-            font-family: 'Sarabun', sans-serif;
-            background: var(--light);
-            color: var(--text);
-            line-height: 1.6;
-        }
+  <style>
+    * { margin: 0; padding: 0; box-sizing: border-box; }
 
-        header {
-            background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
-            color: white;
-            padding: 1rem 2rem;
-            box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
-            display: flex;
-            justify-content: space-between;
-            align-items: center;
-        }
+    :root {
+      --primary: #667eea;
+      --secondary: #764ba2;
+      --success: #48bb78;
+      --danger: #f56565;
+      --warning: #ed8936;
+      --text: #2d3748;
+      --muted: #64748b;
+      --light: #f7fafc;
+      --border: #e2e8f0;
+      --card: #ffffff;
+      --shadow: 0 8px 22px rgba(0,0,0,.10);
+    }
 
-        header h1 { font-size: 1.8rem; font-weight: 700; }
+    body {
+      font-family: 'Sarabun', sans-serif;
+      background: var(--light);
+      color: var(--text);
+      line-height: 1.6;
+    }
 
-        nav { display: flex; gap: 1.5rem; align-items: center; }
+    /* =========================
+        Header / Top Nav
+       ========================= */
+    header {
+      background: linear-gradient(135deg, var(--primary) 0%, var(--secondary) 100%);
+      color: white;
+      padding: 14px 18px;
+      box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
 
-        nav a {
-            color: white;
-            text-decoration: none;
-            font-weight: 600;
-            transition: opacity 0.3s;
-        }
-        nav a:hover { opacity: 0.8; }
+    .topbar {
+      max-width: 1200px;
+      margin: 0 auto;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 14px;
+    }
 
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 2rem;
-        }
+    .brand {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+    }
 
-        .alert {
-            padding: 1rem;
-            margin-bottom: 1.5rem;
-            border-radius: 8px;
-            animation: slideIn 0.3s ease;
-        }
-        .alert.success { background: #c6f6d5; color: #22543d; border-left: 4px solid var(--success); }
-        .alert.error { background: #fed7d7; color: #742a2a; border-left: 4px solid var(--danger); }
+    .brand h1 {
+      font-size: 20px;
+      font-weight: 800;
+      margin: 0;
+      white-space: nowrap;
+    }
 
-        @keyframes slideIn {
-            from { opacity: 0; transform: translateY(-10px); }
-            to   { opacity: 1; transform: translateY(0); }
-        }
+    /* Desktop nav */
+    nav.nav-desktop {
+      display: flex;
+      gap: 10px;
+      align-items: center;
+    }
 
-        button, a.btn {
-            background: var(--primary);
-            color: white;
-            border: none;
-            padding: 0.75rem 1.5rem;
-            border-radius: 6px;
-            cursor: pointer;
-            font-family: 'Sarabun', sans-serif;
-            font-weight: 600;
-            transition: all 0.3s;
-            display: inline-block;
-            text-decoration: none;
-        }
-        button:hover, a.btn:hover {
-            background: var(--secondary);
-            transform: translateY(-2px);
-            box-shadow: 0 6px 12px rgba(102, 126, 234, 0.4);
-        }
+    nav a {
+      color: white;
+      text-decoration: none;
+      font-weight: 700;
+      padding: 9px 12px;
+      border-radius: 12px;
+      transition: all 0.15s ease;
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      background: rgba(255,255,255,0);
+    }
 
-        button.danger { background: var(--danger); }
-        button.danger:hover { background: #e53e3e; }
+    nav a:hover {
+      background: rgba(255,255,255,0.15);
+    }
 
-        input, textarea, select {
-            width: 100%;
-            padding: 0.75rem;
-            border: 1px solid var(--border);
-            border-radius: 6px;
-            font-family: 'Sarabun', sans-serif;
-            margin-bottom: 1rem;
-            font-size: 1rem;
-        }
+    nav a.nav-upgrade {
+      background: rgba(255,255,255,0.2);
+      border: 1px solid rgba(255,255,255,0.4);
+      border-radius: 999px;
+      padding: 9px 16px;
+    }
 
-        input:focus, textarea:focus, select:focus {
-            outline: none;
-            border-color: var(--primary);
-            box-shadow: 0 0 0 3px rgba(102, 126, 234, 0.1);
-        }
+    nav a.nav-user {
+      background: rgba(0,0,0,0.1);
+      border-radius: 999px;
+      padding: 9px 16px;
+    }
 
-        label {
-            display: block;
-            font-weight: 600;
-            margin-bottom: 0.5rem;
-            color: var(--text);
-        }
+    /* =========================
+        Mobile menu
+       ========================= */
+    .nav-mobile-toggle {
+      display: none;
+      border: 1px solid rgba(255,255,255,0.3);
+      background: rgba(255,255,255,0.15);
+      color: white;
+      padding: 8px 15px;
+      border-radius: 10px;
+      cursor: pointer;
+      font-weight: 700;
+      font-family: inherit;
+    }
 
-        .form-group { margin-bottom: 1.5rem; }
+    .nav-mobile-panel {
+      display: none;
+      position: absolute;
+      top: 100%;
+      left: 14px;
+      right: 14px;
+      background: white;
+      border-radius: 16px;
+      padding: 10px;
+      box-shadow: 0 15px 30px rgba(0,0,0,0.2);
+      margin-top: 10px;
+      z-index: 100;
+    }
 
-        .card {
-            background: white;
-            border-radius: 8px;
-            padding: 1.5rem;
-            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
-            transition: all 0.3s;
-        }
-        .card:hover {
-            box-shadow: 0 8px 16px rgba(0, 0, 0, 0.15);
-            transform: translateY(-4px);
-        }
+    .nav-mobile-panel.open {
+      display: block;
+    }
 
-        footer {
-            background: var(--text);
-            color: white;
-            text-align: center;
-            padding: 2rem;
-            margin-top: 3rem;
-        }
+    .nav-mobile-grid {
+      display: grid;
+      grid-template-columns: 1fr;
+      gap: 8px;
+    }
 
-        .btn-group { display: flex; gap: 1rem; margin-top: 1rem; }
-        .btn-group button, .btn-group a { flex: 1; text-align: center; }
+    .nav-mobile-grid a {
+      color: var(--text);
+      padding: 12px;
+      background: var(--light);
+      border-radius: 10px;
+      text-decoration: none;
+      font-weight: 700;
+    }
 
-        /* =========================
-           Global Loading Popup
-           ========================= */
-        .tp-overlay {
-            position: fixed;
-            inset: 0;
-            background: rgba(15, 23, 42, 0.55);
-            display: none;
-            align-items: center;
-            justify-content: center;
-            z-index: 9999;
-            padding: 16px;
-        }
-        .tp-overlay.show { display: flex; }
+    @media (max-width: 820px) {
+      nav.nav-desktop { display: none; }
+      .nav-mobile-toggle { display: block; }
+      .topbar { position: relative; }
+    }
 
-        .tp-modal {
-            width: min(520px, 96vw);
-            background: white;
-            border-radius: 14px;
-            padding: 18px 18px;
-            box-shadow: 0 10px 30px rgba(0,0,0,0.22);
-            border: 1px solid rgba(0,0,0,0.06);
-        }
-        .tp-modal h3 {
-            margin: 0 0 6px;
-            font-size: 18px;
-        }
-        .tp-modal p {
-            margin: 0;
-            color: #475569;
-            font-size: 14px;
-            line-height: 1.5;
-        }
-        .tp-spinner {
-            width: 34px;
-            height: 34px;
-            border-radius: 50%;
-            border: 4px solid #e2e8f0;
-            border-top-color: var(--primary);
-            animation: tp-spin 0.9s linear infinite;
-            margin: 14px 0 10px;
-        }
-        @keyframes tp-spin {
-            from { transform: rotate(0deg); }
-            to   { transform: rotate(360deg); }
-        }
-        .tp-small {
-            margin-top: 10px;
-            font-size: 12px;
-            color: #64748b;
-        }
-    </style>
-    {% block extra_css %}{% endblock %}
+    /* =========================
+        Other UI Elements
+       ========================= */
+    .container { max-width: 1200px; margin: 0 auto; padding: 20px; }
+    .alert { padding: 15px; border-radius: 12px; margin-bottom: 20px; }
+    .alert.success { background: #c6f6d5; color: #22543d; }
+    .alert.error { background: #fed7d7; color: #742a2a; }
+    footer { text-align: center; padding: 30px; color: var(--muted); }
+
+    /* Loading Overlay */
+    .tp-overlay {
+      position: fixed; inset: 0; background: rgba(0,0,0,0.5);
+      display: none; align-items: center; justify-content: center; z-index: 9999;
+    }
+    .tp-overlay.show { display: flex; }
+    .tp-modal { background: white; padding: 25px; border-radius: 20px; text-align: center; width: 90%; max-width: 400px; }
+    .tp-spinner {
+      width: 40px; height: 40px; border: 4px solid #f3f3f3; border-top: 4px solid var(--primary);
+      border-radius: 50%; animation: spin 1s linear infinite; margin: 20px auto;
+    }
+    @keyframes spin { 0% { transform: rotate(0deg); } 100% { transform: rotate(360deg); } }
+  </style>
+
+  {% block extra_css %}{% endblock %}
 </head>
 <body>
-    {% if session.user_id %}
-    <header>
-        <h1>📚 Teacher Platform</h1>
-        <nav>
-            <a href="{{ url_for('dashboard') }}">Dashboard</a>
-            {% if session.role == 'admin' %}
-            <a href="{{ url_for('admin_dashboard') }}">Admin</a>
-            {% endif %}
-            <a href="{{ url_for('logout') }}">Logout ({{ session.email }})</a>
-            <a href="{{ url_for('library') }}">📚 คลังบทเรียน</a>
-            <a href="{{ url_for('admin_library') }}">📚 จัดการคลัง</a>
-        </nav>
-    </header>
-    {% endif %}
 
-    <div class="container">
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert {{ category }}">{{ message }}</div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
+  {% if session.user_id %}
+  <header>
+    <div class="topbar">
+      <div class="brand">
+        <span style="font-size: 24px;">📚</span>
+        <h1>Teacher Platform</h1>
+      </div>
 
-        {% block content %}{% endblock %}
-    </div>
+      <button type="button" class="nav-mobile-toggle" id="navToggle">
+        ☰ เมนู
+      </button>
 
-    <footer>
-        <p>&copy; 2024 Teacher Platform MVP. All rights reserved.</p>
-    </footer>
+      <nav class="nav-desktop">
+        <a href="{{ url_for('dashboard') }}">🏠 Dashboard</a>
+        {% if session.role == 'admin' %}
+          <a href="{{ url_for('admin_dashboard') }}">🛠️ Admin</a>
+        {% endif %}
+        <a href="{{ url_for('library') }}">📚 คลังบทเรียน</a>
+        <a href="{{ url_for('pricing') }}" class="nav-upgrade">💎 Premium</a>
+        <a href="{{ url_for('logout') }}" class="nav-user">🚪 Logout</a>
+      </nav>
 
-    <!-- Global Loading Popup -->
-    <div class="tp-overlay" id="tpOverlay">
-        <div class="tp-modal">
-            <h3 id="tpTitle">⏳ กำลังทำงาน...</h3>
-            <div class="tp-spinner"></div>
-            <p id="tpMessage">กรุณารอสักครู่ ระบบกำลังประมวลผล</p>
-            <div class="tp-small">โปรดอย่าปิดหน้าเว็บระหว่างทำงาน</div>
+      <div class="nav-mobile-panel" id="navMobilePanel">
+        <div class="nav-mobile-grid">
+          <a href="{{ url_for('dashboard') }}">🏠 Dashboard</a>
+          {% if session.role == 'admin' %}
+            <a href="{{ url_for('admin_dashboard') }}">🛠️ Admin</a>
+          {% endif %}
+          <a href="{{ url_for('library') }}">📚 คลังบทเรียน</a>
+          <a href="{{ url_for('pricing') }}" style="background: var(--primary); color: white;">💎 อัปเกรด Premium</a>
+          <a href="{{ url_for('logout') }}" style="background: #edf2f7;">🚪 ออกจากระบบ ({{ session.email }})</a>
         </div>
+      </div>
     </div>
+  </header>
+  {% endif %}
 
-    <script>
-      // Global helpers usable from any page
-      window.tpShowLoading = function(title, message){
-        const ov = document.getElementById('tpOverlay');
-        const t  = document.getElementById('tpTitle');
-        const m  = document.getElementById('tpMessage');
-        if(t) t.textContent = title || '⏳ กำลังทำงาน...';
-        if(m) m.textContent = message || 'กรุณารอสักครู่ ระบบกำลังประมวลผล';
-        if(ov) ov.classList.add('show');
+  <div class="container">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        {% for category, message in messages %}
+          <div class="alert {{ category }}">{{ message }}</div>
+        {% endfor %}
+      {% endif %}
+    {% endwith %}
+
+    {% block content %}{% endblock %}
+  </div>
+
+  <footer>
+    <p>&copy; 2024 Teacher Platform MVP. All rights reserved.</p>
+  </footer>
+
+  <div class="tp-overlay" id="tpOverlay">
+    <div class="tp-modal">
+      <h3 id="tpTitle">⏳ กำลังทำงาน...</h3>
+      <div class="tp-spinner"></div>
+      <p id="tpMessage">กรุณารอสักครู่ ระบบกำลังประมวลผล</p>
+    </div>
+  </div>
+
+  <script>
+    // ส่วนที่ 1: ระบบ Loading
+    window.tpShowLoading = function(title, message) {
+      document.getElementById('tpTitle').textContent = title || '⏳ กำลังทำงาน...';
+      document.getElementById('tpMessage').textContent = message || 'กรุณารอสักครู่';
+      document.getElementById('tpOverlay').classList.add('show');
+    };
+    window.tpHideLoading = function() {
+      document.getElementById('tpOverlay').classList.remove('show');
+    };
+
+    // ส่วนที่ 2: ระบบเมนูมือถือ (แก้ไขใหม่ให้เสถียร)
+    document.addEventListener('DOMContentLoaded', function() {
+      const btn = document.getElementById('navToggle');
+      const panel = document.getElementById('navMobilePanel');
+
+      if (btn && panel) {
+        // ฟังก์ชัน เปิด-ปิด
+        const toggleMenu = function(e) {
+          if (e) e.stopPropagation();
+          panel.classList.toggle('open');
+          console.log('Menu Toggled'); // ไว้เช็คใน Console
+        };
+
+        // คลิกที่ปุ่ม
+        btn.addEventListener('click', toggleMenu);
+
+        // คลิกที่ลิงก์ด้านในให้ปิดเมนู
+        panel.querySelectorAll('a').forEach(link => {
+          link.addEventListener('click', () => panel.classList.remove('open'));
+        });
+
+        // คลิกข้างนอกเมนูให้ปิด
+        document.addEventListener('click', function(e) {
+          if (!btn.contains(e.target) && !panel.contains(e.target)) {
+            panel.classList.remove('open');
+          }
+        });
       }
+    });
+  </script>
 
-      window.tpHideLoading = function(){
-        const ov = document.getElementById('tpOverlay');
-        if(ov) ov.classList.remove('show');
-      }
-    </script>
-
-    {% block extra_js %}{% endblock %}
+  {% block extra_js %}{% endblock %}
 </body>
 </html>
