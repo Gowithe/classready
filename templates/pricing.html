@@ -1,106 +1,440 @@
 {% extends "base.html" %}
-{% block title %}Pricing{% endblock %}
+{% block title %}ราคาและแพ็คเกจ - Teacher Platform{% endblock %}
 
 {% block extra_css %}
-
-
 <style>
-  .pricing-wrap{max-width:980px;margin:0 auto;}
-  .grid{display:grid;grid-template-columns:1fr;gap:16px;}
-  @media(min-width:820px){.grid{grid-template-columns:1fr 1fr 1fr;}}
-  .card{background:#fff;border:1px solid rgba(0,0,0,.08);border-radius:16px;padding:18px;box-shadow:0 6px 18px rgba(0,0,0,.06);} 
-  .badge{display:inline-flex;align-items:center;gap:8px;padding:6px 10px;border-radius:999px;font-weight:900;font-size:12px;border:1px solid rgba(0,0,0,.12);background:#f8fafc;}
-  .price{font-size:30px;font-weight:1000;margin:10px 0;}
-  .muted{color:#64748b;}
-  .features{margin:12px 0 0;padding-left:18px;color:#0f172a;}
-  .features li{margin:6px 0;}
-  .cta{margin-top:14px;}
-  .cta form{display:inline;}
-  .cta button{width:100%;padding:12px 14px;border-radius:12px;font-weight:1000;border:none;cursor:pointer;}
-  .btn-dark{background:#0f172a;color:#fff;}
-  .btn-green{background:#22c55e;color:#05351d;}
-  .btn-gray{background:#e2e8f0;color:#0f172a;}
-  .current{border-color:rgba(34,197,94,.45);box-shadow:0 0 0 3px rgba(34,197,94,.18),0 10px 30px rgba(0,0,0,.08);} 
+  .pricing-hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white;
+    padding: 3rem 2rem;
+    border-radius: 24px;
+    text-align: center;
+    margin-bottom: 2rem;
+  }
+  .pricing-hero h1 { font-size: 2.5rem; margin: 0 0 0.5rem; }
+  .pricing-hero p { font-size: 1.1rem; opacity: 0.9; margin: 0; }
+  
+  /* Current Usage */
+  .usage-card {
+    background: white;
+    border-radius: 16px;
+    padding: 1.5rem;
+    margin-bottom: 2rem;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+  }
+  .usage-card h3 { margin: 0 0 1rem; color: #1e293b; }
+  .usage-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+    gap: 1rem;
+  }
+  .usage-item {
+    background: #f8fafc;
+    padding: 1rem;
+    border-radius: 12px;
+    text-align: center;
+  }
+  .usage-item .icon { font-size: 1.5rem; margin-bottom: 0.5rem; }
+  .usage-item .value { font-size: 1.25rem; font-weight: 800; color: #667eea; }
+  .usage-item .label { font-size: 0.8rem; color: #64748b; }
+  .usage-item.warning .value { color: #f59e0b; }
+  .usage-item.danger .value { color: #ef4444; }
+  
+  /* Pricing Grid */
+  .pricing-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 3rem;
+  }
+  
+  .pricing-card {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.06);
+    border: 2px solid #e2e8f0;
+    position: relative;
+    transition: all 0.3s;
+  }
+  .pricing-card:hover {
+    transform: translateY(-8px);
+    box-shadow: 0 12px 32px rgba(0,0,0,0.12);
+  }
+  .pricing-card.popular {
+    border-color: #667eea;
+    transform: scale(1.02);
+  }
+  .pricing-card.popular:hover {
+    transform: scale(1.02) translateY(-8px);
+  }
+  .popular-badge {
+    position: absolute;
+    top: -12px;
+    left: 50%;
+    transform: translateX(-50%);
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+    padding: 6px 20px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+  }
+  
+  .plan-name { font-size: 1.5rem; font-weight: 800; color: #1e293b; margin: 0 0 0.5rem; }
+  .plan-desc { color: #64748b; font-size: 0.9rem; margin: 0 0 1.5rem; }
+  
+  .plan-price { margin: 1.5rem 0; }
+  .price-amount { font-size: 3rem; font-weight: 900; color: #667eea; }
+  .price-currency { font-size: 1.5rem; color: #667eea; }
+  .price-period { font-size: 1rem; color: #64748b; }
+  .price-save {
+    background: #dcfce7;
+    color: #166534;
+    padding: 4px 12px;
+    border-radius: 20px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    display: inline-block;
+    margin-top: 0.5rem;
+  }
+  
+  .plan-features { list-style: none; padding: 0; margin: 1.5rem 0; }
+  .plan-features li {
+    padding: 0.6rem 0;
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+    font-size: 0.95rem;
+    color: #475569;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .plan-features li:last-child { border-bottom: none; }
+  .plan-features .check { color: #22c55e; font-weight: bold; }
+  .plan-features .cross { color: #ef4444; }
+  .plan-features .unlimited { 
+    background: #dbeafe; 
+    color: #2563eb; 
+    padding: 2px 8px; 
+    border-radius: 4px; 
+    font-size: 0.75rem;
+    font-weight: 700;
+  }
+  
+  .btn-plan {
+    width: 100%;
+    padding: 1rem;
+    border: none;
+    border-radius: 12px;
+    font-weight: 700;
+    font-size: 1rem;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-plan.free { background: #f1f5f9; color: #64748b; }
+  .btn-plan.premium {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white;
+  }
+  .btn-plan.premium:hover { filter: brightness(1.1); transform: translateY(-2px); }
+  .btn-plan:disabled { opacity: 0.6; cursor: not-allowed; }
+  
+  /* Comparison Table */
+  .comparison-section {
+    background: white;
+    border-radius: 20px;
+    padding: 2rem;
+    margin-bottom: 2rem;
+  }
+  .comparison-section h2 { text-align: center; margin: 0 0 1.5rem; color: #1e293b; }
+  .comparison-table { width: 100%; border-collapse: collapse; }
+  .comparison-table th, .comparison-table td {
+    padding: 1rem;
+    text-align: center;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  .comparison-table th { background: #f8fafc; font-weight: 700; color: #1e293b; }
+  .comparison-table th:first-child, .comparison-table td:first-child { text-align: left; }
+  
+  /* FAQ */
+  .faq-section { margin-top: 2rem; }
+  .faq-section h2 { text-align: center; margin-bottom: 1.5rem; color: #1e293b; }
+  .faq-item {
+    background: white;
+    border-radius: 12px;
+    margin-bottom: 1rem;
+    overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0,0,0,0.04);
+  }
+  .faq-question {
+    padding: 1rem 1.5rem;
+    font-weight: 700;
+    cursor: pointer;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+  .faq-question:hover { background: #f8fafc; }
+  .faq-answer { padding: 0 1.5rem 1rem; color: #64748b; display: none; }
+  .faq-item.open .faq-answer { display: block; }
+  .faq-item.open .faq-arrow { transform: rotate(180deg); }
+  
+  @media (max-width: 768px) {
+    .pricing-hero h1 { font-size: 1.8rem; }
+    .pricing-grid { grid-template-columns: 1fr; }
+    .pricing-card.popular { transform: none; }
+    .price-amount { font-size: 2.5rem; }
+    .comparison-table { font-size: 0.85rem; }
+    .comparison-table th, .comparison-table td { padding: 0.75rem 0.5rem; }
+  }
 </style>
 {% endblock %}
 
 {% block content %}
-<div class="pricing-wrap">
-  <div style="display:flex;justify-content:space-between;align-items:end;gap:12px;flex-wrap:wrap;">
-    <div>
-      <h2 style="margin:0;">💳 Pricing</h2>
-      <div class="muted" style="margin-top:6px;">เวอร์ชันเดโม: ปุ่ม Subscribe ยังไม่เชื่อมชำระเงินจริง (ใช้สำหรับทดสอบระบบ)</div>
+<div class="pricing-hero">
+  <h1>💎 เลือกแพ็คเกจที่เหมาะกับคุณ</h1>
+  <p>เริ่มต้นฟรี อัปเกรดเมื่อพร้อม</p>
+</div>
+
+{% if session.user_id and not is_premium %}
+<!-- Current Usage -->
+<div class="usage-card">
+  <h3>📊 การใช้งานปัจจุบันของคุณ</h3>
+  <div class="usage-grid">
+    <div class="usage-item {% if stats.topic_count >= free_limits.topics %}danger{% elif stats.topic_count >= free_limits.topics - 1 %}warning{% endif %}">
+      <div class="icon">📚</div>
+      <div class="value">{{ stats.topic_count }}/{{ free_limits.topics }}</div>
+      <div class="label">Topics</div>
     </div>
-    <a class="btn" href="{{ url_for('dashboard') }}">← Back</a>
-  </div>
-
-  <hr style="margin:16px 0;">
-
-  <div class="grid">
-    <!-- FREE -->
-    <div class="card {% if plan == 'free' %}current{% endif %}">
-      <div class="badge">🆓 FREE</div>
-      <div class="price">0฿ <span style="font-size:14px;font-weight:800;color:#64748b;">/ month</span></div>
-      <div class="muted">ใช้ได้ทุกอย่าง แต่จำกัดจำนวนเนื้อหา</div>
-      <ul class="features">
-        <li>Slides / Game / Practice ครบ</li>
-        <li>สร้างหัวข้อได้ <b>{{ topic_limit }}</b> หัวข้อ</li>
-        <li>แชร์ลิงก์แบบฝึกหัดให้เด็กทำได้</li>
-      </ul>
-      <div class="cta">
-        {% if plan == 'free' %}
-          <button class="btn-gray" disabled>Current Plan</button>
-        {% else %}
-          <form method="POST" action="{{ url_for('downgrade_free') }}">
-            <button class="btn-gray" type="submit">Switch to Free</button>
-          </form>
-        {% endif %}
-      </div>
+    <div class="usage-item {% if stats.classroom_count >= free_limits.classrooms %}danger{% elif stats.classroom_count >= free_limits.classrooms - 1 %}warning{% endif %}">
+      <div class="icon">🏫</div>
+      <div class="value">{{ stats.classroom_count }}/{{ free_limits.classrooms }}</div>
+      <div class="label">ห้องเรียน</div>
     </div>
-
-    <!-- PRO -->
-    <div class="card {% if plan == 'pro' %}current{% endif %}">
-      <div class="badge">⭐ PRO</div>
-      <div class="price">69฿ <span style="font-size:14px;font-weight:800;color:#64748b;">/ month</span></div>
-      <div class="muted">ไม่จำกัดจำนวนเนื้อหา</div>
-      <ul class="features">
-        <li>สร้างหัวข้อไม่จำกัด</li>
-        <li>AI สร้าง Slides+Game+Practice</li>
-        <li>Export PDF แบบฝึกหัด</li>
-      </ul>
-      <div class="cta">
-        {% if plan == 'pro' %}
-          <button class="btn-green" disabled>Current Plan</button>
-        {% else %}
-          <form method="POST" action="{{ url_for('subscribe_pro') }}">
-            <button class="btn-green" type="submit">Subscribe PRO (Demo)</button>
-          </form>
-        {% endif %}
-      </div>
-    </div>
-
-    <!-- ADMIN -->
-    <div class="card {% if session.role == 'admin' %}current{% endif %}">
-      <div class="badge">🛠 ADMIN</div>
-      <div class="price">—</div>
-      <div class="muted">สำหรับผู้ดูแลระบบ</div>
-      <ul class="features">
-        <li>จัดการ Topics ทั้งหมด</li>
-        <li>Seed demo data</li>
-        <li>จัดการผู้ใช้ (ถ้าทำเพิ่ม)</li>
-      </ul>
-      <div class="cta">
-        {% if session.role == 'admin' %}
-          <a class="btn" style="display:block;text-align:center;background:#0f172a;" href="{{ url_for('admin_dashboard') }}">Go to Admin</a>
-        {% else %}
-          <button class="btn-dark" disabled>Admin only</button>
-        {% endif %}
-      </div>
+    <div class="usage-item {% if stats.ai_generate_count >= free_limits.ai_generate %}danger{% elif stats.ai_generate_count >= free_limits.ai_generate - 1 %}warning{% endif %}">
+      <div class="icon">🤖</div>
+      <div class="value">{{ stats.ai_generate_count }}/{{ free_limits.ai_generate }}</div>
+      <div class="label">AI Generate (เดือนนี้)</div>
     </div>
   </div>
+</div>
+{% endif %}
 
-  <div style="margin-top:18px;padding:12px 14px;border:1px solid rgba(0,0,0,.10);border-radius:14px;background:#f8fafc;" class="muted">
-    ✅ แนะนำ: โมเดลนี้โอเคมากสำหรับเริ่มขาย — Free ให้ลองใช้จริง, Pro ราคา 69฿ ตัดสินใจง่าย
+<!-- Pricing Cards -->
+<div class="pricing-grid">
+  <!-- Free Plan -->
+  <div class="pricing-card">
+    <div class="plan-name">🆓 Free</div>
+    <div class="plan-desc">เริ่มต้นใช้งานฟรี</div>
+    
+    <div class="plan-price">
+      <span class="price-currency">฿</span>
+      <span class="price-amount">0</span>
+      <span class="price-period">/ ตลอดชีพ</span>
+    </div>
+    
+    <ul class="plan-features">
+      <li><span class="check">✓</span> สร้าง Topic ได้ <strong>5</strong> รายการ</li>
+      <li><span class="check">✓</span> สร้างห้องเรียนได้ <strong>2</strong> ห้อง</li>
+      <li><span class="check">✓</span> นักเรียน <strong>50</strong> คน/ห้อง</li>
+      <li><span class="check">✓</span> AI Generate <strong>3</strong> ครั้ง/เดือน</li>
+      <li><span class="check">✓</span> Slides ทุก Theme</li>
+      <li><span class="check">✓</span> Games ทุกเกม</li>
+      <li><span class="check">✓</span> Activities ทุกแบบ</li>
+      <li><span class="check">✓</span> QR Code</li>
+      <li><span class="check">✓</span> Library บทเรียนฟรี</li>
+      <li><span class="cross">✗</span> <span style="color:#94a3b8;">Export Excel/PDF</span></li>
+      <li><span class="cross">✗</span> <span style="color:#94a3b8;">Library Premium</span></li>
+    </ul>
+    
+    <button class="btn-plan free" disabled>แพ็คเกจปัจจุบัน</button>
+  </div>
+  
+  <!-- Monthly Plan -->
+  <div class="pricing-card popular">
+    <div class="popular-badge">⭐ แนะนำ</div>
+    <div class="plan-name">👑 Premium รายเดือน</div>
+    <div class="plan-desc">เหมาะสำหรับทดลองใช้</div>
+    
+    <div class="plan-price">
+      <span class="price-currency">฿</span>
+      <span class="price-amount">199</span>
+      <span class="price-period">/ เดือน</span>
+    </div>
+    
+    <ul class="plan-features">
+      <li><span class="check">✓</span> สร้าง Topic <span class="unlimited">ไม่จำกัด</span></li>
+      <li><span class="check">✓</span> สร้างห้องเรียน <span class="unlimited">ไม่จำกัด</span></li>
+      <li><span class="check">✓</span> นักเรียน <span class="unlimited">ไม่จำกัด</span></li>
+      <li><span class="check">✓</span> AI Generate <span class="unlimited">ไม่จำกัด</span></li>
+      <li><span class="check">✓</span> Slides ทุก Theme</li>
+      <li><span class="check">✓</span> Games ทุกเกม</li>
+      <li><span class="check">✓</span> Activities ทุกแบบ</li>
+      <li><span class="check">✓</span> QR Code</li>
+      <li><span class="check">✓</span> Library <strong>ทุกบทเรียน</strong></li>
+      <li><span class="check">✓</span> Export Excel/PDF</li>
+      <li><span class="check">✓</span> Priority Support</li>
+    </ul>
+    
+    {% if is_premium %}
+    <button class="btn-plan premium" disabled>สมาชิกอยู่แล้ว ✓</button>
+    {% else %}
+    <a href="{{ url_for('premium_subscribe', plan_id=1) }}" class="btn-plan premium" style="display:block; text-align:center; text-decoration:none;">สมัครเลย →</a>
+    {% endif %}
+  </div>
+  
+  <!-- Yearly Plan -->
+  <div class="pricing-card">
+    <div class="plan-name">💎 Premium รายปี</div>
+    <div class="plan-desc">ประหยัดสุดคุ้ม!</div>
+    
+    <div class="plan-price">
+      <span class="price-currency">฿</span>
+      <span class="price-amount">1,490</span>
+      <span class="price-period">/ ปี</span>
+      <div class="price-save">ประหยัด 40% (~124 บาท/เดือน)</div>
+    </div>
+    
+    <ul class="plan-features">
+      <li><span class="check">✓</span> สร้าง Topic <span class="unlimited">ไม่จำกัด</span></li>
+      <li><span class="check">✓</span> สร้างห้องเรียน <span class="unlimited">ไม่จำกัด</span></li>
+      <li><span class="check">✓</span> นักเรียน <span class="unlimited">ไม่จำกัด</span></li>
+      <li><span class="check">✓</span> AI Generate <span class="unlimited">ไม่จำกัด</span></li>
+      <li><span class="check">✓</span> Slides ทุก Theme</li>
+      <li><span class="check">✓</span> Games ทุกเกม</li>
+      <li><span class="check">✓</span> Activities ทุกแบบ</li>
+      <li><span class="check">✓</span> QR Code</li>
+      <li><span class="check">✓</span> Library <strong>ทุกบทเรียน</strong></li>
+      <li><span class="check">✓</span> Export Excel/PDF</li>
+      <li><span class="check">✓</span> Priority Support</li>
+    </ul>
+    
+    {% if is_premium %}
+    <button class="btn-plan premium" disabled>สมาชิกอยู่แล้ว ✓</button>
+    {% else %}
+    <a href="{{ url_for('premium_subscribe', plan_id=2) }}" class="btn-plan premium" style="display:block; text-align:center; text-decoration:none;">สมัครเลย →</a>
+    {% endif %}
+  </div>
+</div>
+
+<!-- Comparison Table -->
+<div class="comparison-section">
+  <h2>📋 เปรียบเทียบฟีเจอร์</h2>
+  <table class="comparison-table">
+    <thead>
+      <tr>
+        <th>ฟีเจอร์</th>
+        <th>🆓 Free</th>
+        <th>👑 Premium</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td>📚 จำนวน Topics</td>
+        <td>5 รายการ</td>
+        <td><span class="unlimited">ไม่จำกัด</span></td>
+      </tr>
+      <tr>
+        <td>🏫 ห้องเรียน</td>
+        <td>2 ห้อง</td>
+        <td><span class="unlimited">ไม่จำกัด</span></td>
+      </tr>
+      <tr>
+        <td>👨‍🎓 นักเรียน/ห้อง</td>
+        <td>50 คน</td>
+        <td><span class="unlimited">ไม่จำกัด</span></td>
+      </tr>
+      <tr>
+        <td>🤖 AI Generate</td>
+        <td>3 ครั้ง/เดือน</td>
+        <td><span class="unlimited">ไม่จำกัด</span></td>
+      </tr>
+      <tr>
+        <td>🎬 Slides Themes</td>
+        <td>✅ ทุก Theme</td>
+        <td>✅ ทุก Theme</td>
+      </tr>
+      <tr>
+        <td>🎮 Games</td>
+        <td>✅ ทุกเกม</td>
+        <td>✅ ทุกเกม</td>
+      </tr>
+      <tr>
+        <td>📝 Activities</td>
+        <td>✅ ทุกแบบ</td>
+        <td>✅ ทุกแบบ</td>
+      </tr>
+      <tr>
+        <td>📚 Library</td>
+        <td>บทเรียนฟรีเท่านั้น</td>
+        <td>✅ ทุกบทเรียน</td>
+      </tr>
+      <tr>
+        <td>📊 Export Excel/PDF</td>
+        <td>❌</td>
+        <td>✅</td>
+      </tr>
+      <tr>
+        <td>📧 Support</td>
+        <td>Community</td>
+        <td>Priority (ตอบใน 24 ชม.)</td>
+      </tr>
+    </tbody>
+  </table>
+</div>
+
+<!-- FAQ -->
+<div class="faq-section">
+  <h2>❓ คำถามที่พบบ่อย</h2>
+  
+  <div class="faq-item" onclick="this.classList.toggle('open')">
+    <div class="faq-question">
+      <span>ฟรีตลอดไปจริงไหม?</span>
+      <span class="faq-arrow">▼</span>
+    </div>
+    <div class="faq-answer">
+      ใช่ครับ! แพ็คเกจ Free ใช้ได้ตลอดชีพ ไม่มีหมดอายุ คุณสามารถสร้าง Topics, ใช้ Games, Activities ได้ตามปกติภายในขีดจำกัดที่กำหนด
+    </div>
+  </div>
+  
+  <div class="faq-item" onclick="this.classList.toggle('open')">
+    <div class="faq-question">
+      <span>ยกเลิก Premium ได้ไหม?</span>
+      <span class="faq-arrow">▼</span>
+    </div>
+    <div class="faq-answer">
+      ได้ครับ! คุณสามารถยกเลิกได้ทุกเมื่อ โดยจะยังใช้งาน Premium ได้จนกว่าจะหมดรอบบิล หลังจากนั้นจะกลับเป็น Free อัตโนมัติ (ข้อมูลไม่หาย)
+    </div>
+  </div>
+  
+  <div class="faq-item" onclick="this.classList.toggle('open')">
+    <div class="faq-question">
+      <span>ถ้า AI หมด 3 ครั้ง รอเดือนหน้าได้ไหม?</span>
+      <span class="faq-arrow">▼</span>
+    </div>
+    <div class="faq-answer">
+      ได้ครับ! โควต้า AI Generate จะรีเซ็ตทุกเดือน หรือถ้าต้องการใช้เพิ่มเดี๋ยวนี้ สามารถอัปเกรดเป็น Premium ได้เลย
+    </div>
+  </div>
+  
+  <div class="faq-item" onclick="this.classList.toggle('open')">
+    <div class="faq-question">
+      <span>โรงเรียนซื้อหลายคนมีส่วนลดไหม?</span>
+      <span class="faq-arrow">▼</span>
+    </div>
+    <div class="faq-answer">
+      มีครับ! School License สำหรับ 10 ครู ราคา 9,900 บาท/ปี (เฉลี่ย 990 บาท/คน ประหยัด 33%) ติดต่อเราเพื่อรับส่วนลดพิเศษสำหรับโรงเรียนขนาดใหญ่
+    </div>
+  </div>
+  
+  <div class="faq-item" onclick="this.classList.toggle('open')">
+    <div class="faq-question">
+      <span>ชำระเงินผ่านช่องทางใดได้บ้าง?</span>
+      <span class="faq-arrow">▼</span>
+    </div>
+    <div class="faq-answer">
+      รองรับ QR PromptPay, บัตรเครดิต/เดบิต, และโอนผ่านธนาคาร สำหรับโรงเรียนสามารถออกใบเสร็จ/ใบกำกับภาษีได้
+    </div>
   </div>
 </div>
 {% endblock %}
