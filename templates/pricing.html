@@ -230,6 +230,7 @@
 {% endif %}
 
 <div class="pricing-grid">
+  {% set current_plan_id = (current_sub.plan_id if current_sub and current_sub.plan_id is defined else (current_sub.get('plan_id') if current_sub else None)) %}
   <!-- Free -->
   <div class="pricing-card">
     <div class="plan-name">🆓 Free</div>
@@ -271,10 +272,10 @@
       <li><span class="check">✓</span> Export Excel/PDF</li>
       <li><span class="check">✓</span> Priority Support</li>
     </ul>
-    {% if is_premium %}
+    {% if current_plan_id == 1 %}
     <button class="btn-plan premium" disabled>สมาชิกอยู่แล้ว ✓</button>
     {% else %}
-    <button class="btn-plan premium" onclick="subscribe(1)">สมัครเลย →</button>
+    <button class="btn-plan premium" onclick="subscribe(1)">{{ 'เปลี่ยนแพ็คเกจ →' if is_premium else 'สมัครเลย →' }}</button>
     {% endif %}
   </div>
   
@@ -297,10 +298,10 @@
       <li><span class="check">✓</span> Export Excel/PDF</li>
       <li><span class="check">✓</span> Priority Support</li>
     </ul>
-    {% if is_premium %}
+    {% if current_plan_id == 2 %}
     <button class="btn-plan premium" disabled>สมาชิกอยู่แล้ว ✓</button>
     {% else %}
-    <button class="btn-plan premium" onclick="subscribe(2)">สมัครเลย →</button>
+    <button class="btn-plan premium" onclick="subscribe(2)">{{ 'เปลี่ยนแพ็คเกจ →' if is_premium else 'สมัครเลย →' }}</button>
     {% endif %}
   </div>
 </div>
@@ -353,22 +354,29 @@ async function subscribe(planId) {
   window.location.href = "{{ url_for('login') }}";
   return;
   {% endif %}
-  
-  if (!confirm('ยืนยันสมัคร Premium?\n\n(Demo Mode - ยังไม่ชำระเงินจริง)')) return;
-  
+
+  // ยืนยันก่อนสร้างรายการชำระเงิน
+  if (!confirm('ยืนยันสมัคร Premium?\\n\\nระบบจะพาไปหน้าชำระเงิน (PromptPay)')) return;
+
   try {
-    const res = await fetch('/premium/subscribe/' + planId, { 
+    // เรียกสร้างรายการชำระเงิน -> ได้ลิงก์ redirect กลับมา
+    const res = await fetch('/payment/create/' + planId, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
     });
-    const data = await res.json();
-    
-    if (data.ok) {
-      showToast('🎉 สมัคร Premium สำเร็จ!', 'success');
-      setTimeout(() => location.reload(), 1500);
-    } else {
-      showToast('❌ ' + (data.error || 'Error'), 'error');
+
+    const data = await res.json().catch(() => ({}));
+
+    if (!res.ok || !data.ok) {
+      // fallback เผื่อยังไม่ได้ติดตั้งระบบชำระเงินจริง
+      const msg = data.error || ('สร้างรายการชำระเงินไม่สำเร็จ (HTTP ' + res.status + ')');
+      showToast('❌ ' + msg, 'error');
+      return;
     }
+
+    // ✅ เด้งไปหน้าชำระเงิน
+    window.location.href = data.redirect;
+
   } catch (e) {
     showToast('❌ Error: ' + e.message, 'error');
   }
