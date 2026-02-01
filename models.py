@@ -657,6 +657,30 @@ class UserSubscription:
         conn.close()
 
 
+@staticmethod
+def adjust_expiry(sub_id: int, delta_days: int) -> None:
+    """Admin: เพิ่ม/ลดวันหมดอายุ subscription (delta_days เป็นจำนวนวัน + / -)"""
+    if not delta_days:
+        return
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT expires_at FROM user_subscriptions WHERE id = ?", (sub_id,))
+    row = c.fetchone()
+    if not row or not row[0]:
+        conn.close()
+        return
+    try:
+        current = datetime.fromisoformat(row[0])
+    except Exception:
+        # fallback: ถ้า format แปลก ให้ไม่ทำอะไร
+        conn.close()
+        return
+    new_expires = current + timedelta(days=int(delta_days))
+    c.execute("UPDATE user_subscriptions SET expires_at = ? WHERE id = ?", (new_expires.isoformat(), sub_id))
+    conn.commit()
+    conn.close()
+
+
 class LibraryClone:
     """ประวัติการ Clone บทเรียน"""
     
@@ -1597,69 +1621,13 @@ class UsageLimits:
 # ==============================================================================
 
 class PaymentTransaction:
-    """การชำระเงิน (รองรับ EasySlip)
-    - auto-migrate ตาราง payment_transactions
-    - เก็บ raw response จาก EasySlip
-    - กันสลิปซ้ำด้วย slip_trans_ref (unique)
-    """
-
-    @staticmethod
-    def _migrate() -> None:
-        conn = get_db()
-        c = conn.cursor()
-
-        # สร้างตาราง (ถ้ายังไม่มี)
-        c.execute("""
-            CREATE TABLE IF NOT EXISTS payment_transactions (
-                id INTEGER PRIMARY KEY AUTOINCREMENT,
-                user_id INTEGER NOT NULL,
-                plan_id INTEGER NOT NULL,
-                amount REAL NOT NULL,
-                reference_code TEXT UNIQUE NOT NULL,
-                status TEXT NOT NULL DEFAULT 'pending',
-                slip_image TEXT,
-                easyslip_data TEXT,
-                verified_at TEXT,
-                created_at TEXT NOT NULL,
-                updated_at TEXT NOT NULL
-            )
-        """)
-
-        # เพิ่มคอลัมน์ใหม่แบบปลอดภัย (ไม่พังถ้ามีแล้ว)
-        cols_to_add = [
-            ("slip_trans_ref", "TEXT"),
-            ("receiver_name", "TEXT"),
-            ("receiver_account", "TEXT"),
-            ("verified_amount", "REAL"),
-            ("raw_response", "TEXT"),
-        ]
-        for col, coltype in cols_to_add:
-            if not _column_exists(conn, "payment_transactions", col):
-                try:
-                    c.execute(f"ALTER TABLE payment_transactions ADD COLUMN {col} {coltype}")
-                except sqlite3.OperationalError:
-                    pass
-
-        # unique index กันสลิปซ้ำ
-        try:
-            c.execute("""
-                CREATE UNIQUE INDEX IF NOT EXISTS uq_payment_slip_trans_ref
-                ON payment_transactions(slip_trans_ref)
-                WHERE slip_trans_ref IS NOT NULL AND slip_trans_ref <> ''
-            """)
-        except sqlite3.OperationalError:
-            pass
-
-        conn.commit()
-        conn.close()
+    """การชำระเงิน"""
 
     @staticmethod
     def create(user_id: int, plan_id: int, amount: float) -> Dict[str, Any]:
-        PaymentTransaction._migrate()
         conn = get_db()
         c = conn.cursor()
         now = datetime.utcnow().isoformat()
-
         # สร้าง reference code: PAY + timestamp + random
         ref_code = f"PAY{datetime.utcnow().strftime('%Y%m%d%H%M%S')}{secrets.token_hex(3).upper()}"
 
@@ -1667,7 +1635,7 @@ class PaymentTransaction:
             INSERT INTO payment_transactions
             (user_id, plan_id, amount, reference_code, status, created_at, updated_at)
             VALUES (?, ?, ?, ?, 'pending', ?, ?)
-        """, (user_id, plan_id, float(amount), ref_code, now, now))
+        """, (user_id, plan_id, amount, ref_code, now, now))
         conn.commit()
         txn_id = c.lastrowid
         conn.close()
@@ -1675,13 +1643,12 @@ class PaymentTransaction:
 
     @staticmethod
     def get_by_id(txn_id: int) -> Optional[Dict[str, Any]]:
-        PaymentTransaction._migrate()
         conn = get_db()
         c = conn.cursor()
         c.execute("""
             SELECT pt.*, sp.name as plan_name, sp.duration_days
             FROM payment_transactions pt
-            LEFT JOIN subscription_plans sp ON pt.plan_id = sp.id
+            JOIN subscription_plans sp ON pt.plan_id = sp.id
             WHERE pt.id = ?
         """, (txn_id,))
         row = c.fetchone()
@@ -1690,13 +1657,12 @@ class PaymentTransaction:
 
     @staticmethod
     def get_by_reference(ref_code: str) -> Optional[Dict[str, Any]]:
-        PaymentTransaction._migrate()
         conn = get_db()
         c = conn.cursor()
         c.execute("""
             SELECT pt.*, sp.name as plan_name, sp.duration_days
             FROM payment_transactions pt
-            LEFT JOIN subscription_plans sp ON pt.plan_id = sp.id
+            JOIN subscription_plans sp ON pt.plan_id = sp.id
             WHERE pt.reference_code = ?
         """, (ref_code,))
         row = c.fetchone()
@@ -1704,30 +1670,15 @@ class PaymentTransaction:
         return dict(row) if row else None
 
     @staticmethod
-    def get_by_slip_trans_ref(trans_ref: str) -> Optional[Dict[str, Any]]:
-        """ใช้เช็คสลิปซ้ำ (transRef)"""
-        if not trans_ref:
-            return None
-        PaymentTransaction._migrate()
-        conn = get_db()
-        c = conn.cursor()
-        c.execute("SELECT * FROM payment_transactions WHERE slip_trans_ref = ? LIMIT 1", (trans_ref,))
-        row = c.fetchone()
-        conn.close()
-        return dict(row) if row else None
-
-    @staticmethod
     def get_pending_by_user(user_id: int, plan_id: int = None) -> Optional[Dict[str, Any]]:
         """หา pending transaction ของ user (ถ้ามี ไม่ต้องสร้างใหม่)"""
-        PaymentTransaction._migrate()
         conn = get_db()
         c = conn.cursor()
-
         if plan_id:
             c.execute("""
                 SELECT pt.*, sp.name as plan_name, sp.duration_days
                 FROM payment_transactions pt
-                LEFT JOIN subscription_plans sp ON pt.plan_id = sp.id
+                JOIN subscription_plans sp ON pt.plan_id = sp.id
                 WHERE pt.user_id = ? AND pt.plan_id = ? AND pt.status = 'pending'
                 ORDER BY pt.created_at DESC LIMIT 1
             """, (user_id, plan_id))
@@ -1735,73 +1686,42 @@ class PaymentTransaction:
             c.execute("""
                 SELECT pt.*, sp.name as plan_name, sp.duration_days
                 FROM payment_transactions pt
-                LEFT JOIN subscription_plans sp ON pt.plan_id = sp.id
+                JOIN subscription_plans sp ON pt.plan_id = sp.id
                 WHERE pt.user_id = ? AND pt.status = 'pending'
                 ORDER BY pt.created_at DESC LIMIT 1
             """, (user_id,))
-
         row = c.fetchone()
         conn.close()
         return dict(row) if row else None
 
     @staticmethod
-    def save_raw_response(txn_id: int, raw: Dict[str, Any]) -> None:
-        """เก็บ response จาก EasySlip แบบเต็ม เพื่อ debug/ตรวจย้อนหลัง"""
-        PaymentTransaction._migrate()
+    def update_status(txn_id: int, status: str, slip_image: str = None, easyslip_data: str = None) -> None:
         conn = get_db()
         c = conn.cursor()
         now = datetime.utcnow().isoformat()
-        c.execute(
-            "UPDATE payment_transactions SET raw_response = ?, updated_at = ? WHERE id = ?",
-            (json.dumps(raw, ensure_ascii=False), now, txn_id),
-        )
-        conn.commit()
-        conn.close()
-
-    @staticmethod
-    def update_status(
-        txn_id: int,
-        status: str,
-        slip_image: str = None,
-        easyslip_data: str = None,
-        slip_trans_ref: str = None,
-        receiver_name: str = None,
-        receiver_account: str = None,
-        verified_amount: float = None,
-    ) -> None:
-        PaymentTransaction._migrate()
-        conn = get_db()
-        c = conn.cursor()
-        now = datetime.utcnow().isoformat()
-        verified_at = now if status in ("completed", "paid") else None
+        verified_at = now if status == 'completed' else None
 
         c.execute("""
             UPDATE payment_transactions
             SET status = ?,
                 slip_image = COALESCE(?, slip_image),
                 easyslip_data = COALESCE(?, easyslip_data),
-                slip_trans_ref = COALESCE(?, slip_trans_ref),
-                receiver_name = COALESCE(?, receiver_name),
-                receiver_account = COALESCE(?, receiver_account),
-                verified_amount = COALESCE(?, verified_amount),
                 verified_at = COALESCE(?, verified_at),
                 updated_at = ?
             WHERE id = ?
-        """, (status, slip_image, easyslip_data, slip_trans_ref, receiver_name, receiver_account, verified_amount, verified_at, now, txn_id))
+        """, (status, slip_image, easyslip_data, verified_at, now, txn_id))
         conn.commit()
         conn.close()
 
     @staticmethod
     def get_all_for_admin(limit: int = 50) -> List[Dict[str, Any]]:
-        """ดึงรายการชำระเงินล่าสุดสำหรับแอดมิน"""
-        PaymentTransaction._migrate()
         conn = get_db()
         c = conn.cursor()
         c.execute("""
-            SELECT pt.*, sp.name as plan_name, u.email as user_email
+            SELECT pt.*, sp.name as plan_name, u.username
             FROM payment_transactions pt
-            LEFT JOIN subscription_plans sp ON pt.plan_id = sp.id
-            LEFT JOIN users u ON pt.user_id = u.id
+            JOIN subscription_plans sp ON pt.plan_id = sp.id
+            JOIN users u ON pt.user_id = u.id
             ORDER BY pt.created_at DESC
             LIMIT ?
         """, (limit,))
