@@ -1967,6 +1967,62 @@ def ai_slides():
 
     return render_template("ai_slides_form.html", can_ai=can_ai, ai_msg=ai_msg)
 
+
+def _extract_text_from_pdf(pdf_path: str) -> str:
+    """Extract text from a PDF (pypdf). Raises a friendly error if unreadable."""
+    try:
+        from pypdf import PdfReader
+    except Exception as e:
+        raise Exception("Missing dependency: pypdf (ติดตั้งด้วย pip install pypdf)") from e
+
+    reader = PdfReader(pdf_path)
+    parts = []
+    for page in reader.pages:
+        try:
+            parts.append(page.extract_text() or "")
+        except Exception:
+            parts.append("")
+    text = "\n\n".join(parts).strip()
+    if not text:
+        raise Exception("PDF has no extractable text (อาจเป็นไฟล์สแกนรูปภาพ)")
+    return text
+
+
+# --- Save helpers for AI generate (slides/game/practice) ---
+def _save_game_only(topic_id, game):
+    GameQuestion.delete_by_topic(topic_id)
+    for set_no in [1, 2, 3]:
+        for tile_no, it in enumerate((game.get(str(set_no)) or [])[:24], 1):
+            q, a = (it.get("question") or "").strip(), (it.get("answer") or "").strip()
+            if q and a: GameQuestion.create(topic_id, set_no, tile_no, q, a, int(it.get("points") or 10))
+
+def _save_practice_only(topic_id, practice):
+    PracticeQuestion.delete_by_topic(topic_id)
+    for it in (practice or []):
+        prompt, choices = (it.get("question") or "").strip(), it.get("choices") or []
+        if not prompt or len(choices) != 4: continue
+        ci = max(0, min(int(it.get("correct_index") or 0), 3))
+        PracticeQuestion.create(topic_id, "multiple_choice", json.dumps({"prompt": prompt, "choices": choices}), str(choices[ci]).strip())
+
+def _save_slides_only(topic_id, slides):
+    # Save generated slides to topic.slides_json
+    topic = Topic.get_by_id(topic_id)
+    if not topic:
+        return
+    slides_json = json.dumps({"slides": slides or []}, ensure_ascii=False)
+    Topic.update(topic_id, topic["name"], topic.get("description") or "", slides_json, topic.get("pdf_file"))
+
+def _save_game_and_practice(topic_id, game, practice):
+    _save_game_only(topic_id, game)
+    _save_practice_only(topic_id, practice)
+
+def _save_all(topic_id, slides, game, practice):
+    # Save slides, game, and practice all at once
+    _save_slides_only(topic_id, slides)
+    _save_game_only(topic_id, game)
+    _save_practice_only(topic_id, practice)
+
+
 @app.route("/api/topic/<int:topic_id>/generate", methods=["POST"])
 @login_required
 def api_generate_from_pdf(topic_id):
@@ -2320,31 +2376,44 @@ def premium_page():
     plans = SubscriptionPlan.get_all_active()
     current_sub = UserSubscription.get_active_subscription(session["user_id"])
     
-    return render_template("library/premium.html",
-                           plans=plans,
-                           current_sub=current_sub)
+    return render_template(
+        "library/premium.html",
+        plans=plans,
+        current_sub=current_sub
+    )
 
 
 @app.route("/premium/subscribe/<int:plan_id>", methods=["POST"])
 @login_required
 def premium_subscribe(plan_id):
-    # สมัคร Premium (สำหรับ demo - จริงๆ ต้องผ่าน payment gateway)
+    """
+    สมัคร Premium (ตัดโหมด Demo ออก)
+    - เดิม: สร้าง subscription ทันทีแบบ demo
+    - ใหม่: สร้างรายการชำระเงิน แล้วส่ง redirect ไปหน้าชำระเงิน
+    """
+    user_id = session["user_id"]
+
+    # เป็น Premium อยู่แล้ว
+    if is_premium_user(user_id):
+        return jsonify({"ok": False, "error": "คุณเป็น Premium อยู่แล้ว"}), 400
+
     plan = SubscriptionPlan.get_by_id(plan_id)
     if not plan:
-        return jsonify({"ok": False, "error": "Plan not found"}), 404
-    
-    # TODO: Integrate with payment gateway (Stripe, Omise, etc.)
-    # For now, just create subscription directly (demo mode)
-    
-    sub = UserSubscription.create(
-        user_id=session["user_id"],
+        return jsonify({"ok": False, "error": "ไม่พบแพ็คเกจ"}), 404
+
+    # ถ้ามีรายการค้างชำระอยู่แล้ว ให้เด้งไปต่อ
+    pending = PaymentTransaction.get_pending_by_user(user_id, plan_id)
+    if pending:
+        return jsonify({"ok": True, "redirect": url_for("payment_page", ref_code=pending["reference_code"])})
+
+    # สร้างรายการชำระเงินใหม่
+    txn = PaymentTransaction.create(
+        user_id=user_id,
         plan_id=plan_id,
-        duration_days=plan["duration_days"],
-        payment_ref="demo_" + str(int(datetime.utcnow().timestamp()))
+        amount=plan["price"]
     )
-    
-    flash(f"สมัคร {plan['name']} สำเร็จ!", "success")
-    return jsonify({"ok": True, "subscription_id": sub["id"]})
+
+    return jsonify({"ok": True, "redirect": url_for("payment_page", ref_code=txn["reference_code"])})
 
 
 # ==============================================================================
@@ -2768,116 +2837,6 @@ def not_found(e): return (jsonify({"ok": False, "error": "Not found"}), 404) if 
 @app.errorhandler(500)
 def server_error(e): return (jsonify({"ok": False, "error": "Server error"}), 500) if _wants_json_response() else (render_template("error.html", error_code=500, error_msg="เกิดข้อผิดพลาด"), 500)
 
-# ==============================================================================
-# LEGACY (kept for reference - do not delete)
-# ==============================================================================
-"""
-
-# ----- my_create_topic (original before freemium patch) -----
-@app.route("/my/topics/create", methods=["GET", "POST"])
-@login_required
-def my_create_topic():
-    if request.method == "POST":
-        name = (request.form.get("name") or "").strip()
-        description = (request.form.get("description") or "").strip()
-        if not name:
-            flash("Topic name required.", "error")
-            return render_template("my_topic_edit.html", topic=None, mode="create")
-        topic = Topic.create(session["user_id"], name, description, json.dumps({"slides": []}, ensure_ascii=False), "manual", None)
-        return redirect(url_for("my_edit_topic", topic_id=topic["id"]))
-    return render_template("my_topic_edit.html", topic=None, mode="create")
-
-# ----- classroom_create (original before freemium patch) -----
-@app.route("/classrooms/create", methods=["POST"])
-@login_required
-def classroom_create():
-    name = (request.form.get("name") or "").strip()
-    if not name:
-        flash("กรุณาระบุชื่อห้อง", "error")
-        return redirect(url_for("classrooms"))
-    Classroom.create(session["user_id"], name, request.form.get("grade_level") or "", request.form.get("academic_year") or "", request.form.get("description") or "")
-    flash("สร้างห้องเรียนแล้ว", "success")
-    return redirect(url_for("classrooms"))
-
-# ----- ai_slides (original before freemium patch) -----
-@app.route("/ai-slides", methods=["GET", "POST"])
-@login_required
-def ai_slides():
-    if request.method == "POST":
-        title = (request.form.get("title") or "").strip()
-        if not title:
-            flash("Topic title required.", "error")
-            return render_template("ai_slides_form.html")
-        bundle = generate_lesson_bundle(title=title, level=request.form.get("level", "Secondary"), language=request.form.get("language", "EN"), style=request.form.get("style", "Minimal"), text_model="gpt-4o-mini")
-        slides = bundle.get("slides", []) or []
-        topic = Topic.create(session["user_id"], title, f"AI generated", json.dumps({"slides": slides}, ensure_ascii=False), "ai", None)
-        _save_game_and_practice(topic["id"], bundle.get("game") or {}, bundle.get("practice") or [])
-        return redirect(url_for("topic_detail", topic_id=topic["id"]))
-    return render_template("ai_slides_form.html")
-
-def _extract_text_from_pdf(path):
-    from pypdf import PdfReader
-    return "\n\n".join(p.extract_text() or "" for p in PdfReader(path).pages).strip()
-
-def _save_game_only(topic_id, game):
-    GameQuestion.delete_by_topic(topic_id)
-    for set_no in [1, 2, 3]:
-        for tile_no, it in enumerate((game.get(str(set_no)) or [])[:24], 1):
-            q, a = (it.get("question") or "").strip(), (it.get("answer") or "").strip()
-            if q and a: GameQuestion.create(topic_id, set_no, tile_no, q, a, int(it.get("points") or 10))
-
-def _save_practice_only(topic_id, practice):
-    PracticeQuestion.delete_by_topic(topic_id)
-    for it in (practice or []):
-        prompt, choices = (it.get("question") or "").strip(), it.get("choices") or []
-        if not prompt or len(choices) != 4: continue
-        ci = max(0, min(int(it.get("correct_index") or 0), 3))
-        PracticeQuestion.create(topic_id, "multiple_choice", json.dumps({"prompt": prompt, "choices": choices}), str(choices[ci]).strip())
-
-def _save_slides_only(topic_id, slides):
-    # Save generated slides to topic.slides_json
-    topic = Topic.get_by_id(topic_id)
-    if not topic:
-        return
-    slides_json = json.dumps({"slides": slides or []}, ensure_ascii=False)
-    Topic.update(topic_id, topic["name"], topic.get("description") or "", slides_json, topic.get("pdf_file"))
-
-def _save_game_and_practice(topic_id, game, practice):
-    _save_game_only(topic_id, game)
-    _save_practice_only(topic_id, practice)
-
-def _save_all(topic_id, slides, game, practice):
-    # Save slides, game, and practice all at once
-    _save_slides_only(topic_id, slides)
-    _save_game_only(topic_id, game)
-    _save_practice_only(topic_id, practice)
-
-# ----- api_generate_from_pdf (original before freemium patch) -----
-@app.route("/api/topic/<int:topic_id>/generate", methods=["POST"])
-@login_required
-def api_generate_from_pdf(topic_id):
-    topic = _get_topic_or_404(topic_id)
-    if not topic.get("pdf_file"): return _json_error("No PDF", 400)
-    mode = ((request.get_json(silent=True) or {}).get("mode") or "all").lower()
-    path = os.path.join(app.config["UPLOAD_FOLDER"], topic["pdf_file"])
-    if not os.path.exists(path): return _json_error("PDF not found", 404)
-    try: text = _extract_text_from_pdf(path)
-    except Exception as e: return _json_error(str(e), 400)
-    try: bundle = generate_lesson_bundle(f"{topic['name']}\n\n[PDF]\n{text[:8000]}", "Secondary", "EN", "Minimal", "gpt-4o-mini")
-    except Exception as e: return _json_error(str(e), 500)
-    
-    # Save based on mode
-    if mode == "slides":
-        _save_slides_only(topic_id, bundle.get("slides") or [])
-    elif mode == "game":
-        _save_game_only(topic_id, bundle.get("game") or {})
-    elif mode == "practice":
-        _save_practice_only(topic_id, bundle.get("practice") or [])
-    else:  # mode == "all"
-        _save_all(topic_id, bundle.get("slides") or [], bundle.get("game") or {}, bundle.get("practice") or [])
-    
-    return jsonify({"ok": True})
-"""  # end LEGACY block
 
 def _crc16_ccitt(data: bytes) -> int:
     """Calculate CRC16-CCITT (XModem)"""
@@ -2947,37 +2906,53 @@ def get_promptpay_qr_image_url(promptpay_id: str, amount: float, size: int = 300
     
 def verify_slip_with_easyslip(image_base64: str, api_key: str) -> dict:
     """
-    ส่งสลิปไปตรวจสอบที่ EasySlip API
-    Returns: {"success": bool, "data": dict, "error": str}
+    ส่งสลิปไปตรวจสอบที่ EasySlip API (Verify By Base64)
+    - ส่ง checkDuplicate=True เพื่อให้ EasySlip ช่วยกันสลิปซ้ำระดับ API
+    Returns:
+      {
+        "success": bool,
+        "data": dict|None,      # payload ที่ EasySlip ส่งกลับ (ถ้ามี)
+        "error": str|None,      # message เช่น duplicate_slip / invalid_image / unauthorized
+        "status": int|None      # status code จาก EasySlip (ถ้ามี)
+      }
     """
     try:
         response = requests.post(
             "https://developer.easyslip.com/api/v1/verify",
-            json={"image": image_base64},
+            json={"image": image_base64, "checkDuplicate": True},
             headers={
                 "Authorization": f"Bearer {api_key}",
-                "Content-Type": "application/json"
+                "Content-Type": "application/json",
             },
-            timeout=30
+            timeout=30,
         )
-        result = response.json()
-        
+
+        # EasySlip จะส่งรูปแบบ {status:200, data:{...}} หรือ {status:400, message:'...'}
+        try:
+            result = response.json()
+        except Exception:
+            result = {}
+
         if response.status_code == 200 and result.get("status") == 200:
             return {
                 "success": True,
-                "data": result.get("data", {}),
-                "error": None
+                "data": result.get("data", {}) or {},
+                "error": None,
+                "status": result.get("status", 200),
             }
-        else:
-            return {
-                "success": False,
-                "data": None,
-                "error": result.get("message", f"HTTP {response.status_code}")
-            }
+
+        # กรณี error บางแบบ (เช่น duplicate_slip) ยังมี data กลับมา
+        return {
+            "success": False,
+            "data": result.get("data"),
+            "error": result.get("message", f"HTTP {response.status_code}"),
+            "status": result.get("status", response.status_code),
+        }
+
     except requests.Timeout:
-        return {"success": False, "data": None, "error": "Request timeout"}
+        return {"success": False, "data": None, "error": "Request timeout", "status": None}
     except Exception as e:
-        return {"success": False, "data": None, "error": str(e)}
+        return {"success": False, "data": None, "error": str(e), "status": None}
 
 
 def validate_slip_amount(slip_data: dict, expected_amount: float, tolerance: float = 0.0) -> dict:
@@ -2987,11 +2962,11 @@ def validate_slip_amount(slip_data: dict, expected_amount: float, tolerance: flo
     """
     try:
         slip_amount = float(slip_data.get("amount", {}).get("amount", 0))
-    except:
-        slip_amount = 0
-    
+    except Exception:
+        slip_amount = 0.0
+
     is_valid = slip_amount >= (expected_amount - tolerance)
-    
+
     return {
         "valid": is_valid,
         "slip_amount": slip_amount,
@@ -2999,7 +2974,6 @@ def validate_slip_amount(slip_data: dict, expected_amount: float, tolerance: flo
         "difference": slip_amount - expected_amount,
         "error": None if is_valid else f"จำนวนเงินไม่ตรง (โอน {slip_amount:.2f} / ต้องการ {expected_amount:.2f} บาท)"
     }
-
     
 @app.route("/payment/create/<int:plan_id>", methods=["POST"])
 @login_required
@@ -3037,6 +3011,275 @@ def payment_create(plan_id):
     })
 
 
+# ------------------------------------------------------------------------------
+# Payment slip validation helpers + lightweight DB migration (SQLite)
+# ------------------------------------------------------------------------------
+
+def _normalize_name(s: str) -> str:
+    s = (s or '').strip().lower()
+    # remove spaces and common punctuation
+    return re.sub(r'[\s\-\._,:\'\"\(\)\[\]\{\}]', '', s)
+
+
+def _extract_slip_trans_ref(slip_data: dict) -> str:
+    """พยายามดึงรหัสธุรกรรมที่ไม่ซ้ำ (transRef/transactionRef) จาก EasySlip payload"""
+    if not isinstance(slip_data, dict):
+        return ''
+    # รองรับหลายรูปแบบ
+    for k in ("transRef", "trans_ref", "transactionRef", "transaction_ref", "reference", "ref"):
+        v = slip_data.get(k)
+        if isinstance(v, str) and v.strip():
+            return v.strip()
+    # บาง payload ซ่อนอยู่ใน data/transaction
+    for path in (
+        ("data", "transRef"),
+        ("data", "transactionRef"),
+        ("transaction", "transRef"),
+        ("transaction", "transactionRef"),
+    ):
+        cur = slip_data
+        ok = True
+        for p in path:
+            if isinstance(cur, dict) and p in cur:
+                cur = cur[p]
+            else:
+                ok = False
+                break
+        if ok and isinstance(cur, str) and cur.strip():
+            return cur.strip()
+    return ''
+
+
+def _extract_receiver_info(slip_data: dict) -> tuple[str, str]:
+    """คืนค่า (receiver_name, receiver_id) จากผล EasySlip (รองรับโครงสร้าง nested)
+
+    จากเอกสาร EasySlip (verify by base64) จะอยู่ประมาณนี้:
+      receiver.account.name.th / receiver.account.name.en
+      receiver.account.proxy.account หรือ receiver.account.bank.account (มักถูก mask ด้วย x)
+    """
+    if not isinstance(slip_data, dict):
+        return ("", "")
+
+    # ช่วยดึงค่า nested แบบปลอดภัย
+    def _get(obj, *path, default=None):
+        cur = obj
+        for p in path:
+            if isinstance(cur, dict) and p in cur:
+                cur = cur[p]
+            else:
+                return default
+        return cur
+
+    # receiver อาจอยู่ชั้นบน หรือใน data
+    receiver = None
+    if isinstance(slip_data.get("receiver"), dict):
+        receiver = slip_data.get("receiver")
+    elif isinstance(slip_data.get("data"), dict) and isinstance(slip_data["data"].get("receiver"), dict):
+        receiver = slip_data["data"].get("receiver")
+
+    # fallback แบบเก่า
+    if receiver is None:
+        for k in ("to", "creditor"):
+            if isinstance(slip_data.get(k), dict):
+                receiver = slip_data.get(k); break
+        if receiver is None and isinstance(slip_data.get("data"), dict):
+            for k in ("to", "creditor"):
+                if isinstance(slip_data["data"].get(k), dict):
+                    receiver = slip_data["data"].get(k); break
+
+    recv_name = ""
+    recv_id = ""
+
+    if isinstance(receiver, dict):
+        # name: receiver.account.name.th/en
+        th = _get(receiver, "account", "name", "th")
+        en = _get(receiver, "account", "name", "en")
+        for v in (th, en):
+            if isinstance(v, str) and v.strip():
+                recv_name = v.strip()
+                break
+
+        # id: proxy.account หรือ bank.account (มัก mask)
+        proxy_acc = _get(receiver, "account", "proxy", "account")
+        bank_acc = _get(receiver, "account", "bank", "account")
+        for v in (proxy_acc, bank_acc):
+            if isinstance(v, str) and v.strip():
+                recv_id = v.strip()
+                break
+
+        # รองรับ key รูปแบบอื่น ๆ (กันกรณี response เปลี่ยน)
+        if not recv_name:
+            for nk in ("name", "accountName", "displayName"):
+                v = receiver.get(nk)
+                if isinstance(v, str) and v.strip():
+                    recv_name = v.strip(); break
+        if not recv_id:
+            for ik in ("id", "account", "accountNo", "promptpay", "promptpayId"):
+                v = receiver.get(ik)
+                if isinstance(v, str) and v.strip():
+                    recv_id = v.strip(); break
+
+    # fallback: บาง payload ใส่ name / id ไว้ระดับบน
+    if not recv_name:
+        for nk in ("receiverName", "toName"):
+            v = slip_data.get(nk)
+            if isinstance(v, str) and v.strip():
+                recv_name = v.strip(); break
+        if not recv_name and isinstance(slip_data.get("data"), dict):
+            for nk in ("receiverName", "toName"):
+                v = slip_data["data"].get(nk)
+                if isinstance(v, str) and v.strip():
+                    recv_name = v.strip(); break
+
+    if not recv_id:
+        for ik in ("receiverId", "toId", "promptpay"):
+            v = slip_data.get(ik)
+            if isinstance(v, str) and v.strip():
+                recv_id = v.strip(); break
+        if not recv_id and isinstance(slip_data.get("data"), dict):
+            for ik in ("receiverId", "toId", "promptpay"):
+                v = slip_data["data"].get(ik)
+                if isinstance(v, str) and v.strip():
+                    recv_id = v.strip(); break
+
+    return (recv_name, recv_id)
+
+
+def _masked_id_match(expected_promptpay: str, got_masked: str) -> bool:
+    """เทียบ expected (เลขเต็ม) กับ got ที่ถูก mask ด้วย x/* เช่น 123xxxxxxxx4567"""
+    exp = re.sub(r"\D", "", expected_promptpay or "")
+    got = (got_masked or "").strip()
+    if not exp or not got:
+        return False
+
+    # เอาเฉพาะเลข + ตัว mask
+    got_clean = re.sub(r"[^0-9xX\*]", "", got)
+    got_clean = got_clean.replace("*", "x").replace("X", "x")
+
+    if "x" not in got_clean:
+        # ไม่มี mask → เทียบตรง
+        return re.sub(r"\D", "", got_clean) == exp
+
+    # แยก prefix/suffix ตัวเลข
+    prefix = re.match(r"^\d+", got_clean)
+    suffix = re.search(r"\d+$", got_clean)
+    pre = prefix.group(0) if prefix else ""
+    suf = suffix.group(0) if suffix else ""
+
+    if pre and not exp.startswith(pre):
+        return False
+    if suf and not exp.endswith(suf):
+        return False
+    return True
+
+
+def validate_slip_receiver(slip_data: dict, expected_name: str, expected_promptpay: str) -> dict:
+    """เช็คชื่อผู้รับ + promptpay id ให้ตรง (รองรับกรณีเลขถูก mask ในสลิป)"""
+    recv_name, recv_id = _extract_receiver_info(slip_data)
+
+    # ชื่อผู้รับ: รองรับหลายชื่อ (aliases) แยกด้วย |
+    aliases = [x.strip() for x in (os.environ.get("PROMPTPAY_NAME_ALIASES", "")).split("|") if x.strip()]
+    candidates = [expected_name] + aliases if expected_name else aliases
+
+    rn = _normalize_name(recv_name)
+    name_ok = False
+    for cand in candidates:
+        en = _normalize_name(cand)
+        if en and rn and (en in rn or rn in en):
+            name_ok = True
+            break
+
+    if not candidates:
+        name_ok = True  # ถ้าไม่ได้ตั้งชื่อไว้ ก็ไม่บังคับ
+
+    # id: ถ้าในสลิปเป็น mask ให้เทียบแบบ prefix/suffix
+    exp_digits = re.sub(r"\D", "", expected_promptpay or "")
+    got_raw = (recv_id or "").strip()
+
+    id_ok = True
+    if exp_digits:
+        if not got_raw:
+            id_ok = False
+        else:
+            # ถ้าเห็น mask ก็ใช้ masked match
+            if any(ch in got_raw for ch in ("x", "X", "*")):
+                id_ok = _masked_id_match(exp_digits, got_raw)
+            else:
+                id_ok = re.sub(r"\D", "", got_raw) == exp_digits
+
+    if not name_ok:
+        return {"valid": False, "error": f"ชื่อผู้รับไม่ตรง (ในสลิป: {recv_name or 'ไม่พบชื่อผู้รับ'})"}
+    if not id_ok:
+        return {"valid": False, "error": f"PromptPay/บัญชีผู้รับไม่ตรง (ในสลิป: {recv_id or 'ไม่พบเลขผู้รับ'})"}
+
+    return {"valid": True, "error": None}
+
+
+def _ensure_payment_schema() -> None:
+    """เพิ่มคอลัมน์ที่จำเป็นสำหรับกันสลิปซ้ำ/เช็คผู้รับ (ปลอดภัย: ไม่ลบข้อมูลเดิม)"""
+    try:
+        conn = get_db()
+        c = conn.cursor()
+
+        # ตารางจริงของคุณคือ payment_transactions (ไม่ใช่ payment_transactionss)
+        c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='payment_transactions'")
+        if not c.fetchone():
+            conn.close()
+            return
+
+        c.execute("PRAGMA table_info(payment_transactions)")
+        cols = {row[1] for row in c.fetchall()}
+
+        # เพิ่มคอลัมน์ถ้ายังไม่มี
+        if "slip_trans_ref" not in cols:
+            c.execute("ALTER TABLE payment_transactions ADD COLUMN slip_trans_ref TEXT")
+        if "receiver_name" not in cols:
+            c.execute("ALTER TABLE payment_transactions ADD COLUMN receiver_name TEXT")
+        if "receiver_id" not in cols:
+            c.execute("ALTER TABLE payment_transactions ADD COLUMN receiver_id TEXT")
+
+        # แนะนำ: ทำ unique index กันสลิปซ้ำระดับ DB ด้วย (ปลอดภัย)
+        try:
+            c.execute("""
+                CREATE UNIQUE INDEX IF NOT EXISTS uq_payment_slip_trans_ref
+                ON payment_transactions(slip_trans_ref)
+                WHERE slip_trans_ref IS NOT NULL AND slip_trans_ref <> ''
+            """)
+        except Exception:
+            pass
+
+        conn.commit()
+        conn.close()
+    except Exception:
+        # ไม่ให้พังตอนรัน ถ้า migration ล้มเหลว
+        pass
+
+
+def _slip_trans_ref_used(trans_ref: str, exclude_txn_id: Optional[int] = None) -> bool:
+    if not trans_ref:
+        return False
+
+    _ensure_payment_schema()
+
+    conn = get_db()
+    c = conn.cursor()
+
+    if exclude_txn_id is None:
+        c.execute(
+            "SELECT id FROM payment_transactions WHERE slip_trans_ref = ? LIMIT 1",
+            (trans_ref,)
+        )
+    else:
+        c.execute(
+            "SELECT id FROM payment_transactions WHERE slip_trans_ref = ? AND id <> ? LIMIT 1",
+            (trans_ref, exclude_txn_id)
+        )
+
+    row = c.fetchone()
+    conn.close()
+    return row is not None
+
+
 @app.route("/payment/<ref_code>")
 @login_required
 def payment_page(ref_code):
@@ -3069,60 +3312,128 @@ def payment_page(ref_code):
 def payment_verify(ref_code):
     """อัปโหลดและตรวจสอบสลิป"""
     txn = PaymentTransaction.get_by_reference(ref_code)
-    
+
     if not txn:
         return jsonify({"ok": False, "error": "ไม่พบรายการ"}), 404
-    
     if txn["user_id"] != session["user_id"]:
         return jsonify({"ok": False, "error": "ไม่มีสิทธิ์"}), 403
-    
     if txn["status"] == "completed":
         return jsonify({"ok": False, "error": "ชำระเงินเรียบร้อยแล้ว"}), 400
-    
+
     # รับไฟล์สลิป
     if "slip" not in request.files:
         return jsonify({"ok": False, "error": "กรุณาอัปโหลดสลิป"}), 400
-    
+
     slip_file = request.files["slip"]
     if not slip_file or not slip_file.filename:
         return jsonify({"ok": False, "error": "กรุณาเลือกไฟล์"}), 400
-    
+
     # อ่านและ encode เป็น base64
     slip_bytes = slip_file.read()
+    if not slip_bytes:
+        return jsonify({"ok": False, "error": "ไฟล์สลิปว่างเปล่า"}), 400
+
     slip_base64 = base64.b64encode(slip_bytes).decode("utf-8")
-    
+
     # บันทึกไฟล์สลิป
     slip_filename = f"slip_{ref_code}_{secrets.token_hex(4)}.jpg"
     slip_path = os.path.join(app.config["UPLOAD_FOLDER"], slip_filename)
     with open(slip_path, "wb") as f:
         f.write(slip_bytes)
-    
+
     # อัปเดตสถานะเป็น verifying
     PaymentTransaction.update_status(txn["id"], "verifying", slip_image=slip_filename)
-    
+
     # ส่งไปตรวจสอบที่ EasySlip
     easyslip_result = verify_slip_with_easyslip(slip_base64, EASYSLIP_API_KEY)
-    
-    if not easyslip_result["success"]:
-        PaymentTransaction.update_status(txn["id"], "failed", 
-                                         easyslip_data=json.dumps({"error": easyslip_result["error"]}))
+
+    # กันสลิปซ้ำ + ตรวจผู้รับ: ต้องมี schema คอลัมน์เพิ่ม (ถ้าไม่มีจะข้ามแบบปลอดภัย)
+    _ensure_payment_schema()
+
+    if not easyslip_result.get("success"):
+        # บางกรณี (เช่น duplicate_slip) อาจมี data กลับมา → เก็บ transRef ไว้กันสลิปซ้ำ
+        slip_data = easyslip_result.get("data") or {}
+        trans_ref = _extract_slip_trans_ref(slip_data) if isinstance(slip_data, dict) else ""
+
+        # เก็บ error ลง DB (และเก็บ transRef ถ้าหาได้)
+        try:
+            err_payload = {"error": easyslip_result.get("error")}
+            if trans_ref:
+                err_payload["transRef"] = trans_ref
+            PaymentTransaction.update_status(txn["id"], "failed", easyslip_data=json.dumps(err_payload))
+
+            if trans_ref:
+                conn = get_db()
+                c = conn.cursor()
+                c.execute(
+                    "UPDATE payment_transactions SET slip_trans_ref = COALESCE(?, slip_trans_ref) WHERE id = ?",
+                    (trans_ref, txn["id"]),
+                )
+                conn.commit()
+                conn.close()
+        except Exception:
+            pass
+
+        # ข้อความที่เป็นมิตรกับผู้ใช้
+        if (easyslip_result.get("error") or "").strip() == "duplicate_slip":
+            return jsonify({"ok": False, "error": "สลิปนี้ถูกใช้ไปแล้ว (duplicate slip)"}), 400
+
         return jsonify({
-            "ok": False, 
-            "error": f"ไม่สามารถตรวจสอบสลิปได้: {easyslip_result['error']}"
+            "ok": False,
+            "error": f"ไม่สามารถตรวจสอบสลิปได้: {easyslip_result.get('error')}"
         }), 400
-    
-    # ตรวจสอบจำนวนเงิน
-    slip_data = easyslip_result["data"]
+
+    # --- success path ---
+    slip_data = easyslip_result.get("data") or {}
+
+    # ✅ กันสลิปซ้ำ: ใช้ transRef จาก EasySlip
+    trans_ref = _extract_slip_trans_ref(slip_data)
+    if trans_ref and _slip_trans_ref_used(trans_ref, exclude_txn_id=txn["id"]):
+        PaymentTransaction.update_status(
+            txn["id"], "failed", easyslip_data=json.dumps({"error": "duplicate_slip", "transRef": trans_ref})
+        )
+        return jsonify({"ok": False, "error": "สลิปนี้ถูกใช้แล้ว (ห้ามใช้สลิปซ้ำ)"}), 400
+
+    # ✅ เช็คชื่อผู้รับ + PromptPay ID (เลขอาจถูก mask ได้ → รองรับ)
+    recv_check = validate_slip_receiver(slip_data, PROMPTPAY_NAME, PROMPTPAY_ID)
+    if not recv_check["valid"]:
+        PaymentTransaction.update_status(
+            txn["id"], "failed", easyslip_data=json.dumps({"error": recv_check["error"], "transRef": trans_ref})
+        )
+        return jsonify({"ok": False, "error": recv_check["error"]}), 400
+
+    # ✅ ตรวจสอบจำนวนเงิน
     validation = validate_slip_amount(slip_data, txn["amount"])
-    
-    # บันทึกข้อมูล EasySlip
-    PaymentTransaction.update_status(txn["id"], 
-                                     "completed" if validation["valid"] else "failed",
-                                     easyslip_data=json.dumps(slip_data))
-    
+
+    # บันทึกข้อมูล EasySlip + transRef/ผู้รับ (ถ้าคอลัมน์มี)
+    try:
+        PaymentTransaction.update_status(
+            txn["id"],
+            "completed" if validation["valid"] else "failed",
+            easyslip_data=json.dumps(slip_data),
+        )
+        conn = get_db()
+        c = conn.cursor()
+        c.execute(
+            """
+            UPDATE payment_transactions
+            SET slip_trans_ref = COALESCE(?, slip_trans_ref),
+                receiver_name  = COALESCE(?, receiver_name),
+                receiver_id    = COALESCE(?, receiver_id)
+            WHERE id = ?
+            """,
+            (trans_ref or None, (slip_data.get("receiver") or {}).get("name") if isinstance(slip_data.get("receiver"), dict) else None,
+             (slip_data.get("receiver") or {}).get("account") if isinstance(slip_data.get("receiver"), dict) else None,
+             txn["id"]),
+        )
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
     if not validation["valid"]:
         return jsonify({"ok": False, "error": validation["error"]}), 400
-    
+
     # ✅ สำเร็จ - สร้าง Subscription
     plan = SubscriptionPlan.get_by_id(txn["plan_id"])
     UserSubscription.create(
@@ -3131,14 +3442,12 @@ def payment_verify(ref_code):
         duration_days=plan["duration_days"],
         payment_ref=ref_code
     )
-    
+
     return jsonify({
         "ok": True,
         "message": "🎉 ชำระเงินสำเร็จ! คุณเป็น Premium แล้ว",
         "redirect": url_for("dashboard")
     })
-
-
 @app.route("/admin/payments")
 @login_required
 def admin_payments():
@@ -3149,6 +3458,59 @@ def admin_payments():
     transactions = PaymentTransaction.get_all_for_admin(100)
     return render_template("admin/payments.html", transactions=transactions)
 
+@app.route("/admin/users")
+@login_required
+def admin_users():
+    """Admin: ดูรายชื่อผู้ใช้ + จำนวนผู้ใช้ทั้งหมด"""
+    if not _is_admin():
+        abort(403)
+
+    q = (request.args.get("q") or "").strip()
+
+    conn = get_db()
+    c = conn.cursor()
+
+    # จำนวนผู้ใช้ทั้งหมด
+    c.execute("SELECT COUNT(*) FROM users")
+    row = c.fetchone()
+    total_users = int(row[0]) if row and row[0] is not None else 0
+
+    # รายการผู้ใช้ (ค้นหาด้วยอีเมลได้)
+    if q:
+        c.execute(
+            """
+            SELECT id, email, role, created_at
+            FROM users
+            WHERE email LIKE ?
+            ORDER BY id DESC
+            LIMIT 300
+            """,
+            (f"%{q}%",),
+        )
+    else:
+        c.execute(
+            """
+            SELECT id, email, role, created_at
+            FROM users
+            ORDER BY id DESC
+            LIMIT 300
+            """
+        )
+
+    rows = c.fetchall()
+    conn.close()
+
+    # แปลงเป็น list[dict] เพื่อใช้ใน Jinja ง่าย
+    users = []
+    for r in rows:
+        users.append({
+            "id": r[0],
+            "email": r[1],
+            "role": r[2] if len(r) > 2 and r[2] is not None else "",
+            "created_at": r[3] if len(r) > 3 and r[3] is not None else "",
+        })
+
+    return render_template("admin/users.html", total_users=total_users, users=users, q=q)
 
 # ==============================================================================
 # Admin
