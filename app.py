@@ -49,6 +49,61 @@ init_db()  # ensure DB tables exist (Render + Persistent Disk)
 app = Flask(__name__)
 app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-prod")
 
+
+# ==============================================================================
+# Email (Gmail SMTP) - Email verification
+# Set these env vars:
+#   GMAIL_USER="your@gmail.com"
+#   GMAIL_APP_PASSWORD="16-char app password"
+#   APP_BASE_URL="http://127.0.0.1:5000"  (optional; for production set https://yourdomain)
+# ==============================================================================
+import smtplib
+from email.mime.text import MIMEText
+from email.mime.multipart import MIMEMultipart
+
+GMAIL_USER = os.environ.get("GMAIL_USER", "").strip()
+GMAIL_APP_PASSWORD = os.environ.get("GMAIL_APP_PASSWORD", "").strip()
+APP_BASE_URL = os.environ.get("APP_BASE_URL", "").strip()
+
+def _build_external_url(path: str) -> str:
+    if APP_BASE_URL:
+        return APP_BASE_URL.rstrip("/") + path
+    # fallback: Flask will build with current request context (may be http://127.0.0.1)
+    return path
+
+def send_verify_email(to_email: str, verify_link: str) -> None:
+    """Send email verification link via Gmail SMTP (STARTTLS)."""
+    if not GMAIL_USER or not GMAIL_APP_PASSWORD:
+        # Dev fallback: no SMTP configured
+        print("[EMAIL] SMTP not configured. VERIFY LINK:", verify_link)
+        return
+
+    msg = MIMEMultipart("alternative")
+    msg["From"] = GMAIL_USER
+    msg["To"] = to_email
+    msg["Subject"] = "ยืนยันอีเมลเพื่อเข้าใช้งาน Teacher Platform"
+
+    html = f"""    <div style="font-family:Arial,sans-serif;line-height:1.6">
+      <h2>ยืนยันอีเมล</h2>
+      <p>ขอบคุณที่สมัครใช้งาน กรุณาคลิกลิงก์ด้านล่างเพื่อยืนยันอีเมลของคุณ</p>
+      <p><a href="{verify_link}" style="display:inline-block;padding:10px 14px;background:#667eea;color:#fff;text-decoration:none;border-radius:10px">ยืนยันอีเมล</a></p>
+      <p style="color:#64748b;font-size:13px">ถ้าปุ่มกดไม่ได้ ให้คัดลอกลิงก์นี้ไปวางในเบราว์เซอร์:</p>
+      <p style="word-break:break-all">{verify_link}</p>
+      <p style="color:#64748b;font-size:13px">ลิงก์นี้มีอายุ 24 ชั่วโมง</p>
+    </div>
+    """
+
+    msg.attach(MIMEText(html, "html", "utf-8"))
+
+    with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as server:
+        server.ehlo()
+        server.starttls()
+        server.ehlo()
+        server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
+        server.send_message(msg)
+
+
+
 # Payment Config - แก้ไขตามข้อมูลของคุณ
 PROMPTPAY_ID = os.environ.get("PROMPTPAY_ID", "1234567890123")  # เลขบัตรประชาชน 13 หลัก
 PROMPTPAY_NAME = os.environ.get("PROMPTPAY_NAME", "ชื่อบัญชี")
@@ -167,12 +222,14 @@ def inject_freemium_data():
 @app.route("/")
 def landing(): return render_template("landing.html")
 
+
 @app.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
         email = (request.form.get("email") or "").strip().lower()
         password = (request.form.get("password") or "").strip()
         confirm = (request.form.get("confirm_password") or "").strip()
+
         if not email or not password:
             flash("Email and password required.", "error")
             return render_template("register.html")
@@ -182,10 +239,53 @@ def register():
         if User.get_by_email(email):
             flash("Email already registered.", "error")
             return render_template("register.html")
-        User.create(email, password, "teacher")
-        flash("Registration successful!", "success")
-        return redirect(url_for("login"))
+
+        # Create user as unverified + generate verify_token
+        user = User.create(email, password, "teacher")
+        token = (user or {}).get("verify_token")
+        if not token:
+            flash("Could not create verification token. Please try again.", "error")
+            return render_template("register.html")
+
+        verify_path = url_for("verify_email", token=token)
+        verify_link = _build_external_url(verify_path) if APP_BASE_URL else url_for("verify_email", token=token, _external=True)
+
+        try:
+            send_verify_email(email, verify_link)
+        except Exception:
+            traceback.print_exc()
+            flash("ส่งอีเมลไม่สำเร็จ กรุณาลองใหม่ภายหลัง", "error")
+            return render_template("register.html")
+
+        return render_template("verify_sent.html", email=email)
+
     return render_template("register.html")
+
+
+
+
+@app.route("/verify/<token>")
+def verify_email(token):
+    # Email verification endpoint
+    user = User.get_by_verify_token(token)
+    if not user:
+        flash("ลิงก์ไม่ถูกต้องหรือถูกใช้งานไปแล้ว", "error")
+        return redirect(url_for("login"))
+
+    # Expiry check (UTC)
+    try:
+        exp = user.get("verify_expires")
+        if exp:
+            exp_dt = datetime.fromisoformat(exp)
+            if datetime.utcnow() > exp_dt:
+                flash("ลิงก์ยืนยันหมดอายุ กรุณาสมัครใหม่หรือขอส่งลิงก์อีกครั้ง", "error")
+                return redirect(url_for("login"))
+    except Exception:
+        pass
+
+    User.mark_verified(user["id"])
+    flash("ยืนยันอีเมลสำเร็จ! กรุณาเข้าสู่ระบบ", "success")
+    return redirect(url_for("login"))
 
 @app.route("/login", methods=["GET", "POST"])
 def login():
@@ -194,6 +294,10 @@ def login():
         password = (request.form.get("password") or "").strip()
         user = User.get_by_email(email)
         if user and check_password_hash(user["password_hash"], password):
+            # Require email verification
+            if not int(user.get("is_verified") or 0):
+                flash("กรุณายืนยันอีเมลก่อนเข้าใช้งาน (ตรวจสอบในกล่องจดหมาย)", "error")
+                return redirect(url_for("login"))
             session["user_id"] = user["id"]
             session["email"] = user["email"]
             session["role"] = user["role"]
@@ -3347,7 +3451,7 @@ def payment_verify(ref_code):
     easyslip_result = verify_slip_with_easyslip(slip_base64, EASYSLIP_API_KEY)
     
     
-    if not easyslip_result["success"]:
+    if not easyslip_result.get("success"):
         # บางกรณี (เช่น duplicate_slip) ยังมี data กลับมา → เก็บ transRef ไว้กันสลิปซ้ำ
         slip_data = easyslip_result.get("data") or {}
         _ensure_payment_schema()
@@ -3377,48 +3481,47 @@ def payment_verify(ref_code):
             "ok": False,
             "error": f"ไม่สามารถตรวจสอบสลิปได้: {easyslip_result.get('error')}"
         }), 400
-
     # ตรวจสอบจำนวนเงิน
 
-        slip_data = easyslip_result["data"]
+    slip_data = easyslip_result["data"]
 
-        # ✅ กันสลิปซ้ำ: ใช้ transRef จาก EasySlip
-        _ensure_payment_schema()
-        trans_ref = _extract_slip_trans_ref(slip_data)
-        if trans_ref and _slip_trans_ref_used(trans_ref, exclude_txn_id=txn["id"]):
-            PaymentTransaction.update_status(txn["id"], "failed", easyslip_data=json.dumps({"error": "duplicate_slip", "transRef": trans_ref}))
-            return jsonify({"ok": False, "error": "สลิปนี้ถูกใช้แล้ว (ห้ามใช้สลิปซ้ำ)"}), 400
+    # ✅ กันสลิปซ้ำ: ใช้ transRef จาก EasySlip
+    _ensure_payment_schema()
+    trans_ref = _extract_slip_trans_ref(slip_data)
+    if trans_ref and _slip_trans_ref_used(trans_ref, exclude_txn_id=txn["id"]):
+        PaymentTransaction.update_status(txn["id"], "failed", easyslip_data=json.dumps({"error": "duplicate_slip", "transRef": trans_ref}))
+        return jsonify({"ok": False, "error": "สลิปนี้ถูกใช้แล้ว (ห้ามใช้สลิปซ้ำ)"}), 400
 
-        # ✅ เช็คชื่อผู้รับ + PromptPay ID
-        recv_check = validate_slip_receiver(slip_data, PROMPTPAY_NAME, PROMPTPAY_ID)
-        if not recv_check["valid"]:
-            PaymentTransaction.update_status(txn["id"], "failed", easyslip_data=json.dumps({"error": recv_check["error"], "transRef": trans_ref}))
-            return jsonify({"ok": False, "error": recv_check["error"]}), 400
+    # ✅ เช็คชื่อผู้รับ + PromptPay ID
+    recv_check = validate_slip_receiver(slip_data, PROMPTPAY_NAME, PROMPTPAY_ID)
+    if not recv_check["valid"]:
+        PaymentTransaction.update_status(txn["id"], "failed", easyslip_data=json.dumps({"error": recv_check["error"], "transRef": trans_ref}))
+        return jsonify({"ok": False, "error": recv_check["error"]}), 400
 
-        validation = validate_slip_amount(slip_data, txn["amount"])
+    validation = validate_slip_amount(slip_data, txn["amount"])
     
-        # บันทึกข้อมูล EasySlip
-        PaymentTransaction.update_status(txn["id"], 
-                                         "completed" if validation["valid"] else "failed",
-                                         easyslip_data=json.dumps(slip_data))
+    # บันทึกข้อมูล EasySlip
+    PaymentTransaction.update_status(txn["id"], 
+                                     "completed" if validation["valid"] else "failed",
+                                     easyslip_data=json.dumps(slip_data))
     
-        if not validation["valid"]:
-            return jsonify({"ok": False, "error": validation["error"]}), 400
+    if not validation["valid"]:
+        return jsonify({"ok": False, "error": validation["error"]}), 400
     
-        # ✅ สำเร็จ - สร้าง Subscription
-        plan = SubscriptionPlan.get_by_id(txn["plan_id"])
-        UserSubscription.create(
-            user_id=txn["user_id"],
-            plan_id=txn["plan_id"],
-            duration_days=plan["duration_days"],
-            payment_ref=ref_code
-        )
+    # ✅ สำเร็จ - สร้าง Subscription
+    plan = SubscriptionPlan.get_by_id(txn["plan_id"])
+    UserSubscription.create(
+        user_id=txn["user_id"],
+        plan_id=txn["plan_id"],
+        duration_days=plan["duration_days"],
+        payment_ref=ref_code
+    )
     
-        return jsonify({
-            "ok": True,
-            "message": "🎉 ชำระเงินสำเร็จ! คุณเป็น Premium แล้ว",
-            "redirect": url_for("dashboard")
-        })
+    return jsonify({
+        "ok": True,
+        "message": "🎉 ชำระเงินสำเร็จ! คุณเป็น Premium แล้ว",
+        "redirect": url_for("dashboard")
+    })
 
 
 @app.route("/admin/payments")
