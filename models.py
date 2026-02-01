@@ -877,45 +877,86 @@ class User:
         return dict(row) if row else None
 
 
-@staticmethod
-def get_by_verify_token(token: str) -> Optional[Dict[str, Any]]:
-    ensure_user_email_verify_schema()
-    if not token:
-        return None
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT * FROM users WHERE verify_token = ? LIMIT 1", (token,))
-    row = c.fetchone()
-    conn.close()
-    return dict(row) if row else None
+    @staticmethod
+    def get_by_verify_token(token: str) -> Optional[Dict[str, Any]]:
+        ensure_user_email_verify_schema()
+        if not token:
+            return None
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM users WHERE verify_token = ? LIMIT 1", (token,))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
 
-@staticmethod
-def mark_verified(user_id: int) -> None:
-    ensure_user_email_verify_schema()
-    conn = get_db()
-    c = conn.cursor()
-    c.execute(
-        "UPDATE users SET is_verified = 1, verify_token = NULL, verify_expires = NULL WHERE id = ?",
-        (user_id,),
-    )
-    conn.commit()
-    conn.close()
+    @staticmethod
+    def mark_verified(user_id: int) -> None:
+        ensure_user_email_verify_schema()
+        conn = get_db()
+        c = conn.cursor()
+        c.execute(
+            "UPDATE users SET is_verified = 1, verify_token = NULL, verify_expires = NULL WHERE id = ?",
+            (user_id,),
+        )
+        conn.commit()
+        conn.close()
 
-@staticmethod
-def refresh_verify_token(user_id: int) -> Optional[str]:
-    """Create a new verify token (24h) for an existing user."""
-    ensure_user_email_verify_schema()
-    token = secrets.token_urlsafe(32)
-    expires = (datetime.utcnow() + timedelta(hours=24)).isoformat()
-    conn = get_db()
-    c = conn.cursor()
-    c.execute(
-        "UPDATE users SET verify_token = ?, verify_expires = ?, is_verified = 0 WHERE id = ?",
-        (token, expires, user_id),
-    )
-    conn.commit()
-    conn.close()
-    return token
+    @staticmethod
+    def refresh_verify_token(user_id: int) -> Optional[str]:
+        """Create a new verify token (24h) for an existing user."""
+        ensure_user_email_verify_schema()
+        token = secrets.token_urlsafe(32)
+        expires = (datetime.utcnow() + timedelta(hours=24)).isoformat()
+        conn = get_db()
+        c = conn.cursor()
+        c.execute(
+            "UPDATE users SET verify_token = ?, verify_expires = ?, is_verified = 0 WHERE id = ?",
+            (token, expires, user_id),
+        )
+        conn.commit()
+        conn.close()
+        return token
+
+
+# [moved into class User] @staticmethod
+# [moved into class User] def get_by_verify_token(token: str) -> Optional[Dict[str, Any]]:
+# [moved into class User]     ensure_user_email_verify_schema()
+# [moved into class User]     if not token:
+# [moved into class User]         return None
+# [moved into class User]     conn = get_db()
+# [moved into class User]     c = conn.cursor()
+# [moved into class User]     c.execute("SELECT * FROM users WHERE verify_token = ? LIMIT 1", (token,))
+# [moved into class User]     row = c.fetchone()
+# [moved into class User]     conn.close()
+# [moved into class User]     return dict(row) if row else None
+
+# [moved into class User] @staticmethod
+# [moved into class User] def mark_verified(user_id: int) -> None:
+# [moved into class User]     ensure_user_email_verify_schema()
+# [moved into class User]     conn = get_db()
+# [moved into class User]     c = conn.cursor()
+# [moved into class User]     c.execute(
+# [moved into class User]         "UPDATE users SET is_verified = 1, verify_token = NULL, verify_expires = NULL WHERE id = ?",
+# [moved into class User]         (user_id,),
+# [moved into class User]     )
+# [moved into class User]     conn.commit()
+# [moved into class User]     conn.close()
+
+# [moved into class User] @staticmethod
+# [moved into class User] def refresh_verify_token(user_id: int) -> Optional[str]:
+# [moved into class User]     """Create a new verify token (24h) for an existing user."""
+# [moved into class User]     ensure_user_email_verify_schema()
+# [moved into class User]     token = secrets.token_urlsafe(32)
+# [moved into class User]     expires = (datetime.utcnow() + timedelta(hours=24)).isoformat()
+# [moved into class User]     conn = get_db()
+# [moved into class User]     c = conn.cursor()
+# [moved into class User]     c.execute(
+# [moved into class User]         "UPDATE users SET verify_token = ?, verify_expires = ?, is_verified = 0 WHERE id = ?",
+# [moved into class User]         (token, expires, user_id),
+# [moved into class User]     )
+# [moved into class User]     conn.commit()
+# [moved into class User]     conn.close()
+# [moved into class User]     return token
 
 
 class Topic:
