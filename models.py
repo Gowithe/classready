@@ -51,6 +51,34 @@ def get_db() -> sqlite3.Connection:
         pass
     return conn
 
+
+# ------------------------------------------------------------------------------
+# Email verification schema (safe migration)
+# ------------------------------------------------------------------------------
+def ensure_user_email_verify_schema() -> None:
+    """Ensure users table has email-verification columns (safe: no data loss)."""
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT name FROM sqlite_master WHERE type='table' AND name='users'")
+        if not c.fetchone():
+            conn.close()
+            return
+        c.execute("PRAGMA table_info(users)")
+        cols = {row[1] for row in c.fetchall()}
+        if "is_verified" not in cols:
+            c.execute("ALTER TABLE users ADD COLUMN is_verified INTEGER NOT NULL DEFAULT 0")
+        if "verify_token" not in cols:
+            c.execute("ALTER TABLE users ADD COLUMN verify_token TEXT")
+        if "verify_expires" not in cols:
+            c.execute("ALTER TABLE users ADD COLUMN verify_expires TEXT")
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
+
 def _column_exists(conn: sqlite3.Connection, table: str, column: str) -> bool:
     c = conn.cursor()
     c.execute(f"PRAGMA table_info({table})")
@@ -194,6 +222,9 @@ def init_db() -> None:
       created_at TEXT NOT NULL
     )
     """)
+    # ensure email verification columns
+    ensure_user_email_verify_schema()
+
 
     # ---------------- topics ----------------
     c.execute("""
@@ -657,30 +688,6 @@ class UserSubscription:
         conn.close()
 
 
-@staticmethod
-def adjust_expiry(sub_id: int, delta_days: int) -> None:
-    """Admin: เพิ่ม/ลดวันหมดอายุ subscription (delta_days เป็นจำนวนวัน + / -)"""
-    if not delta_days:
-        return
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("SELECT expires_at FROM user_subscriptions WHERE id = ?", (sub_id,))
-    row = c.fetchone()
-    if not row or not row[0]:
-        conn.close()
-        return
-    try:
-        current = datetime.fromisoformat(row[0])
-    except Exception:
-        # fallback: ถ้า format แปลก ให้ไม่ทำอะไร
-        conn.close()
-        return
-    new_expires = current + timedelta(days=int(delta_days))
-    c.execute("UPDATE user_subscriptions SET expires_at = ? WHERE id = ?", (new_expires.isoformat(), sub_id))
-    conn.commit()
-    conn.close()
-
-
 class LibraryClone:
     """ประวัติการ Clone บทเรียน"""
     
@@ -805,21 +812,51 @@ class SubscriptionPlan:
 # Models (User, Topic, GameQuestion, etc.)
 # =============================================================================
 
+
 class User:
     @staticmethod
     def create(email: str, password: str, role: str = "teacher") -> Dict[str, Any]:
+        # Ensure verification columns exist
+        ensure_user_email_verify_schema()
+
         conn = get_db()
         c = conn.cursor()
         now = datetime.utcnow().isoformat()
         password_hash = generate_password_hash(password)
-        c.execute("""
-            INSERT INTO users (email, password_hash, role, created_at)
-            VALUES (?, ?, ?, ?)
-        """, (email.lower(), password_hash, role, now))
+
+        # New users start as unverified; email verification token expires in 24h
+        verify_token = secrets.token_urlsafe(32)
+        verify_expires = (datetime.utcnow() + timedelta(hours=24)).isoformat()
+
+        # Insert with extra columns if available
+        try:
+            c.execute(
+                """
+                INSERT INTO users (email, password_hash, role, created_at, is_verified, verify_token, verify_expires)
+                VALUES (?, ?, ?, ?, 0, ?, ?)
+                """,
+                (email.lower(), password_hash, role, now, verify_token, verify_expires),
+            )
+        except Exception:
+            # fallback for very old schema (should be rare)
+            c.execute(
+                """
+                INSERT INTO users (email, password_hash, role, created_at)
+                VALUES (?, ?, ?, ?)
+                """,
+                (email.lower(), password_hash, role, now),
+            )
+
         conn.commit()
         user_id = c.lastrowid
         conn.close()
-        return User.get_by_id(user_id)
+
+        user = User.get_by_id(user_id) or {}
+        # Attach token for caller
+        user["verify_token"] = verify_token
+        user["verify_expires"] = verify_expires
+        user["is_verified"] = user.get("is_verified", 0)
+        return user
 
     @staticmethod
     def get_by_id(user_id: int) -> Optional[Dict[str, Any]]:
@@ -838,6 +875,47 @@ class User:
         row = c.fetchone()
         conn.close()
         return dict(row) if row else None
+
+
+@staticmethod
+def get_by_verify_token(token: str) -> Optional[Dict[str, Any]]:
+    ensure_user_email_verify_schema()
+    if not token:
+        return None
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("SELECT * FROM users WHERE verify_token = ? LIMIT 1", (token,))
+    row = c.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+@staticmethod
+def mark_verified(user_id: int) -> None:
+    ensure_user_email_verify_schema()
+    conn = get_db()
+    c = conn.cursor()
+    c.execute(
+        "UPDATE users SET is_verified = 1, verify_token = NULL, verify_expires = NULL WHERE id = ?",
+        (user_id,),
+    )
+    conn.commit()
+    conn.close()
+
+@staticmethod
+def refresh_verify_token(user_id: int) -> Optional[str]:
+    """Create a new verify token (24h) for an existing user."""
+    ensure_user_email_verify_schema()
+    token = secrets.token_urlsafe(32)
+    expires = (datetime.utcnow() + timedelta(hours=24)).isoformat()
+    conn = get_db()
+    c = conn.cursor()
+    c.execute(
+        "UPDATE users SET verify_token = ?, verify_expires = ?, is_verified = 0 WHERE id = ?",
+        (token, expires, user_id),
+    )
+    conn.commit()
+    conn.close()
+    return token
 
 
 class Topic:
