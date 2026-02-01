@@ -1,0 +1,25 @@
+{% extends "base.html" %}
+{% block title %}Verify Email{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:720px;margin:0 auto;padding:18px;">
+  <h2 style="margin:0 0 8px;">📩 ตรวจสอบอีเมลของคุณ</h2>
+  <p style="color:#64748b;margin:0 0 12px;">
+    เราส่งลิงก์ยืนยันไปที่ <b>{{ email }}</b> แล้ว (ลิงก์มีอายุ 24 ชั่วโมง)
+  </p>
+
+  <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:12px;padding:12px;">
+    <div style="font-weight:800;margin-bottom:6px;">ถ้าไม่เห็นอีเมล</div>
+    <ul style="margin:0 0 0 18px;color:#475569;line-height:1.7">
+      <li>เช็ก <b>Spam / Junk</b></li>
+      <li>รอสักครู่แล้วลองรีเฟรชกล่องจดหมาย</li>
+      <li>ตรวจสอบว่าอีเมลที่กรอกถูกต้อง</li>
+    </ul>
+  </div>
+
+  <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
+    <a class="btn" href="{{ url_for('login') }}">ไปหน้า Login</a>
+    <a class="btn" href="{{ url_for('register') }}" style="background:#0ea5e9;">สมัครใหม่</a>
+  </div>
+</div>
+{% endblock %}
