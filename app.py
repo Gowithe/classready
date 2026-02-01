@@ -3312,47 +3312,45 @@ def payment_page(ref_code):
 def payment_verify(ref_code):
     """อัปโหลดและตรวจสอบสลิป"""
     txn = PaymentTransaction.get_by_reference(ref_code)
-
+    
     if not txn:
         return jsonify({"ok": False, "error": "ไม่พบรายการ"}), 404
+    
     if txn["user_id"] != session["user_id"]:
         return jsonify({"ok": False, "error": "ไม่มีสิทธิ์"}), 403
+    
     if txn["status"] == "completed":
         return jsonify({"ok": False, "error": "ชำระเงินเรียบร้อยแล้ว"}), 400
-
+    
     # รับไฟล์สลิป
     if "slip" not in request.files:
         return jsonify({"ok": False, "error": "กรุณาอัปโหลดสลิป"}), 400
-
+    
     slip_file = request.files["slip"]
     if not slip_file or not slip_file.filename:
         return jsonify({"ok": False, "error": "กรุณาเลือกไฟล์"}), 400
-
+    
     # อ่านและ encode เป็น base64
     slip_bytes = slip_file.read()
-    if not slip_bytes:
-        return jsonify({"ok": False, "error": "ไฟล์สลิปว่างเปล่า"}), 400
-
     slip_base64 = base64.b64encode(slip_bytes).decode("utf-8")
-
+    
     # บันทึกไฟล์สลิป
     slip_filename = f"slip_{ref_code}_{secrets.token_hex(4)}.jpg"
     slip_path = os.path.join(app.config["UPLOAD_FOLDER"], slip_filename)
     with open(slip_path, "wb") as f:
         f.write(slip_bytes)
-
+    
     # อัปเดตสถานะเป็น verifying
     PaymentTransaction.update_status(txn["id"], "verifying", slip_image=slip_filename)
-
+    
     # ส่งไปตรวจสอบที่ EasySlip
     easyslip_result = verify_slip_with_easyslip(slip_base64, EASYSLIP_API_KEY)
-
-    # กันสลิปซ้ำ + ตรวจผู้รับ: ต้องมี schema คอลัมน์เพิ่ม (ถ้าไม่มีจะข้ามแบบปลอดภัย)
-    _ensure_payment_schema()
-
-    if not easyslip_result.get("success"):
-        # บางกรณี (เช่น duplicate_slip) อาจมี data กลับมา → เก็บ transRef ไว้กันสลิปซ้ำ
+    
+    
+    if not easyslip_result["success"]:
+        # บางกรณี (เช่น duplicate_slip) ยังมี data กลับมา → เก็บ transRef ไว้กันสลิปซ้ำ
         slip_data = easyslip_result.get("data") or {}
+        _ensure_payment_schema()
         trans_ref = _extract_slip_trans_ref(slip_data) if isinstance(slip_data, dict) else ""
 
         # เก็บ error ลง DB (และเก็บ transRef ถ้าหาได้)
@@ -3361,14 +3359,11 @@ def payment_verify(ref_code):
             if trans_ref:
                 err_payload["transRef"] = trans_ref
             PaymentTransaction.update_status(txn["id"], "failed", easyslip_data=json.dumps(err_payload))
-
             if trans_ref:
+                # อัปเดต slip_trans_ref ไว้ด้วย (กันคนพยายามส่งซ้ำ)
                 conn = get_db()
                 c = conn.cursor()
-                c.execute(
-                    "UPDATE payment_transactions SET slip_trans_ref = COALESCE(?, slip_trans_ref) WHERE id = ?",
-                    (trans_ref, txn["id"]),
-                )
+                c.execute("UPDATE payment_transactions SET slip_trans_ref = COALESCE(?, slip_trans_ref) WHERE id = ?", (trans_ref, txn["id"]))
                 conn.commit()
                 conn.close()
         except Exception:
@@ -3383,71 +3378,49 @@ def payment_verify(ref_code):
             "error": f"ไม่สามารถตรวจสอบสลิปได้: {easyslip_result.get('error')}"
         }), 400
 
-    # --- success path ---
-    slip_data = easyslip_result.get("data") or {}
+    # ตรวจสอบจำนวนเงิน
 
-    # ✅ กันสลิปซ้ำ: ใช้ transRef จาก EasySlip
-    trans_ref = _extract_slip_trans_ref(slip_data)
-    if trans_ref and _slip_trans_ref_used(trans_ref, exclude_txn_id=txn["id"]):
-        PaymentTransaction.update_status(
-            txn["id"], "failed", easyslip_data=json.dumps({"error": "duplicate_slip", "transRef": trans_ref})
+        slip_data = easyslip_result["data"]
+
+        # ✅ กันสลิปซ้ำ: ใช้ transRef จาก EasySlip
+        _ensure_payment_schema()
+        trans_ref = _extract_slip_trans_ref(slip_data)
+        if trans_ref and _slip_trans_ref_used(trans_ref, exclude_txn_id=txn["id"]):
+            PaymentTransaction.update_status(txn["id"], "failed", easyslip_data=json.dumps({"error": "duplicate_slip", "transRef": trans_ref}))
+            return jsonify({"ok": False, "error": "สลิปนี้ถูกใช้แล้ว (ห้ามใช้สลิปซ้ำ)"}), 400
+
+        # ✅ เช็คชื่อผู้รับ + PromptPay ID
+        recv_check = validate_slip_receiver(slip_data, PROMPTPAY_NAME, PROMPTPAY_ID)
+        if not recv_check["valid"]:
+            PaymentTransaction.update_status(txn["id"], "failed", easyslip_data=json.dumps({"error": recv_check["error"], "transRef": trans_ref}))
+            return jsonify({"ok": False, "error": recv_check["error"]}), 400
+
+        validation = validate_slip_amount(slip_data, txn["amount"])
+    
+        # บันทึกข้อมูล EasySlip
+        PaymentTransaction.update_status(txn["id"], 
+                                         "completed" if validation["valid"] else "failed",
+                                         easyslip_data=json.dumps(slip_data))
+    
+        if not validation["valid"]:
+            return jsonify({"ok": False, "error": validation["error"]}), 400
+    
+        # ✅ สำเร็จ - สร้าง Subscription
+        plan = SubscriptionPlan.get_by_id(txn["plan_id"])
+        UserSubscription.create(
+            user_id=txn["user_id"],
+            plan_id=txn["plan_id"],
+            duration_days=plan["duration_days"],
+            payment_ref=ref_code
         )
-        return jsonify({"ok": False, "error": "สลิปนี้ถูกใช้แล้ว (ห้ามใช้สลิปซ้ำ)"}), 400
+    
+        return jsonify({
+            "ok": True,
+            "message": "🎉 ชำระเงินสำเร็จ! คุณเป็น Premium แล้ว",
+            "redirect": url_for("dashboard")
+        })
 
-    # ✅ เช็คชื่อผู้รับ + PromptPay ID (เลขอาจถูก mask ได้ → รองรับ)
-    recv_check = validate_slip_receiver(slip_data, PROMPTPAY_NAME, PROMPTPAY_ID)
-    if not recv_check["valid"]:
-        PaymentTransaction.update_status(
-            txn["id"], "failed", easyslip_data=json.dumps({"error": recv_check["error"], "transRef": trans_ref})
-        )
-        return jsonify({"ok": False, "error": recv_check["error"]}), 400
 
-    # ✅ ตรวจสอบจำนวนเงิน
-    validation = validate_slip_amount(slip_data, txn["amount"])
-
-    # บันทึกข้อมูล EasySlip + transRef/ผู้รับ (ถ้าคอลัมน์มี)
-    try:
-        PaymentTransaction.update_status(
-            txn["id"],
-            "completed" if validation["valid"] else "failed",
-            easyslip_data=json.dumps(slip_data),
-        )
-        conn = get_db()
-        c = conn.cursor()
-        c.execute(
-            """
-            UPDATE payment_transactions
-            SET slip_trans_ref = COALESCE(?, slip_trans_ref),
-                receiver_name  = COALESCE(?, receiver_name),
-                receiver_id    = COALESCE(?, receiver_id)
-            WHERE id = ?
-            """,
-            (trans_ref or None, (slip_data.get("receiver") or {}).get("name") if isinstance(slip_data.get("receiver"), dict) else None,
-             (slip_data.get("receiver") or {}).get("account") if isinstance(slip_data.get("receiver"), dict) else None,
-             txn["id"]),
-        )
-        conn.commit()
-        conn.close()
-    except Exception:
-        pass
-
-    if not validation["valid"]:
-        return jsonify({"ok": False, "error": validation["error"]}), 400
-
-    # ✅ สำเร็จ - สร้าง Subscription
-    plan = SubscriptionPlan.get_by_id(txn["plan_id"])
-    UserSubscription.create(
-        user_id=txn["user_id"],
-        plan_id=txn["plan_id"],
-        duration_days=plan["duration_days"],
-        payment_ref=ref_code
-    )
-
-    return jsonify({
-        "ok": True,
-        "message": "🎉 ชำระเงินสำเร็จ! คุณเป็น Premium แล้ว",
-        "redirect": url_for("dashboard")
-    })
 @app.route("/admin/payments")
 @login_required
 def admin_payments():
@@ -3458,14 +3431,16 @@ def admin_payments():
     transactions = PaymentTransaction.get_all_for_admin(100)
     return render_template("admin/payments.html", transactions=transactions)
 
+
 @app.route("/admin/users")
 @login_required
 def admin_users():
-    """Admin: ดูรายชื่อผู้ใช้ + จำนวนผู้ใช้ทั้งหมด"""
+    """Admin: ดูรายชื่อผู้ใช้ + จำนวนผู้ใช้ทั้งหมด + สถานะ Premium/วันหมดอายุ"""
     if not _is_admin():
         abort(403)
 
     q = (request.args.get("q") or "").strip()
+    now = datetime.utcnow().isoformat()
 
     conn = get_db()
     c = conn.cursor()
@@ -3475,42 +3450,114 @@ def admin_users():
     row = c.fetchone()
     total_users = int(row[0]) if row and row[0] is not None else 0
 
-    # รายการผู้ใช้ (ค้นหาด้วยอีเมลได้)
+    # จำนวน Premium ที่ยังไม่หมดอายุ
+    try:
+        c.execute("""
+            SELECT COUNT(DISTINCT user_id)
+            FROM user_subscriptions
+            WHERE status='active' AND expires_at > ?
+        """, (now,))
+        pr = c.fetchone()
+        total_premium_active = int(pr[0]) if pr and pr[0] is not None else 0
+    except Exception:
+        total_premium_active = 0
+
+    # รายการผู้ใช้ + subscription ล่าสุด (ถ้ามี)
+    base_sql = """
+        SELECT
+            u.id, u.email, u.role, u.created_at,
+            us.id as sub_id, us.plan_id, us.status as sub_status, us.started_at, us.expires_at, us.payment_ref,
+            sp.name as plan_name, sp.price as plan_price
+        FROM users u
+        LEFT JOIN (
+            SELECT s1.*
+            FROM user_subscriptions s1
+            JOIN (
+                SELECT user_id, MAX(expires_at) AS max_exp
+                FROM user_subscriptions
+                GROUP BY user_id
+            ) mx
+            ON s1.user_id = mx.user_id AND s1.expires_at = mx.max_exp
+        ) us ON us.user_id = u.id
+        LEFT JOIN subscription_plans sp ON sp.id = us.plan_id
+    """
+
     if q:
-        c.execute(
-            """
-            SELECT id, email, role, created_at
-            FROM users
-            WHERE email LIKE ?
-            ORDER BY id DESC
-            LIMIT 300
-            """,
-            (f"%{q}%",),
-        )
+        c.execute(base_sql + " WHERE u.email LIKE ? ORDER BY u.id DESC LIMIT 300", (f"%{q}%",))
     else:
-        c.execute(
-            """
-            SELECT id, email, role, created_at
-            FROM users
-            ORDER BY id DESC
-            LIMIT 300
-            """
-        )
+        c.execute(base_sql + " ORDER BY u.id DESC LIMIT 300")
 
     rows = c.fetchall()
     conn.close()
 
-    # แปลงเป็น list[dict] เพื่อใช้ใน Jinja ง่าย
     users = []
     for r in rows:
+        expires_at = r["expires_at"] if "expires_at" in r.keys() else None
+        is_premium = False
+        if expires_at:
+            try:
+                is_premium = (r["sub_status"] == "active") and (expires_at > now)
+            except Exception:
+                is_premium = False
+
         users.append({
-            "id": r[0],
-            "email": r[1],
-            "role": r[2] if len(r) > 2 and r[2] is not None else "",
-            "created_at": r[3] if len(r) > 3 and r[3] is not None else "",
+            "id": r["id"],
+            "email": r["email"],
+            "role": r["role"] or "",
+            "created_at": r["created_at"] or "",
+            "sub_id": r["sub_id"],
+            "plan_id": r["plan_id"],
+            "plan_name": r["plan_name"] or "",
+            "plan_price": r["plan_price"] if "plan_price" in r.keys() else None,
+            "sub_status": r["sub_status"] or "",
+            "started_at": r["started_at"] or "",
+            "expires_at": expires_at or "",
+            "payment_ref": r["payment_ref"] or "",
+            "is_premium": is_premium,
         })
 
-    return render_template("admin/users.html", total_users=total_users, users=users, q=q)
+    return render_template(
+        "admin/users.html",
+        total_users=total_users,
+        total_premium_active=total_premium_active,
+        users=users,
+        q=q,
+        now_utc=now
+    )
+
+
+@app.route("/admin/users/<int:user_id>/adjust-expiry", methods=["POST"])
+@login_required
+def admin_adjust_user_expiry(user_id: int):
+    """Admin: เพิ่ม/ลดวันหมดอายุ Premium ของผู้ใช้"""
+    if not _is_admin():
+        abort(403)
+
+    delta_days_raw = (request.form.get("days") or "").strip()
+    try:
+        delta_days = int(delta_days_raw)
+    except Exception:
+        delta_days = 0
+
+    # ถ้าไม่มี sub แล้ว admin อยากให้เริ่ม premium ใหม่: ใช้ grant_premium ได้
+    if delta_days == 0:
+        flash("จำนวนวันไม่ถูกต้อง", "error")
+        return redirect(url_for("admin_users", q=request.args.get("q") or ""))
+
+    try:
+        # ปรับที่ subscription ล่าสุด (ถ้ามี) ไม่งั้นให้ grant premium ใหม่
+        sub = UserSubscription.get_active_subscription(user_id)
+        if sub:
+            UserSubscription.adjust_expiry(sub["id"], delta_days)
+            flash(f"ปรับวันหมดอายุ {delta_days:+d} วัน เรียบร้อย", "success")
+        else:
+            # ไม่มี active -> สร้างใหม่เป็น admin grant
+            UserSubscription.grant_premium(user_id, max(delta_days, 1), reason="admin_adjust")
+            flash(f"สร้าง Premium ใหม่ {max(delta_days,1)} วัน เรียบร้อย", "success")
+    except Exception as e:
+        flash(f"ปรับวันหมดอายุไม่สำเร็จ: {e}", "error")
+
+    return redirect(url_for("admin_users", q=request.args.get("q") or ""))
 
 # ==============================================================================
 # Admin
