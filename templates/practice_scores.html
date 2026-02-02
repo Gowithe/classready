@@ -1,84 +1,400 @@
 {% extends "base.html" %}
-
-{% block title %}Student Scores - {{ topic.name }}{% endblock %}
+{% block title %}📝 MCQ Scores | {{ topic.name }}{% endblock %}
 
 {% block extra_css %}
 <style>
-  .wrap{
-    max-width: 1000px;
-    margin: 2rem auto;
-    background: white;
-    padding: 1.5rem;
-    border-radius: 10px;
-    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+  .wrap{max-width:1200px;margin:1.25rem auto;padding:0 1rem;}
+  
+  /* Header */
+  .head{
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+    gap:16px;
+    flex-wrap:wrap;
+    margin-bottom:16px;
+    padding-bottom:16px;
+    border-bottom:1px solid rgba(0,0,0,.08);
+  }
+  .title{font-size:1.3rem;font-weight:900;color:#1e293b;}
+  .muted{color:#64748b;font-size:.9rem;margin-top:4px;}
+  
+  /* Practice Type Badge */
+  .type-badge{
+    display:inline-flex;
+    align-items:center;
+    gap:6px;
+    padding:6px 12px;
+    border-radius:8px;
+    font-weight:700;
+    font-size:.85rem;
+    margin-bottom:8px;
+  }
+  .type-mcq{background:#eef2ff;color:#4338ca;}
+  
+  /* Buttons */
+  .btn{
+    display:inline-flex;
+    align-items:center;
+    gap:.5rem;
+    border:1px solid rgba(0,0,0,.12);
+    background:#fff;
+    border-radius:10px;
+    padding:.6rem 1rem;
+    font-weight:700;
+    text-decoration:none;
+    color:#0f172a;
+    font-size:.9rem;
+    cursor:pointer;
+    transition: all .2s;
+  }
+  .btn:hover{
+    background:#f8fafc;
+    border-color:#667eea;
+    color:#667eea;
+  }
+  .btn-success{
+    background:#22c55e;
+    color:#fff;
+    border:none;
+  }
+  .btn-success:hover{
+    background:#16a34a;
+    color:#fff;
+  }
+  .btn-group{
+    display:flex;
+    gap:8px;
+    flex-wrap:wrap;
+  }
+  
+  /* Filter & Stats Section */
+  .filter-section{
+    background:#f8fafc;
+    border:1px solid rgba(0,0,0,.08);
+    border-radius:14px;
+    padding:14px;
+    margin-bottom:16px;
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+    flex-wrap:wrap;
+    gap:12px;
+  }
+  .filter-row{
+    display:flex;
+    gap:10px;
+    align-items:center;
+    flex-wrap:wrap;
+  }
+  .filter-row label{
+    font-weight:700;
+    font-size:.9rem;
+    color:#475569;
+  }
+  .filter-row select,
+  .filter-row input{
+    padding:.5rem .75rem;
+    border:1px solid rgba(0,0,0,.15);
+    border-radius:8px;
+    font-size:.9rem;
+    outline:none;
+    min-width:140px;
+  }
+  .filter-row select:focus,
+  .filter-row input:focus{
+    border-color:#667eea;
+  }
+  
+  /* Stats */
+  .stats{
+    display:flex;
+    gap:16px;
+    flex-wrap:wrap;
+  }
+  .stat-item{
+    text-align:center;
+    padding:8px 16px;
+    background:#fff;
+    border:1px solid rgba(0,0,0,.08);
+    border-radius:10px;
+  }
+  .stat-value{
+    font-size:1.5rem;
+    font-weight:900;
+    color:#667eea;
+  }
+  .stat-label{
+    font-size:.75rem;
+    color:#64748b;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+  }
+  
+  /* Table */
+  .table-wrap{
+    background:#fff;
+    border:1px solid rgba(0,0,0,.08);
+    border-radius:14px;
+    overflow:hidden;
+    box-shadow:0 4px 12px rgba(0,0,0,.04);
   }
   table{
     width:100%;
-    border-collapse: collapse;
-    overflow:hidden;
-    border-radius: 10px;
+    border-collapse:collapse;
+  }
+  th,td{
+    padding:.75rem 1rem;
+    text-align:left;
+    border-bottom:1px solid rgba(0,0,0,.06);
   }
   th{
-    background:#667eea;
-    color:white;
-    text-align:left;
-    padding: 12px;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color:#fff;
     font-weight:800;
-    font-size: 14px;
+    font-size:.85rem;
+    text-transform:uppercase;
+    letter-spacing:.5px;
+    cursor:pointer;
+    user-select:none;
+    white-space:nowrap;
   }
-  td{
-    padding: 12px;
-    border-bottom: 1px solid #e2e8f0;
-    font-size: 14px;
+  th:hover{
+    background: linear-gradient(135deg, #5b6fd9, #6a4299);
   }
-  tr:hover{ background:#f7fafc; }
-  .muted{ color:#718096; font-size: 12px; }
-  .top-actions{
+  th .sort-icon{
+    margin-left:4px;
+    opacity:.7;
+  }
+  tr:hover td{
+    background:#f8fafc;
+  }
+  
+  /* Score styling */
+  .pill{
+    display:inline-block;
+    padding:.25rem .6rem;
+    border-radius:999px;
+    font-weight:800;
+    font-size:.85rem;
+  }
+  .pill-success{background:#dcfce7;color:#166534;}
+  .pill-warning{background:#fef3c7;color:#92400e;}
+  .pill-danger{background:#fee2e2;color:#991b1b;}
+  
+  .pct-bar{
     display:flex;
-    justify-content: space-between;
     align-items:center;
-    flex-wrap:wrap;
-    gap: 10px;
-    margin-bottom: 14px;
+    gap:8px;
+  }
+  .pct-bar .bar{
+    width:60px;
+    height:8px;
+    background:#e2e8f0;
+    border-radius:4px;
+    overflow:hidden;
+  }
+  .pct-bar .fill{
+    height:100%;
+    border-radius:4px;
+    transition: width .3s;
+  }
+  .pct-bar .fill.high{background:#22c55e;}
+  .pct-bar .fill.mid{background:#f59e0b;}
+  .pct-bar .fill.low{background:#ef4444;}
+  
+  /* Empty state */
+  .empty{
+    text-align:center;
+    padding:3rem;
+    color:#64748b;
+  }
+  .empty-icon{font-size:3rem;margin-bottom:1rem;}
+  
+  /* Responsive */
+  @media(max-width:768px){
+    th,td{padding:.5rem .6rem;font-size:.85rem;}
+    .stats{justify-content:center;}
+    .filter-row{width:100%;}
+    .filter-row select,
+    .filter-row input{flex:1;min-width:100px;}
   }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="wrap">
-  <div class="top-actions">
+  <!-- Header -->
+  <div class="head">
     <div>
-      <h2 style="margin:0;">📊 Student Scores</h2>
-      <div class="muted">{{ topic.name }} • latest 500 submissions</div>
+      <span class="type-badge type-mcq">📝 Multiple Choice (MCQ)</span>
+      <div class="title">{{ topic.name }}</div>
+      <div class="muted">ตารางคะแนนนักเรียนจากแบบฝึกหัด MCQ</div>
     </div>
-    <a class="btn" href="{{ url_for('practice', topic_id=topic.id) }}">↩️ Back to Practice</a>
+    <div class="btn-group">
+      <a class="btn" href="{{ url_for('practice', topic_id=topic.id) }}">← กลับ</a>
+      <a class="btn btn-success" href="{{ url_for('practice_scores_excel', topic_id=topic.id) }}">📥 Excel</a>
+      <a class="btn" href="{{ url_for('practice_scores_csv', topic_id=topic.id) }}">📄 CSV</a>
+    </div>
   </div>
 
-  {% if submissions %}
-  <table>
-    <thead>
-      <tr>
-        <th>#</th>
-        <th>Student</th>
-        <th>Score</th>
-        <th>Percent</th>
-        <th>Submitted</th>
-      </tr>
-    </thead>
-    <tbody>
-      {% for s in submissions %}
-      <tr>
-        <td>{{ loop.index }}</td>
-        <td><strong>{{ s.student_name }}</strong></td>
-        <td>{{ s.score }}/{{ s.total }}</td>
-        <td>{{ '%.1f'|format(s.percentage) }}%</td>
-        <td>{{ (s.created_at or '')[:19].replace('T',' ') }}</td>
-      </tr>
-      {% endfor %}
-    </tbody>
-  </table>
-  {% else %}
-    <p style="color:#718096;">ยังไม่มีนักเรียนส่งคำตอบผ่านลิงก์</p>
-  {% endif %}
+  <!-- Filter & Stats -->
+  <div class="filter-section">
+    <div class="filter-row">
+      <label>🔍 ค้นหา:</label>
+      <input type="text" id="searchInput" placeholder="ชื่อ หรือ เลขที่..." oninput="filterTable()">
+      
+      <label>🏫 ห้อง:</label>
+      <select id="classroomFilter" onchange="filterTable()">
+        <option value="">ทั้งหมด</option>
+        {% for cls in classrooms %}
+        <option value="{{ cls }}">{{ cls }}</option>
+        {% endfor %}
+      </select>
+    </div>
+    
+    <div class="stats">
+      <div class="stat-item">
+        <div class="stat-value" id="totalCount">{{ submissions|length }}</div>
+        <div class="stat-label">รวมทั้งหมด</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="avgScore">-</div>
+        <div class="stat-label">เฉลี่ย</div>
+      </div>
+      <div class="stat-item">
+        <div class="stat-value" id="passCount">-</div>
+        <div class="stat-label">ผ่าน ≥50%</div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Table -->
+  <div class="table-wrap">
+    <table id="scoresTable">
+      <thead>
+        <tr>
+          <th onclick="sortTable(0)" style="width:50px"># <span class="sort-icon">⇅</span></th>
+          <th onclick="sortTable(1)">ชื่อ-สกุล <span class="sort-icon">⇅</span></th>
+          <th onclick="sortTable(2)" style="width:60px">เลขที่ <span class="sort-icon">⇅</span></th>
+          <th onclick="sortTable(3)" style="width:80px">ห้อง <span class="sort-icon">⇅</span></th>
+          <th onclick="sortTable(4)" style="width:90px">คะแนน <span class="sort-icon">⇅</span></th>
+          <th onclick="sortTable(5)" style="width:120px">% <span class="sort-icon">⇅</span></th>
+          <th onclick="sortTable(6)" style="width:140px">เวลาส่ง <span class="sort-icon">⇅</span></th>
+        </tr>
+      </thead>
+      <tbody id="tableBody">
+        {% if submissions and submissions|length > 0 %}
+          {% for s in submissions %}
+          <tr data-name="{{ s.student_name|lower }}" data-no="{{ s.student_no or '' }}" data-class="{{ s.classroom or '' }}" data-pct="{{ s.percentage|default(0) }}">
+            <td>{{ loop.index }}</td>
+            <td><strong>{{ s.student_name }}</strong></td>
+            <td>{{ s.student_no or '-' }}</td>
+            <td>{{ s.classroom or '-' }}</td>
+            <td>
+              {% set pct = s.percentage|default(0)|int %}
+              <span class="pill {% if pct >= 80 %}pill-success{% elif pct >= 50 %}pill-warning{% else %}pill-danger{% endif %}">
+                {{ s.score }}/{{ s.total }}
+              </span>
+            </td>
+            <td>
+              <div class="pct-bar">
+                <div class="bar">
+                  <div class="fill {% if pct >= 80 %}high{% elif pct >= 50 %}mid{% else %}low{% endif %}" style="width:{{ pct }}%"></div>
+                </div>
+                <span>{{ '%.0f'|format(s.percentage or 0) }}%</span>
+              </div>
+            </td>
+            <td class="muted">{{ s.created_at[:16].replace('T', ' ') if s.created_at else '-' }}</td>
+          </tr>
+          {% endfor %}
+        {% else %}
+          <tr id="emptyRow">
+            <td colspan="7">
+              <div class="empty">
+                <div class="empty-icon">📭</div>
+                <p>ยังไม่มีนักเรียนส่งแบบฝึกหัด MCQ</p>
+                <p class="muted">แชร์ลิงก์แบบฝึกหัดให้นักเรียนได้เลย!</p>
+              </div>
+            </td>
+          </tr>
+        {% endif %}
+      </tbody>
+    </table>
+  </div>
+  
+  <div class="muted" style="margin-top:12px;text-align:center;">
+    💡 คลิกที่หัวตารางเพื่อเรียงลำดับ • กรองตามห้องหรือค้นหาชื่อได้
+  </div>
 </div>
+
+<script>
+const allRows = [];
+document.querySelectorAll("#tableBody tr:not(#emptyRow)").forEach((row, i) => {
+  allRows.push({
+    el: row,
+    index: i + 1,
+    name: row.dataset.name || "",
+    no: row.dataset.no || "",
+    classroom: row.dataset.class || "",
+    pct: parseFloat(row.dataset.pct) || 0
+  });
+});
+
+function updateStats(){
+  const visibleRows = allRows.filter(r => r.el.style.display !== "none");
+  const total = visibleRows.length;
+  document.getElementById("totalCount").textContent = total;
+  if(total > 0){
+    const sumPct = visibleRows.reduce((acc, r) => acc + r.pct, 0);
+    document.getElementById("avgScore").textContent = (sumPct / total).toFixed(0) + "%";
+    document.getElementById("passCount").textContent = visibleRows.filter(r => r.pct >= 50).length;
+  } else {
+    document.getElementById("avgScore").textContent = "-";
+    document.getElementById("passCount").textContent = "-";
+  }
+}
+
+function filterTable(){
+  const search = (document.getElementById("searchInput").value || "").toLowerCase().trim();
+  const classroom = document.getElementById("classroomFilter").value;
+  let visibleCount = 0;
+  allRows.forEach(row => {
+    let show = true;
+    if(search && !row.name.includes(search) && !row.no.includes(search)) show = false;
+    if(classroom && row.classroom !== classroom) show = false;
+    row.el.style.display = show ? "" : "none";
+    if(show) visibleCount++;
+  });
+  const emptyRow = document.getElementById("emptyRow");
+  if(emptyRow) emptyRow.style.display = visibleCount === 0 && allRows.length > 0 ? "" : "none";
+  let num = 1;
+  allRows.forEach(row => { if(row.el.style.display !== "none") row.el.cells[0].textContent = num++; });
+  updateStats();
+}
+
+let sortCol = -1, sortAsc = true;
+function sortTable(colIndex){
+  if(sortCol === colIndex) sortAsc = !sortAsc;
+  else { sortCol = colIndex; sortAsc = true; }
+  const tbody = document.getElementById("tableBody");
+  allRows.sort((a, b) => {
+    let valA, valB;
+    switch(colIndex){
+      case 0: valA = a.index; valB = b.index; break;
+      case 1: valA = a.name; valB = b.name; break;
+      case 2: valA = parseInt(a.no) || 999; valB = parseInt(b.no) || 999; break;
+      case 3: valA = a.classroom; valB = b.classroom; break;
+      case 4: case 5: valA = a.pct; valB = b.pct; break;
+      case 6: valA = a.el.cells[6].textContent; valB = b.el.cells[6].textContent; break;
+      default: return 0;
+    }
+    if(typeof valA === "string") return sortAsc ? valA.localeCompare(valB) : valB.localeCompare(valA);
+    return sortAsc ? valA - valB : valB - valA;
+  });
+  allRows.forEach(row => tbody.appendChild(row.el));
+  filterTable();
+}
+updateStats();
+</script>
 {% endblock %}
