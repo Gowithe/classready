@@ -428,7 +428,6 @@
         <a href="{{ url_for('practice_unscramble', topic_id=topic.id) }}">🔀 Sentence Unscramble</a>
         <div class="dropdown-divider"></div>
         <a href="javascript:void(0)" onclick="openQRModal()">📱 QR Code สำหรับนักเรียน</a>
-        <a href="{{ url_for('practice_all_scores', topic_id=topic.id) }}">📊 View All Scores</a>
         {% else %}
         <a class="disabled">กรุณา Generate Practice ก่อน</a>
         {% endif %}
