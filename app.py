@@ -1242,7 +1242,7 @@ def _build_practice_pdf(topic_title, questions, include_answers=False):
 def practice(topic_id):
     topic = _get_topic_or_404(topic_id)
     questions = _normalize_practice_questions(PracticeQuestion.get_by_topic(topic_id))
-    link = PracticeLink.get_latest_active_by_topic_and_user(topic_id, session["user_id"])
+    link = PracticeLink.get_by_topic_user_and_type(topic_id, session["user_id"], "mcq")
     student_url = (request.url_root.rstrip("/") + url_for("public_practice", token=link["token"])) if link else None
     return render_template("practice.html", topic=topic, questions=questions, student_url=student_url)
 
@@ -1516,7 +1516,7 @@ def api_public_fill_blanks_submit(token):
 def practice_unscramble(topic_id):
     topic = _get_topic_or_404(topic_id)
     practice_data = _get_practice_data_from_slides(topic)
-    link = PracticeLink.get_latest_active_by_topic_and_user(topic_id, session["user_id"])
+    link = PracticeLink.get_by_topic_user_and_type(topic_id, session["user_id"], "unscramble")
     student_url = None
     if link:
         student_url = request.url_root.rstrip("/") + url_for("public_unscramble", token=link["token"])
@@ -1679,81 +1679,6 @@ def practice_scores_excel(topic_id):
     buf.seek(0)
     return Response(buf.getvalue(), mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f"attachment; filename=scores_{topic_id}.xlsx"})
 
-
-@app.route("/topic/<int:topic_id>/practice/all-scores")
-@login_required
-def practice_all_scores(topic_id):
-    topic = _get_topic_or_404(topic_id)
-    conn = get_db()
-    c = conn.cursor()
-    c.execute('''
-        SELECT ps.*, pl.token, pl.practice_type 
-        FROM practice_submissions ps 
-        JOIN practice_links pl ON ps.link_id=pl.id 
-        WHERE pl.topic_id=? 
-        ORDER BY ps.id DESC LIMIT 1000
-    ''', (topic_id,))
-    rows = c.fetchall()
-    conn.close()
-    
-    all_submissions = []
-    for r in rows:
-        s = dict(r)
-        # ใช้ practice_type จาก link, default เป็น mcq
-        s['practice_type'] = s.get('practice_type') or 'mcq'
-        all_submissions.append(s)
-    
-    classrooms = sorted(set(s.get("classroom") or "" for s in all_submissions if s.get("classroom")))
-    return render_template("practice_all_scores.html", topic=topic, all_submissions=all_submissions, classrooms=classrooms)
-
-
-@app.route("/topic/<int:topic_id>/practice/all-scores/excel")
-@login_required
-def practice_all_scores_excel(topic_id):
-    # Export คะแนนรวมทุกแบบฝึกหัดเป็น Excel
-    topic = _get_topic_or_404(topic_id)
-    try:
-        from openpyxl import Workbook
-        from openpyxl.styles import Font, PatternFill, Border, Side
-    except:
-        return redirect(url_for("practice_scores_csv", topic_id=topic_id))
-    
-    conn = get_db()
-    c = conn.cursor()
-    c.execute("""
-        SELECT ps.* FROM practice_submissions ps 
-        JOIN practice_links pl ON ps.link_id=pl.id 
-        WHERE pl.topic_id=? 
-        ORDER BY ps.classroom, ps.student_no
-    """, (topic_id,))
-    rows = c.fetchall()
-    conn.close()
-    
-    wb = Workbook()
-    ws = wb.active
-    ws.title = "All Scores"
-    hf = Font(bold=True, color="FFFFFF")
-    hfill = PatternFill("solid", fgColor="667eea")
-    bd = Border(left=Side('thin'), right=Side('thin'), top=Side('thin'), bottom=Side('thin'))
-    
-    ws.merge_cells('A1:H1')
-    ws['A1'] = f"Practice Scores (All Types): {topic['name']}"
-    ws['A1'].font = Font(bold=True, size=14)
-    
-    headers = ["#", "Name", "No", "Class", "Score", "Total", "%", "Time"]
-    for col, h in enumerate(headers, 1):
-        cell = ws.cell(3, col, h)
-        cell.font, cell.fill, cell.border = hf, hfill, bd
-    
-    for i, r in enumerate(rows, 1):
-        for col, v in enumerate([i, r["student_name"], r["student_no"] or "", r["classroom"] or "", r["score"], r["total"], f"{r['percentage']:.0f}%", str(r["created_at"])[:19]], 1):
-            cell = ws.cell(i+3, col, v)
-            cell.border = bd
-    
-    buf = BytesIO()
-    wb.save(buf)
-    buf.seek(0)
-    return Response(buf.getvalue(), mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", headers={"Content-Disposition": f"attachment; filename=all_scores_{topic_id}.xlsx"})
 
 
 # ==============================================================================
