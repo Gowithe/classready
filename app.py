@@ -1440,28 +1440,31 @@ def _sentence_builder_enrich_game_data_with_th(topic, game_data):
     return game_data
 
 
-@app.route("/topic/<int:topic_id>/practice/fill-blanks")
-@login_required
-def practice_fill_blanks(topic_id):
-    topic = _get_topic_or_404(topic_id)
-    practice_data = _get_practice_data_from_slides(topic)
-    link = PracticeLink.get_latest_active_by_topic_and_user(topic_id, session["user_id"])
-    student_url = None
-    if link:
-        student_url = request.url_root.rstrip("/") + url_for("public_fill_blanks", token=link["token"])
-    return render_template("practice_fill_blanks.html", topic=topic, practice_data=practice_data, student_url=student_url)
-
-
 @app.route("/api/practice/<int:topic_id>/fill-blanks/link", methods=["POST"])
 @login_required
 def api_fill_blanks_create_link(topic_id):
     _get_topic_or_404(topic_id)
-    old = PracticeLink.get_latest_active_by_topic_and_user(topic_id, session["user_id"])
+    # ค้นหา link ที่เป็น fill โดยเฉพาะ
+    old = PracticeLink.get_by_topic_user_and_type(topic_id, session["user_id"], "fill")
     if not old:
         link = PracticeLink.create(topic_id, session["user_id"], secrets.token_urlsafe(12), "fill")
     else:
         link = old
     return jsonify({"url": request.url_root.rstrip("/") + url_for("public_fill_blanks", token=link["token"])})
+
+
+
+
+@app.route("/topic/<int:topic_id>/practice/fill-blanks")
+@login_required
+def practice_fill_blanks(topic_id):
+    topic = _get_topic_or_404(topic_id)
+    practice_data = _get_practice_data_from_slides(topic)
+    link = PracticeLink.get_by_topic_user_and_type(topic_id, session["user_id"], "fill")
+    student_url = None
+    if link:
+        student_url = request.url_root.rstrip("/") + url_for("public_fill_blanks", token=link["token"])
+    return render_template("practice_fill_blanks.html", topic=topic, practice_data=practice_data, student_url=student_url)
 
 
 @app.route("/topic/<int:topic_id>/practice/fill-blanks/scores")
@@ -1470,7 +1473,7 @@ def practice_fill_blanks_scores(topic_id):
     topic = _get_topic_or_404(topic_id)
     conn = get_db()
     c = conn.cursor()
-    c.execute("SELECT ps.* FROM practice_submissions ps JOIN practice_links pl ON ps.link_id=pl.id WHERE pl.topic_id=? ORDER BY ps.id DESC LIMIT 500", (topic_id,))
+    c.execute("SELECT ps.* FROM practice_submissions ps JOIN practice_links pl ON ps.link_id=pl.id WHERE pl.topic_id=? AND pl.practice_type='fill' ORDER BY ps.id DESC LIMIT 500", (topic_id,))
     submissions = [dict(r) for r in c.fetchall()]
     conn.close()
     return render_template("practice_scores.html", topic=topic, submissions=submissions, practice_type="Fill in the Blanks")
@@ -1524,7 +1527,8 @@ def practice_unscramble(topic_id):
 @login_required
 def api_unscramble_create_link(topic_id):
     _get_topic_or_404(topic_id)
-    old = PracticeLink.get_latest_active_by_topic_and_user(topic_id, session["user_id"])
+    # ค้นหา link ที่เป็น unscramble โดยเฉพาะ
+    old = PracticeLink.get_by_topic_user_and_type(topic_id, session["user_id"], "unscramble")
     if not old:
         link = PracticeLink.create(topic_id, session["user_id"], secrets.token_urlsafe(12), "unscramble")
     else:
@@ -1538,7 +1542,7 @@ def practice_unscramble_scores(topic_id):
     topic = _get_topic_or_404(topic_id)
     conn = get_db()
     c = conn.cursor()
-    c.execute("SELECT ps.* FROM practice_submissions ps JOIN practice_links pl ON ps.link_id=pl.id WHERE pl.topic_id=? ORDER BY ps.id DESC LIMIT 500", (topic_id,))
+    c.execute("SELECT ps.* FROM practice_submissions ps JOIN practice_links pl ON ps.link_id=pl.id WHERE pl.topic_id=? AND pl.practice_type='unscramble' ORDER BY ps.id DESC LIMIT 500", (topic_id,))
     submissions = [dict(r) for r in c.fetchall()]
     conn.close()
     return render_template("practice_scores.html", topic=topic, submissions=submissions, practice_type="Sentence Unscramble")
@@ -1598,9 +1602,12 @@ def api_practice_submit(topic_id):
 @login_required
 def api_practice_create_link(topic_id):
     _get_topic_or_404(topic_id)
-    old = PracticeLink.get_latest_active_by_topic_and_user(topic_id, session["user_id"])
-    if old: PracticeLink.deactivate(old["id"])
-    link = PracticeLink.create(topic_id, session["user_id"], secrets.token_urlsafe(12), "mcq")
+    # ค้นหา link ที่เป็น mcq โดยเฉพาะ
+    old = PracticeLink.get_by_topic_user_and_type(topic_id, session["user_id"], "mcq")
+    if not old:
+        link = PracticeLink.create(topic_id, session["user_id"], secrets.token_urlsafe(12), "mcq")
+    else:
+        link = old
     return jsonify({"url": request.url_root.rstrip("/") + url_for("public_practice", token=link["token"])})
 
 @app.route("/topic/<int:topic_id>/practice/pdf")
@@ -1617,7 +1624,7 @@ def practice_scores(topic_id):
     topic = _get_topic_or_404(topic_id)
     conn = get_db()
     c = conn.cursor()
-    c.execute("SELECT ps.* FROM practice_submissions ps JOIN practice_links pl ON ps.link_id=pl.id WHERE pl.topic_id=? ORDER BY ps.id DESC LIMIT 1000", (topic_id,))
+    c.execute("SELECT ps.* FROM practice_submissions ps JOIN practice_links pl ON ps.link_id=pl.id WHERE pl.topic_id=? AND pl.practice_type='mcq' ORDER BY ps.id DESC LIMIT 1000", (topic_id,))
     submissions = [dict(r) for r in c.fetchall()]
     conn.close()
     classrooms = sorted(set(s.get("classroom") or "" for s in submissions if s.get("classroom")))
@@ -1629,7 +1636,7 @@ def practice_scores_csv(topic_id):
     topic = _get_topic_or_404(topic_id)
     conn = get_db()
     c = conn.cursor()
-    c.execute("SELECT ps.* FROM practice_submissions ps JOIN practice_links pl ON ps.link_id=pl.id WHERE pl.topic_id=? ORDER BY ps.classroom,ps.student_no", (topic_id,))
+    c.execute("SELECT ps.* FROM practice_submissions ps JOIN practice_links pl ON ps.link_id=pl.id WHERE pl.topic_id=? AND pl.practice_type='mcq' ORDER BY ps.classroom,ps.student_no", (topic_id,))
     rows = c.fetchall()
     conn.close()
     out = StringIO()
@@ -1649,7 +1656,7 @@ def practice_scores_excel(topic_id):
     except: return redirect(url_for("practice_scores_csv", topic_id=topic_id))
     conn = get_db()
     c = conn.cursor()
-    c.execute("SELECT ps.* FROM practice_submissions ps JOIN practice_links pl ON ps.link_id=pl.id WHERE pl.topic_id=? ORDER BY ps.classroom,ps.student_no", (topic_id,))
+    c.execute("SELECT ps.* FROM practice_submissions ps JOIN practice_links pl ON ps.link_id=pl.id WHERE pl.topic_id=? AND pl.practice_type='mcq' ORDER BY ps.classroom,ps.student_no", (topic_id,))
     rows = c.fetchall()
     conn.close()
     wb = Workbook()
