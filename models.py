@@ -1223,6 +1223,19 @@ class PracticeLink:
         return dict(row) if row else None
 
     @staticmethod
+    def get_by_topic_user_and_type(topic_id: int, created_by: int, practice_type: str) -> Optional[Dict[str, Any]]:
+        '''หา link ที่ตรงกับ topic, user และ type'''
+        conn = get_db()
+        c = conn.cursor()
+        c.execute(
+            "SELECT * FROM practice_links WHERE topic_id = ? AND created_by = ? AND practice_type = ? AND is_active = 1 ORDER BY id DESC LIMIT 1",
+            (topic_id, created_by, practice_type)
+        )
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    @staticmethod
     def deactivate(link_id: int) -> None:
         conn = get_db()
         c = conn.cursor()
