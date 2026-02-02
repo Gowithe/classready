@@ -406,6 +406,12 @@ def init_db() -> None:
         c.execute("ALTER TABLE practice_submissions ADD COLUMN classroom TEXT DEFAULT ''")
         conn.commit()
 
+    # เพิ่ม practice_type ใน practice_links
+    if not _column_exists(conn, "practice_links", "practice_type"):
+        c.execute("ALTER TABLE practice_links ADD COLUMN practice_type TEXT DEFAULT 'mcq'")
+        c.execute("UPDATE practice_links SET practice_type = 'mcq' WHERE practice_type IS NULL")
+        conn.commit()
+
     conn.close()
 
 class LibrarySubject:
@@ -1155,13 +1161,13 @@ class AttemptHistory:
 
 class PracticeLink:
     @staticmethod
-    def create(topic_id: int, created_by: int, token: str) -> Dict[str, Any]:
+    def create(topic_id: int, created_by: int, token: str, practice_type: str = "mcq") -> Dict[str, Any]:
         conn = get_db()
         c = conn.cursor()
         now = datetime.utcnow().isoformat()
         c.execute(
-            "INSERT INTO practice_links (topic_id, created_by, token, is_active, created_at) VALUES (?, ?, ?, 1, ?)",
-            (topic_id, created_by, token, now)
+            "INSERT INTO practice_links (topic_id, created_by, token, practice_type, is_active, created_at) VALUES (?, ?, ?, ?, 1, ?)",
+            (topic_id, created_by, token, practice_type, now)
         )
         conn.commit()
         link_id = c.lastrowid
