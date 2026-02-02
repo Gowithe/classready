@@ -1458,7 +1458,7 @@ def api_fill_blanks_create_link(topic_id):
     _get_topic_or_404(topic_id)
     old = PracticeLink.get_latest_active_by_topic_and_user(topic_id, session["user_id"])
     if not old:
-        link = PracticeLink.create(topic_id, session["user_id"], secrets.token_urlsafe(12))
+        link = PracticeLink.create(topic_id, session["user_id"], secrets.token_urlsafe(12), "fill")
     else:
         link = old
     return jsonify({"url": request.url_root.rstrip("/") + url_for("public_fill_blanks", token=link["token"])})
@@ -1526,7 +1526,7 @@ def api_unscramble_create_link(topic_id):
     _get_topic_or_404(topic_id)
     old = PracticeLink.get_latest_active_by_topic_and_user(topic_id, session["user_id"])
     if not old:
-        link = PracticeLink.create(topic_id, session["user_id"], secrets.token_urlsafe(12))
+        link = PracticeLink.create(topic_id, session["user_id"], secrets.token_urlsafe(12), "unscramble")
     else:
         link = old
     return jsonify({"url": request.url_root.rstrip("/") + url_for("public_unscramble", token=link["token"])})
@@ -1600,7 +1600,7 @@ def api_practice_create_link(topic_id):
     _get_topic_or_404(topic_id)
     old = PracticeLink.get_latest_active_by_topic_and_user(topic_id, session["user_id"])
     if old: PracticeLink.deactivate(old["id"])
-    link = PracticeLink.create(topic_id, session["user_id"], secrets.token_urlsafe(12))
+    link = PracticeLink.create(topic_id, session["user_id"], secrets.token_urlsafe(12), "mcq")
     return jsonify({"url": request.url_root.rstrip("/") + url_for("public_practice", token=link["token"])})
 
 @app.route("/topic/<int:topic_id>/practice/pdf")
@@ -1676,26 +1676,24 @@ def practice_scores_excel(topic_id):
 @app.route("/topic/<int:topic_id>/practice/all-scores")
 @login_required
 def practice_all_scores(topic_id):
-    # ดูคะแนนรวมทุกแบบฝึกหัด (MCQ, Fill Blanks, Unscramble)
     topic = _get_topic_or_404(topic_id)
     conn = get_db()
     c = conn.cursor()
-    c.execute("""
-        SELECT ps.*, pl.token FROM practice_submissions ps 
+    c.execute('''
+        SELECT ps.*, pl.token, pl.practice_type 
+        FROM practice_submissions ps 
         JOIN practice_links pl ON ps.link_id=pl.id 
         WHERE pl.topic_id=? 
         ORDER BY ps.id DESC LIMIT 1000
-    """, (topic_id,))
+    ''', (topic_id,))
     rows = c.fetchall()
     conn.close()
     
-    # Add practice_type based on the link token/url pattern
     all_submissions = []
     for r in rows:
         s = dict(r)
-        # Determine type - we'll mark based on submission data
-        # For now, default to 'mcq', you can enhance this with a practice_type column
-        s['practice_type'] = 'mcq'  # default
+        # ใช้ practice_type จาก link, default เป็น mcq
+        s['practice_type'] = s.get('practice_type') or 'mcq'
         all_submissions.append(s)
     
     classrooms = sorted(set(s.get("classroom") or "" for s in all_submissions if s.get("classroom")))
@@ -1999,7 +1997,8 @@ def classroom_assign(classroom_id):
     topic = Topic.get_by_id(topic_id)
     if not topic: abort(404)
     # Create practice link
-    link = PracticeLink.create(topic_id, session["user_id"], secrets.token_urlsafe(12))
+    exercise_type = request.form.get("exercise_type", "mcq")
+    link = PracticeLink.create(topic_id, session["user_id"], secrets.token_urlsafe(12), exercise_type)
     title = (request.form.get("title") or "").strip() or topic["name"]
     due_date = request.form.get("due_date") or None
     Assignment.create(classroom_id, topic_id, link["id"], title, request.form.get("description") or "", due_date, session["user_id"])
@@ -2233,7 +2232,7 @@ def qr_practice_mcq(topic_id):
     link = PracticeLink.get_by_topic(topic_id)
     if not link:
         # Create a new link if doesn't exist
-        link = PracticeLink.create(topic_id, topic.get("user_id") or 1, secrets.token_urlsafe(12))
+        link = PracticeLink.create(topic_id, topic.get("owner_id") or 1, secrets.token_urlsafe(12), "mcq")
     return redirect(url_for('public_practice', token=link['token']))
 
 
@@ -2245,7 +2244,7 @@ def qr_practice_fill(topic_id):
         abort(404)
     link = PracticeLink.get_by_topic(topic_id)
     if not link:
-        link = PracticeLink.create(topic_id, topic.get("user_id") or 1, secrets.token_urlsafe(12))
+        link = PracticeLink.create(topic_id, topic.get("owner_id") or 1, secrets.token_urlsafe(12), "fill")
     return redirect(url_for('public_fill_blanks', token=link['token']))
 
 
@@ -2257,7 +2256,7 @@ def qr_practice_unscramble(topic_id):
         abort(404)
     link = PracticeLink.get_by_topic(topic_id)
     if not link:
-        link = PracticeLink.create(topic_id, topic.get("user_id") or 1, secrets.token_urlsafe(12))
+        ink = PracticeLink.create(topic_id, topic.get("owner_id") or 1, secrets.token_urlsafe(12), "unscramble")
     return redirect(url_for('public_unscramble', token=link['token']))
 
 # ==============================================================================
