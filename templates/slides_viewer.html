@@ -258,8 +258,8 @@ body {
   margin-bottom: 6px;
 }
 
-.theme-minimal .slide-title {
-  font-size: 1.8rem;
+.theme-minimal \.slide-title {
+  font-size: clamp(2.2rem, 2.6vw, 2.8rem);
   font-weight: 900;
   color: #1e293b;
   margin: 0;
@@ -1379,6 +1379,71 @@ body.fullscreen-mode .slide-footer {
   flex-shrink: 0 !important;
   padding-top: 15px !important;
 }
+
+/* ============================================
+   INTERACTIVE VOCAB: Reveal / Hide meanings
+   ============================================ */
+.reveal-btn{
+  border: 1px solid rgba(15,23,42,0.12);
+  background: rgba(255,255,255,0.85);
+  padding: 6px 10px;
+  border-radius: 999px;
+  font-weight: 800;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.reveal-btn:hover{
+  transform: translateY(-1px);
+  box-shadow: 0 6px 18px rgba(0,0,0,0.12);
+  background: #fff;
+}
+.reveal-btn:active{ transform: translateY(0); box-shadow:none; }
+
+.meaning.is-hidden{
+  display: none !important;
+}
+
+.vocab-card .word-row{
+  display:flex;
+  align-items:center;
+  justify-content:space-between;
+  gap:10px;
+}
+
+/* inline vocab list */
+.vocab-line{
+  margin: 10px 0;
+  line-height: 1.6;
+}
+.vocab-line .meaning{
+  margin-left: 10px;
+  font-weight: 600;
+  color: #475569;
+}
+
+/* ============================================
+   POINTER (Laser dot)
+   ============================================ */
+.laser-pointer{
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: rgba(239,68,68,0.95);
+  box-shadow: 0 0 0 6px rgba(239,68,68,0.18), 0 12px 30px rgba(0,0,0,0.25);
+  transform: translate(-50%, -50%);
+  pointer-events: none;
+  z-index: 5000;
+  display: none;
+}
+.laser-pointer.on{ display: block; }
+
 </style>
 {% endblock %}
 
@@ -1396,7 +1461,10 @@ body.fullscreen-mode .slide-footer {
           <button class="theme-btn playful active" onclick="setTheme('playful')" title="Playful"></button>
         </div>
         <button class="btn btn-secondary" onclick="toggleFullscreen()">⛶ Fullscreen</button>
-        <a href="{{ url_for('edit_slides', topic_id=topic.id) }}" class="btn btn-primary">✏️ Edit Slides</a>
+        
+        <button class="btn btn-secondary" id="pointerToggleBtn" onclick="togglePointer()" title="Pointer">🔴 Pointer</button>
+        <button class="btn btn-secondary" id="meaningToggleBtn" onclick="toggleAllMeanings()" title="Reveal/Hide meanings">👁 Meanings</button>
+<a href="{{ url_for('edit_slides', topic_id=topic.id) }}" class="btn btn-primary">✏️ Edit Slides</a>
         {% if topic.pdf_file %}
         <a href="{{ url_for('uploaded_file', filename=topic.pdf_file) }}" class="btn btn-secondary" target="_blank">📄 View PDF</a>
         {% endif %}
@@ -1425,6 +1493,9 @@ body.fullscreen-mode .slide-footer {
     <div class="thumb-strip" id="thumbStrip">
       <!-- Thumbnails will be rendered here -->
     </div>
+
+    <!-- Laser Pointer -->
+    <div id="laserPointer" class="laser-pointer"></div>
   </div>
 </div>
 
@@ -1434,6 +1505,105 @@ const slides = {{ slides | tojson | safe }};
 const topicName = {{ topic.name | tojson | safe }};
 let currentIndex = 0;
 let currentTheme = 'playful';
+
+// ---------------- Interactive (Pointer + Reveal meanings) ----------------
+let meaningsHiddenByDefault = true;
+let meaningsGloballyRevealed = false;
+
+// Laser pointer
+let pointerEnabled = false;
+const laserEl = document.getElementById('laserPointer');
+
+function setPointerButtonState(){
+  const btn = document.getElementById('pointerToggleBtn');
+  if(!btn) return;
+  btn.textContent = pointerEnabled ? '🔴 Pointer: ON' : '🔴 Pointer';
+}
+
+function togglePointer(){
+  pointerEnabled = !pointerEnabled;
+  if(pointerEnabled){
+    laserEl.classList.add('on');
+  }else{
+    laserEl.classList.remove('on');
+  }
+  setPointerButtonState();
+}
+
+window.addEventListener('mousemove', (e) => {
+  if(!pointerEnabled) return;
+  laserEl.style.left = e.clientX + 'px';
+  laserEl.style.top = e.clientY + 'px';
+});
+
+window.addEventListener('blur', () => {
+  if(pointerEnabled) laserEl.classList.remove('on');
+});
+window.addEventListener('focus', () => {
+  if(pointerEnabled) laserEl.classList.add('on');
+});
+
+// Meanings: toggle all on current slide
+function toggleAllMeanings(force){
+  const meanings = document.querySelectorAll('[data-reveal="meaning"]');
+  if(meanings.length === 0) return;
+
+  if(typeof force === 'boolean'){
+    meaningsGloballyRevealed = force;
+  }else{
+    meaningsGloballyRevealed = !meaningsGloballyRevealed;
+  }
+
+  meanings.forEach(el => {
+    if(meaningsGloballyRevealed) el.classList.remove('is-hidden');
+    else if(meaningsHiddenByDefault) el.classList.add('is-hidden');
+  });
+
+  // Sync per-item buttons
+  document.querySelectorAll('[data-action="toggle-meaning"]').forEach(btn => {
+    const wrap = btn.closest('.vocab-card') || btn.closest('.vocab-line');
+    const meaningEl = wrap ? wrap.querySelector('[data-reveal="meaning"]') : null;
+    const expanded = meaningEl ? !meaningEl.classList.contains('is-hidden') : false;
+    btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
+    btn.textContent = expanded ? '🙈 Hide' : '👁 Show';
+  });
+
+  const topBtn = document.getElementById('meaningToggleBtn');
+  if(topBtn){
+    topBtn.textContent = meaningsGloballyRevealed ? '👁 Meanings: ON' : '👁 Meanings';
+  }
+}
+
+function wireSlideInteractions(){
+  // Ensure default hidden state
+  if(!meaningsGloballyRevealed && meaningsHiddenByDefault){
+    document.querySelectorAll('[data-reveal="meaning"]').forEach(el => el.classList.add('is-hidden'));
+  }
+
+  // Per-item toggle
+  document.querySelectorAll('[data-action="toggle-meaning"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const wrap = btn.closest('.vocab-card') || btn.closest('.vocab-line');
+      if(!wrap) return;
+      const meaningEl = wrap.querySelector('[data-reveal="meaning"]');
+      if(!meaningEl) return;
+
+      const willShow = meaningEl.classList.contains('is-hidden');
+      meaningEl.classList.toggle('is-hidden', !willShow);
+
+      btn.setAttribute('aria-expanded', willShow ? 'true' : 'false');
+      btn.textContent = willShow ? '🙈 Hide' : '👁 Show';
+    });
+  });
+
+  // Keep top button state sane
+  const topBtn = document.getElementById('meaningToggleBtn');
+  if(topBtn){
+    topBtn.textContent = meaningsGloballyRevealed ? '👁 Meanings: ON' : '👁 Meanings';
+  }
+}
+// ------------------------------------------------------------------------
+
 
 // Sticker sets for playful theme
 const stickerSets = [
@@ -1518,6 +1688,10 @@ function renderSlide(index) {
   }
   
   document.getElementById('slideContainer').innerHTML = html;
+  // Wire interactive elements (reveal meanings, etc.)
+  wireSlideInteractions();
+  if(meaningsGloballyRevealed){ toggleAllMeanings(true); }
+
   document.getElementById('currentSlide').textContent = index + 1;
   
   // Update navigation buttons
@@ -1751,8 +1925,11 @@ function extractContent(slide, type) {
       slide.vocabulary.forEach(v => {
         html += `
           <div class="vocab-card">
-            <div class="word">${escapeHtml(v.word || '')}</div>
-            <div class="meaning">${escapeHtml(v.meaning || v.th || '')}</div>
+            <div class="word-row">
+              <div class="word">${escapeHtml(v.word || '')}</div>
+              <button class="reveal-btn" type="button" data-action="toggle-meaning" aria-expanded="false">👁 Show</button>
+            </div>
+            <div class="meaning is-hidden" data-reveal="meaning">${escapeHtml(v.meaning || v.th || '')}</div>
           </div>
         `;
       });
@@ -1760,7 +1937,11 @@ function extractContent(slide, type) {
     } else {
       html += '<ul>';
       slide.vocabulary.forEach(v => {
-        html += `<li><strong>${escapeHtml(v.word || '')}</strong> - ${escapeHtml(v.meaning || v.th || '')}${v.example ? `<br><em style="color:#6b7280;font-size:0.85rem">Ex: ${escapeHtml(v.example)}</em>` : ''}</li>`;
+        html += `<li class="vocab-line"><strong>${escapeHtml(v.word || '')}</strong>
+          <button class="reveal-btn" type="button" data-action="toggle-meaning" aria-expanded="false">👁 Show</button>
+          <span class="meaning is-hidden" data-reveal="meaning">${escapeHtml(v.meaning || v.th || '')}</span>
+          ${v.example ? `<br><em style="color:#6b7280;font-size:0.9rem">Ex: ${escapeHtml(v.example)}</em>` : ''}
+        </li>`;
       });
       html += '</ul>';
     }
@@ -2078,6 +2259,9 @@ document.addEventListener('keydown', (e) => {
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {
   document.getElementById('totalSlides').textContent = slides.length;
+  setPointerButtonState();
+  // Start with meanings hidden (teachers reveal when ready)
+  meaningsGloballyRevealed = false;
   createThumbnails();
   renderSlide(0);
 });
