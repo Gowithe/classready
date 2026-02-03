@@ -21,8 +21,6 @@ from flask import (
     Flask, render_template, request, redirect, url_for,
     session, flash, jsonify, send_from_directory, abort, Response
 )
-
-from jinja2 import TemplateNotFound
 from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
 
@@ -224,29 +222,6 @@ def inject_freemium_data():
 @app.route("/")
 def landing(): return render_template("landing.html")
 
-
-# ===========================
-# SEO Landing Pages (EN/TH)
-# ===========================
-def _render_seo_template(filename: str):
-    """Try templates/seo/<filename> first, fallback to templates/<filename>."""
-    try:
-        return render_template(f"seo/{filename}")
-    except TemplateNotFound:
-        return render_template(filename)
-
-@app.route("/ai-slide-generator")
-def ai_slide_generator_root():
-    """Default to English SEO page (x-default)."""
-    return redirect("/en/ai-slide-generator", code=302)
-
-@app.route("/en/ai-slide-generator")
-def ai_slide_generator_en():
-    return _render_seo_template("ai_slide_generator_en.html")
-
-@app.route("/th/ai-slide-generator")
-def ai_slide_generator_th():
-    return _render_seo_template("ai_slide_generator_th.html")
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
@@ -2691,9 +2666,23 @@ def premium_subscribe(plan_id):
     """
     user_id = session["user_id"]
 
-    # เป็น Premium อยู่แล้ว
-    if is_premium_user(user_id):
-        return jsonify({"ok": False, "error": "คุณเป็น Premium อยู่แล้ว"}), 400
+    # ✅ อนุญาตให้อัปเกรด/เปลี่ยนแพ็คเกจได้
+    # (บล็อกเฉพาะกรณีที่ผู้ใช้มีแพ็คเกจนี้อยู่แล้ว)
+    try:
+        current_sub = UserSubscription.get_active_subscription(user_id)
+    except Exception:
+        current_sub = None
+
+    def _sub_plan_id(sub):
+        if not sub:
+            return None
+        if isinstance(sub, dict):
+            return sub.get('plan_id') or sub.get('planId') or sub.get('plan')
+        return getattr(sub, 'plan_id', None)
+
+    current_plan_id = _sub_plan_id(current_sub)
+    if current_plan_id is not None and int(current_plan_id) == int(plan_id):
+        return jsonify({"ok": False, "error": "คุณเป็นสมาชิกแพ็คเกจนี้อยู่แล้ว"}), 400
 
     plan = SubscriptionPlan.get_by_id(plan_id)
     if not plan:
@@ -3278,10 +3267,24 @@ def validate_slip_amount(slip_data: dict, expected_amount: float, tolerance: flo
 def payment_create(plan_id):
     """สร้างรายการชำระเงินใหม่"""
     user_id = session["user_id"]
-    
-    # ตรวจสอบว่าเป็น Premium อยู่แล้วหรือไม่
-    if is_premium_user(user_id):
-        return jsonify({"ok": False, "error": "คุณเป็น Premium อยู่แล้ว"}), 400
+
+    # ✅ อนุญาตให้อัปเกรด/เปลี่ยนแพ็คเกจได้
+    # (บล็อกเฉพาะกรณีที่ผู้ใช้มีแพ็คเกจนี้อยู่แล้ว)
+    try:
+        current_sub = UserSubscription.get_active_subscription(user_id)
+    except Exception:
+        current_sub = None
+
+    def _sub_plan_id(sub):
+        if not sub:
+            return None
+        if isinstance(sub, dict):
+            return sub.get('plan_id') or sub.get('planId') or sub.get('plan')
+        return getattr(sub, 'plan_id', None)
+
+    current_plan_id = _sub_plan_id(current_sub)
+    if current_plan_id is not None and int(current_plan_id) == int(plan_id):
+        return jsonify({"ok": False, "error": "คุณเป็นสมาชิกแพ็คเกจนี้อยู่แล้ว"}), 400
     
     # หา plan
     plan = SubscriptionPlan.get_by_id(plan_id)
