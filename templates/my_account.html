@@ -1,0 +1,409 @@
+{% extends "base.html" %}
+{% block title %}บัญชีของฉัน - Teacher Platform{% endblock %}
+
+{% block extra_css %}
+<style>
+  .account-wrap {
+    max-width: 900px;
+    margin: 1.5rem auto;
+    padding: 0 1rem;
+  }
+  
+  .account-header {
+    display: flex;
+    align-items: center;
+    gap: 16px;
+    margin-bottom: 24px;
+    padding-bottom: 16px;
+    border-bottom: 1px solid #e2e8f0;
+  }
+  
+  .account-avatar {
+    width: 80px;
+    height: 80px;
+    border-radius: 50%;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 2rem;
+    color: #fff;
+  }
+  
+  .account-info h1 {
+    font-size: 1.5rem;
+    margin: 0 0 4px;
+    color: #1e293b;
+  }
+  
+  .account-info p {
+    margin: 0;
+    color: #64748b;
+    font-size: 0.9rem;
+  }
+  
+  .account-badge {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 4px 12px;
+    border-radius: 999px;
+    font-size: 0.8rem;
+    font-weight: 700;
+    margin-top: 8px;
+  }
+  
+  .badge-premium {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: #78350f;
+  }
+  
+  .badge-free {
+    background: #e2e8f0;
+    color: #475569;
+  }
+  
+  .badge-verified {
+    background: #dcfce7;
+    color: #166534;
+  }
+  
+  .badge-unverified {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+  
+  .account-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(280px, 1fr));
+    gap: 20px;
+  }
+  
+  .account-card {
+    background: #fff;
+    border-radius: 14px;
+    padding: 20px;
+    border: 1px solid rgba(0,0,0,0.08);
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+  }
+  
+  .account-card h3 {
+    font-size: 1rem;
+    margin: 0 0 16px;
+    color: #334155;
+    display: flex;
+    align-items: center;
+    gap: 8px;
+  }
+  
+  .stat-grid {
+    display: grid;
+    grid-template-columns: repeat(2, 1fr);
+    gap: 12px;
+  }
+  
+  .stat-item {
+    background: #f8fafc;
+    padding: 12px;
+    border-radius: 10px;
+    text-align: center;
+  }
+  
+  .stat-value {
+    font-size: 1.5rem;
+    font-weight: 900;
+    color: #667eea;
+  }
+  
+  .stat-label {
+    font-size: 0.75rem;
+    color: #64748b;
+    text-transform: uppercase;
+  }
+  
+  .info-row {
+    display: flex;
+    justify-content: space-between;
+    padding: 10px 0;
+    border-bottom: 1px solid #f1f5f9;
+  }
+  
+  .info-row:last-child {
+    border-bottom: none;
+  }
+  
+  .info-label {
+    color: #64748b;
+    font-size: 0.9rem;
+  }
+  
+  .info-value {
+    font-weight: 700;
+    color: #1e293b;
+  }
+  
+  .form-group {
+    margin-bottom: 1rem;
+  }
+  
+  .form-group label {
+    display: block;
+    font-weight: 700;
+    margin-bottom: 0.4rem;
+    color: #334155;
+    font-size: 0.9rem;
+  }
+  
+  .form-group input {
+    width: 100%;
+    padding: 0.65rem 0.85rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    font-size: 0.95rem;
+  }
+  
+  .form-group input:focus {
+    outline: none;
+    border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.12);
+  }
+  
+  .btn {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 0.6rem 1rem;
+    border-radius: 8px;
+    font-weight: 700;
+    font-size: 0.9rem;
+    cursor: pointer;
+    border: none;
+    transition: all 0.2s;
+  }
+  
+  .btn-primary {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+  }
+  
+  .btn-primary:hover {
+    opacity: 0.9;
+  }
+  
+  .btn-secondary {
+    background: #f1f5f9;
+    color: #475569;
+    border: 1px solid #e2e8f0;
+  }
+  
+  .btn-secondary:hover {
+    background: #e2e8f0;
+  }
+  
+  .btn-upgrade {
+    background: linear-gradient(135deg, #fbbf24, #f59e0b);
+    color: #78350f;
+    width: 100%;
+    justify-content: center;
+    padding: 12px;
+    font-size: 1rem;
+  }
+  
+  .btn-upgrade:hover {
+    opacity: 0.9;
+  }
+  
+  .subscription-card {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff;
+    border-radius: 14px;
+    padding: 20px;
+  }
+  
+  .subscription-card h3 {
+    color: #fff;
+    margin: 0 0 12px;
+  }
+  
+  .subscription-card .info-row {
+    border-color: rgba(255,255,255,0.2);
+  }
+  
+  .subscription-card .info-label {
+    color: rgba(255,255,255,0.8);
+  }
+  
+  .subscription-card .info-value {
+    color: #fff;
+  }
+  
+  .progress-bar {
+    height: 8px;
+    background: #e2e8f0;
+    border-radius: 4px;
+    overflow: hidden;
+    margin-top: 6px;
+  }
+  
+  .progress-fill {
+    height: 100%;
+    border-radius: 4px;
+    transition: width 0.3s;
+  }
+  
+  .progress-fill.green { background: #22c55e; }
+  .progress-fill.yellow { background: #f59e0b; }
+  .progress-fill.red { background: #ef4444; }
+  
+  @media (max-width: 640px) {
+    .account-header {
+      flex-direction: column;
+      text-align: center;
+    }
+    .stat-grid {
+      grid-template-columns: 1fr;
+    }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="account-wrap">
+  <!-- Header -->
+  <div class="account-header">
+    <div class="account-avatar">
+      {{ user.email[0]|upper }}
+    </div>
+    <div class="account-info">
+      <h1>{{ user.display_name or user.email.split('@')[0] }}</h1>
+      <p>{{ user.email }}</p>
+      <div>
+        {% if is_premium %}
+          <span class="account-badge badge-premium">💎 Premium</span>
+        {% else %}
+          <span class="account-badge badge-free">🆓 Free</span>
+        {% endif %}
+        
+        {% if user.is_verified %}
+          <span class="account-badge badge-verified">✓ ยืนยันแล้ว</span>
+        {% else %}
+          <span class="account-badge badge-unverified">⚠ ยังไม่ยืนยัน</span>
+        {% endif %}
+      </div>
+    </div>
+  </div>
+
+  <div class="account-grid">
+    <!-- Usage Stats -->
+    <div class="account-card">
+      <h3>📊 การใช้งาน</h3>
+      <div class="stat-grid">
+        <div class="stat-item">
+          <div class="stat-value">{{ stats.topics }}</div>
+          <div class="stat-label">Topics</div>
+          {% if not is_premium %}
+            <div class="progress-bar">
+              {% set pct = (stats.topics / limits.topics * 100) if limits.topics else 0 %}
+              <div class="progress-fill {% if pct >= 80 %}red{% elif pct >= 50 %}yellow{% else %}green{% endif %}" style="width:{{ pct|min(100) }}%"></div>
+            </div>
+            <div style="font-size:0.7rem;color:#64748b;margin-top:4px;">{{ stats.topics }}/{{ limits.topics }}</div>
+          {% endif %}
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">{{ stats.classrooms }}</div>
+          <div class="stat-label">Classrooms</div>
+          {% if not is_premium %}
+            <div class="progress-bar">
+              {% set pct = (stats.classrooms / limits.classrooms * 100) if limits.classrooms else 0 %}
+              <div class="progress-fill {% if pct >= 80 %}red{% elif pct >= 50 %}yellow{% else %}green{% endif %}" style="width:{{ pct|min(100) }}%"></div>
+            </div>
+            <div style="font-size:0.7rem;color:#64748b;margin-top:4px;">{{ stats.classrooms }}/{{ limits.classrooms }}</div>
+          {% endif %}
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">{{ stats.ai_this_month }}</div>
+          <div class="stat-label">AI เดือนนี้</div>
+          {% if not is_premium %}
+            <div class="progress-bar">
+              {% set pct = (stats.ai_this_month / limits.ai_generate * 100) if limits.ai_generate else 0 %}
+              <div class="progress-fill {% if pct >= 80 %}red{% elif pct >= 50 %}yellow{% else %}green{% endif %}" style="width:{{ pct|min(100) }}%"></div>
+            </div>
+            <div style="font-size:0.7rem;color:#64748b;margin-top:4px;">{{ stats.ai_this_month }}/{{ limits.ai_generate }}</div>
+          {% endif %}
+        </div>
+        <div class="stat-item">
+          <div class="stat-value">{{ stats.students }}</div>
+          <div class="stat-label">Students</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Subscription -->
+    {% if is_premium and subscription %}
+      <div class="subscription-card">
+        <h3>💎 Premium Subscription</h3>
+        <div class="info-row">
+          <span class="info-label">แผน</span>
+          <span class="info-value">{{ subscription.plan_name or 'Premium' }}</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">สถานะ</span>
+          <span class="info-value">✓ Active</span>
+        </div>
+        <div class="info-row">
+          <span class="info-label">หมดอายุ</span>
+          <span class="info-value">{{ subscription.expires_at[:10] if subscription.expires_at else '-' }}</span>
+        </div>
+      </div>
+    {% else %}
+      <div class="account-card">
+        <h3>💎 อัพเกรดเป็น Premium</h3>
+        <p style="color:#64748b;font-size:0.9rem;margin-bottom:16px;">
+          ปลดล็อคการใช้งานแบบไม่จำกัด Topics, Classrooms, AI Generate และอื่นๆ อีกมากมาย
+        </p>
+        <a href="{{ url_for('pricing') }}" class="btn btn-upgrade">⬆️ อัพเกรดตอนนี้</a>
+      </div>
+    {% endif %}
+
+    <!-- Account Info -->
+    <div class="account-card">
+      <h3>👤 ข้อมูลบัญชี</h3>
+      <form method="POST" action="{{ url_for('my_account_update') }}">
+        <div class="form-group">
+          <label>ชื่อที่แสดง</label>
+          <input type="text" name="display_name" value="{{ user.display_name or '' }}" placeholder="ชื่อของคุณ">
+        </div>
+        <div class="form-group">
+          <label>อีเมล</label>
+          <input type="email" value="{{ user.email }}" disabled style="background:#f8fafc;">
+        </div>
+        <div class="form-group">
+          <label>สมาชิกตั้งแต่</label>
+          <input type="text" value="{{ user.created_at[:10] if user.created_at else '-' }}" disabled style="background:#f8fafc;">
+        </div>
+        <button type="submit" class="btn btn-primary">💾 บันทึก</button>
+      </form>
+    </div>
+
+    <!-- Change Password -->
+    <div class="account-card">
+      <h3>🔐 เปลี่ยนรหัสผ่าน</h3>
+      <form method="POST" action="{{ url_for('my_account_change_password') }}">
+        <div class="form-group">
+          <label>รหัสผ่านปัจจุบัน</label>
+          <input type="password" name="current_password" required placeholder="••••••••">
+        </div>
+        <div class="form-group">
+          <label>รหัสผ่านใหม่</label>
+          <input type="password" name="new_password" required placeholder="อย่างน้อย 6 ตัวอักษร" minlength="6">
+        </div>
+        <div class="form-group">
+          <label>ยืนยันรหัสผ่านใหม่</label>
+          <input type="password" name="confirm_password" required placeholder="••••••••">
+        </div>
+        <button type="submit" class="btn btn-secondary">🔑 เปลี่ยนรหัสผ่าน</button>
+      </form>
+    </div>
+  </div>
+</div>
+{% endblock %}
