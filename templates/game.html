@@ -271,12 +271,12 @@ input:checked + .slider:before { transform: translateX(20px); }
     <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="nav-btn">← Back</a>
     <a href="{{ url_for('view_slides', topic_id=topic.id) }}" class="nav-btn">📽 Slides</a>
     <a href="{{ url_for('game_memory', topic_id=topic.id) }}" class="nav-btn">🃏 Memory</a>
-    <a href="{{ url_for('game', topic_id=topic.id) }}" class="nav-btn nav-game">🎮 Bamboozle</a>
+    <a href="{{ url_for('game', topic_id=topic.id) }}" class="nav-btn nav-game">🎮 Mystery Tiles</a>
   </div>
 
   <!-- Setup Screen -->
   <div class="setup-screen" id="setup">
-    <h2>🎮 Bamboozle Game</h2>
+    <h2>🎮 Mystery Tiles Game</h2>
     <p>แข่งขันตอบคำถามสะสมคะแนนแบบทีม</p>
 
     <div class="setup-options">
@@ -915,3 +915,4 @@ function resetGame() {
 }
 </script>
 {% endblock %}
+
