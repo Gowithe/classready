@@ -422,16 +422,35 @@ def my_account():
     subscription = UserSubscription.get_active_subscription(user["id"])
     is_premium = subscription is not None
     
-    # Get usage stats
-    stats = UsageLimits.get_user_stats(user["id"])
+    # Get usage stats from UsageLimits
+    raw_stats = UsageLimits.get_user_stats(user["id"])
+    
+    # Count students
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("""
+        SELECT COUNT(*) FROM classroom_students cs
+        JOIN classrooms cl ON cs.classroom_id = cl.id
+        WHERE cl.owner_id = ?
+    """, (user["id"],))
+    student_count = c.fetchone()[0]
+    conn.close()
+    
+    # Map to template-expected keys
+    stats = {
+        "topics": raw_stats.get("topic_count", 0),
+        "classrooms": raw_stats.get("classroom_count", 0),
+        "ai_this_month": raw_stats.get("ai_generate_count", 0),
+        "students": student_count,
+    }
     
     # Get limits
     if is_premium:
         limits = {
-            "topics": "ไม่จำกัด",
-            "classrooms": "ไม่จำกัด",
-            "ai_generate": "ไม่จำกัด",
-            "students_per_classroom": "ไม่จำกัด",
+            "topics": None,  # None = unlimited
+            "classrooms": None,
+            "ai_generate": None,
+            "students_per_classroom": None,
         }
     else:
         limits = {
