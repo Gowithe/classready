@@ -1503,6 +1503,15 @@ body.fullscreen-mode .slide-footer {
     border-color: rgba(255,255,255,0.16);
   }
 
+
+/* ===============================
+   FORCE HIDE SLIDE NUMBER (GLOBAL)
+   =============================== */
+.slide-number,
+.slide-counter {
+  display: none !important;
+}
+
 </style>
 {% endblock %}
 
@@ -1827,7 +1836,7 @@ function renderPlayfulSlide(slide, type, stickers, imageUrl, index, isFullscreen
         </div>
         
         <div class="slide-footer" style="flex-shrink: 0; display: flex; justify-content: space-between; padding-top: 15px;">
-          <span class="slide-number" style="background: #1e293b; color: #fff; padding: 4px 12px; border-radius: 20px; font-weight: 800; font-size: 0.8rem;">${index + 1} / ${slides.length}</span>
+          
           <span>${topicName}</span>
         </div>
       </div>
@@ -1855,7 +1864,7 @@ function renderPlayfulSlide(slide, type, stickers, imageUrl, index, isFullscreen
       </div>
       
       <div class="slide-footer">
-        <span class="slide-number">${index + 1} / ${slides.length}</span>
+        
         <span>${topicName}</span>
       </div>
     </div>
@@ -1889,7 +1898,7 @@ function renderMinimalSlide(slide, type, imageUrl, index, isFullscreen) {
       </div>
       
       <div class="slide-footer">
-        <span class="slide-number">${index + 1} / ${slides.length}</span>
+        
         <span class="slide-type-badge">${type}</span>
       </div>
     </div>
@@ -1923,7 +1932,7 @@ function renderColorfulSlide(slide, type, imageUrl, index, isFullscreen) {
       </div>
       
       <div class="slide-footer">
-        <span class="slide-number">${index + 1} / ${slides.length}</span>
+        
       </div>
     </div>
   `;
@@ -1956,7 +1965,7 @@ function renderCorporateSlide(slide, type, imageUrl, index, isFullscreen) {
       </div>
       
       <div class="slide-footer">
-        <span class="slide-number">${index + 1} / ${slides.length}</span>
+        
       </div>
     </div>
   `;
