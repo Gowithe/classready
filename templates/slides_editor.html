@@ -1013,6 +1013,25 @@ function openEditModal(index) {
     </div>
 
     <div class="form-group">
+      <label>Image (optional)</label>
+      <div style="display:flex; gap:10px; flex-wrap:wrap; align-items:center;">
+        <input type="text" id="editImageUrl" value="${escapeHtml(slide.image_url || slide.hero_image || '')}" placeholder="วางลิงก์รูปภาพ หรืออัปโหลดจากเครื่อง..." style="flex:1; min-width:240px;">
+        <label class="btn" style="display:inline-flex; align-items:center; gap:8px; cursor:pointer;">
+          📷 เพิ่มรูปจากเครื่อง
+          <input type="file" id="editImageFile" accept="image/*" style="display:none;">
+        </label>
+        <button class="btn btn-secondary" type="button" id="editImageClear">🧹 ล้างรูป</button>
+      </div>
+      <div style="margin-top:8px; display:flex; gap:10px; align-items:center;">
+        <img id="editImagePreview" src="${escapeHtml(slide.image_url || slide.hero_image || '')}" alt="" style="width:120px;height:80px;object-fit:cover;border-radius:10px;border:1px solid var(--border); background:#f1f5f9; ${ (slide.image_url || slide.hero_image) ? '' : 'display:none;' }">
+        <div style="color:var(--muted); font-size:0.85rem; line-height:1.4;">
+          ใส่ลิงก์รูปภาพเพื่อแสดงบนสไลด์ (แนะนำ 16:9 หรือรูปแนวนอน) <br>
+          ถ้าเว้นว่าง ระบบจะใช้รูปอัตโนมัติ (ถ้ามี)
+        </div>
+      </div>
+    </div>
+
+    <div class="form-group">
       <label>Content</label>
       <textarea id="editContent" rows="4">${escapeHtml(slide.content || '')}</textarea>
     </div>
@@ -1045,6 +1064,63 @@ function openEditModal(index) {
 
   modalBody.innerHTML = formHtml;
   editModal.classList.add('show');
+
+  // Live image preview + upload from device
+  const imgInput = document.getElementById('editImageUrl');
+  const imgPrev  = document.getElementById('editImagePreview');
+  const imgFile  = document.getElementById('editImageFile');
+  const imgClear = document.getElementById('editImageClear');
+
+  const sync = () => {
+    const url = (imgInput?.value || '').trim();
+    if (!url) {
+      if (imgPrev) {
+        imgPrev.style.display = 'none';
+        imgPrev.removeAttribute('src');
+      }
+      return;
+    }
+    if (imgPrev) {
+      imgPrev.style.display = 'block';
+      imgPrev.src = url;
+    }
+  };
+
+  if (imgInput) imgInput.addEventListener('input', sync);
+
+  // Upload -> convert to dataURL so backend can store it
+  if (imgFile && imgInput) {
+    imgFile.addEventListener('change', () => {
+      const f = imgFile.files && imgFile.files[0];
+      if (!f) return;
+
+      // simple size guard (≈ 2.5MB) to avoid huge DB payloads
+      const MAX = 2.5 * 1024 * 1024;
+      if (f.size > MAX) {
+        alert('ไฟล์รูปใหญ่เกินไป (เกิน 2.5MB) กรุณาย่อรูปก่อนครับ');
+        imgFile.value = '';
+        return;
+      }
+
+      const reader = new FileReader();
+      reader.onload = () => {
+        imgInput.value = String(reader.result || '');
+        sync();
+      };
+      reader.readAsDataURL(f);
+    });
+  }
+
+  if (imgClear && imgInput) {
+    imgClear.addEventListener('click', () => {
+      imgInput.value = '';
+      if (imgFile) imgFile.value = '';
+      sync();
+    });
+  }
+
+  sync();
+
 }
 
 function buildListField(label, id, items) {
@@ -1124,6 +1200,16 @@ function saveSlideFromModal() {
   slide.content = document.getElementById('editContent').value;
   slide.teacher_notes = document.getElementById('editTeacherNotes').value;
 
+  // Image
+  const imgUrl = (document.getElementById('editImageUrl')?.value || '').trim();
+  if (imgUrl) {
+    slide.image_url = imgUrl;
+    slide.hero_image = imgUrl; // backward compatibility
+  } else {
+    delete slide.image_url;
+    delete slide.hero_image;
+  }
+
   // Collect list items
   const objectivesInputs = document.querySelectorAll('.editObjectives-item');
   if (objectivesInputs.length) {
@@ -1185,7 +1271,8 @@ function addNewSlide() {
     type: type,
     title: `New ${getTypeLabel(type)}`,
     subtitle: '',
-    content: ''
+    content: '',
+    image_url: ''
   };
 
   // Add type-specific fields
