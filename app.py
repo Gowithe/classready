@@ -21,6 +21,8 @@ from flask import (
     Flask, render_template, request, redirect, url_for,
     session, flash, jsonify, send_from_directory, abort, Response
 )
+
+from jinja2 import TemplateNotFound
 from werkzeug.security import check_password_hash
 from werkzeug.utils import secure_filename
 
@@ -222,6 +224,29 @@ def inject_freemium_data():
 @app.route("/")
 def landing(): return render_template("landing.html")
 
+
+# ===========================
+# SEO Landing Pages (EN/TH)
+# ===========================
+def _render_seo_template(filename: str):
+    """Try templates/seo/<filename> first, fallback to templates/<filename>."""
+    try:
+        return render_template(f"seo/{filename}")
+    except TemplateNotFound:
+        return render_template(filename)
+
+@app.route("/ai-slide-generator")
+def ai_slide_generator_root():
+    """Default to English SEO page (x-default)."""
+    return redirect("/en/ai-slide-generator", code=302)
+
+@app.route("/en/ai-slide-generator")
+def ai_slide_generator_en():
+    return _render_seo_template("ai_slide_generator_en.html")
+
+@app.route("/th/ai-slide-generator")
+def ai_slide_generator_th():
+    return _render_seo_template("ai_slide_generator_th.html")
 
 @app.route("/register", methods=["GET", "POST"])
 def register():
