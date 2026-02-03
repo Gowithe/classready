@@ -932,7 +932,7 @@ body {
 }
 
 .content-image {
-  opacity: 0;
+  opacity: 1;
   transition: opacity 0.3s ease;
 }
 
@@ -1623,8 +1623,8 @@ function getStickers(slideIndex) {
 // Get image URL from Unsplash based on keywords
 function getImageUrl(slide, index) {
   // If slide has image_url, use it (including base64 data URLs)
-  if (slide.image_url) {
-    return slide.image_url;
+  if (slide.image_url || slide.hero_image) {
+    return slide.image_url || slide.hero_image;
   }
   
   // Generate image from keywords
@@ -1662,7 +1662,7 @@ function renderImageHtml(imageUrl, title) {
     <div class="content-image">
       <img src="${imageUrl}" alt="${escapeHtml(title)}" loading="lazy" 
            onerror="this.parentElement.style.display='none'"
-           onload="this.parentElement.style.opacity='1'">
+           >
     </div>
   `;
 }
@@ -1715,7 +1715,9 @@ function renderPlayfulSlide(slide, type, stickers, imageUrl, index, isFullscreen
   const title = slide.title || `Slide ${index + 1}`;
   const subtitle = getSubtitle(type);
   const content = extractContent(slide, type);
-  const showImage = imageUrl && !['hook', 'objectives', 'guided_practice', 'exit_ticket'].includes(type);
+  const manualImage = !!(slide.image_url || slide.hero_image);
+  const excludedAuto = ['hook','objectives','guided_practice','exit_ticket'];
+  const showImage = manualImage || (imageUrl && !excludedAuto.includes(type));
   
   // Debug log
   console.log('Fullscreen:', isFullscreen, 'Title:', title, 'Subtitle:', subtitle);
@@ -1782,7 +1784,9 @@ function renderMinimalSlide(slide, type, imageUrl, index, isFullscreen) {
   const title = slide.title || `Slide ${index + 1}`;
   const subtitle = getSubtitle(type);
   const content = extractContent(slide, type);
-  const showImage = imageUrl && !['hook', 'objectives', 'guided_practice', 'exit_ticket'].includes(type);
+  const manualImage = !!(slide.image_url || slide.hero_image);
+  const excludedAuto = ['hook','objectives','guided_practice','exit_ticket'];
+  const showImage = manualImage || (imageUrl && !excludedAuto.includes(type));
   
   const slideStyle = isFullscreen ? 'padding: 80px 60px 60px !important;' : '';
   const titleStyle = isFullscreen ? 'font-size: 2.5rem;' : '';
@@ -1814,7 +1818,9 @@ function renderColorfulSlide(slide, type, imageUrl, index, isFullscreen) {
   const title = slide.title || `Slide ${index + 1}`;
   const subtitle = getSubtitle(type);
   const content = extractContent(slide, type);
-  const showImage = imageUrl && !['hook', 'objectives', 'guided_practice', 'exit_ticket'].includes(type);
+  const manualImage = !!(slide.image_url || slide.hero_image);
+  const excludedAuto = ['hook','objectives','guided_practice','exit_ticket'];
+  const showImage = manualImage || (imageUrl && !excludedAuto.includes(type));
   
   const slideStyle = isFullscreen ? 'padding: 80px 60px 60px !important;' : '';
   const titleStyle = isFullscreen ? 'font-size: 2.5rem;' : '';
@@ -1845,7 +1851,9 @@ function renderCorporateSlide(slide, type, imageUrl, index, isFullscreen) {
   const title = slide.title || `Slide ${index + 1}`;
   const subtitle = getSubtitle(type);
   const content = extractContent(slide, type);
-  const showImage = imageUrl && !['hook', 'objectives', 'guided_practice', 'exit_ticket'].includes(type);
+  const manualImage = !!(slide.image_url || slide.hero_image);
+  const excludedAuto = ['hook','objectives','guided_practice','exit_ticket'];
+  const showImage = manualImage || (imageUrl && !excludedAuto.includes(type));
   
   const slideStyle = isFullscreen ? 'padding: 80px 60px 60px !important;' : '';
   const titleStyle = isFullscreen ? 'font-size: 2.5rem;' : '';
@@ -1903,7 +1911,13 @@ function extractContent(slide, type) {
         if (typeof c === 'string') {
           html += `<p>${escapeHtml(c)}</p>`;
         } else if (c.en) {
-          html += `<p>${escapeHtml(c.en)}${c.th ? ` <span style="color:#6b7280">(${escapeHtml(c.th)})</span>` : ''}</p>`;
+          const th = c.th || c.meaning || c.translation || '';
+          if (th && /[\u0E00-\u0E7F]/.test(th)) {
+            html += `<p>${escapeHtml(c.en)} <button class="reveal-btn" type="button" data-action="toggle-meaning" aria-expanded="false">👁 Show</button>
+                     <span class="meaning is-hidden" data-reveal="meaning">(${escapeHtml(th)})</span></p>`;
+          } else {
+            html += `<p>${escapeHtml(c.en)}${th ? ` <span style="color:#6b7280">(${escapeHtml(th)})</span>` : ''}</p>`;
+          }
         }
       });
     }
@@ -1952,9 +1966,20 @@ function extractContent(slide, type) {
     html += '<ul>';
     slide.examples.forEach(ex => {
       if (typeof ex === 'string') {
-        html += `<li>${escapeHtml(ex)}</li>`;
+        // If teacher typed "EN - TH" (or "EN: TH"), auto-hide TH meaning
+        const raw = String(ex);
+        const m = raw.match(/^(.+?)\s*(?:-|–|—|:)\s*(.+)$/);
+        if (m && /[\u0E00-\u0E7F]/.test(m[2])) {
+          html += `<li>${escapeHtml(m[1])} <button class="reveal-btn" type="button" data-action="toggle-meaning" aria-expanded="false">👁 Show</button>
+                   <span class="meaning is-hidden" data-reveal="meaning">(${escapeHtml(m[2])})</span></li>`;
+        } else {
+          html += `<li>${escapeHtml(raw)}</li>`;
+        }
       } else if (ex.en) {
-        html += `<li>${escapeHtml(ex.en)}${ex.th ? ` <span style="color:#6b7280;font-size:0.9rem">(${escapeHtml(ex.th)})</span>` : ''}</li>`;
+        html += `<li>${escapeHtml(ex.en)}${
+          ex.th ? ` <button class="reveal-btn" type="button" data-action="toggle-meaning" aria-expanded="false">👁 Show</button>
+                   <span class="meaning is-hidden" data-reveal="meaning">(${escapeHtml(ex.th)})</span>` : ''
+        }</li>`;
       }
     });
     html += '</ul>';
@@ -1992,7 +2017,14 @@ function extractContent(slide, type) {
         html += `<p class="dialogue-line">${escapeHtml(line)}</p>`;
       } else if (line.speaker) {
         const text = line.en || line.text || '';
-        html += `<p class="dialogue-line"><strong>${escapeHtml(line.speaker)}:</strong> ${escapeHtml(text)}</p>`;
+        const th = line.th || line.meaning || line.translation || '';
+        if (th && /[\u0E00-\u0E7F]/.test(th)) {
+          html += `<p class="dialogue-line"><strong>${escapeHtml(line.speaker)}:</strong> ${escapeHtml(text)}
+                   <button class="reveal-btn" type="button" data-action="toggle-meaning" aria-expanded="false" style="margin-left:10px">👁 Show</button>
+                   <span class="meaning is-hidden" data-reveal="meaning">(${escapeHtml(th)})</span></p>`;
+        } else {
+          html += `<p class="dialogue-line"><strong>${escapeHtml(line.speaker)}:</strong> ${escapeHtml(text)}</p>`;
+        }
       }
     });
     html += '</div>';
