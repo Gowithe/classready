@@ -1,0 +1,310 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>AI Slide Generator – Create Classroom-Ready Slides in Minutes | Clazzee</title>
+  <meta name="description" content="Create classroom-ready slides with AI in minutes. Generate interactive slides with smart reveal meanings, text-to-speech, and ready-to-teach layouts for real classrooms." />
+
+  <!-- Canonical + hreflang -->
+  <link rel="canonical" href="https://clazzee.com/en/ai-slide-generator" />
+  <link rel="alternate" hreflang="en" href="https://clazzee.com/en/ai-slide-generator" />
+  <link rel="alternate" hreflang="th" href="https://clazzee.com/th/ai-slide-generator" />
+  <link rel="alternate" hreflang="x-default" href="https://clazzee.com/en/ai-slide-generator" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Clazzee" />
+  <meta property="og:title" content="AI Slide Generator – Create Classroom-Ready Slides in Minutes" />
+  <meta property="og:description" content="Generate interactive slides with smart reveal meanings and text-to-speech. Built for real classrooms." />
+  <meta property="og:url" content="https://clazzee.com/en/ai-slide-generator" />
+
+  <!-- Twitter -->
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:title" content="AI Slide Generator – Create Classroom-Ready Slides in Minutes" />
+  <meta name="twitter:description" content="Generate interactive slides with smart reveal meanings and text-to-speech. Built for real classrooms." />
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#0f1a2f;
+      --card:#111f3b;
+      --text:#eaf0ff;
+      --muted:rgba(234,240,255,.72);
+      --line:rgba(234,240,255,.14);
+      --accent:#7c3aed;
+      --accent2:#22c55e;
+      --shadow: 0 18px 50px rgba(0,0,0,.35);
+      --radius:18px;
+      --max: 1080px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(900px 450px at 18% 10%, rgba(124,58,237,.35), transparent 55%),
+        radial-gradient(900px 450px at 88% 30%, rgba(34,197,94,.18), transparent 55%),
+        linear-gradient(180deg, #081024, #070b14 80%);
+    }
+    a{color:inherit; text-decoration:none}
+    .wrap{max-width:var(--max); margin:0 auto; padding:28px 18px 70px}
+    .nav{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:14px; padding:12px 14px; border:1px solid var(--line);
+      background:rgba(15,26,47,.72); border-radius:999px; backdrop-filter: blur(10px);
+    }
+    .brand{display:flex; align-items:center; gap:10px; font-weight:900; letter-spacing:.2px}
+    .logo{
+      width:34px; height:34px; border-radius:12px;
+      background: linear-gradient(135deg, rgba(124,58,237,1), rgba(34,197,94,1));
+      box-shadow: 0 10px 25px rgba(124,58,237,.25);
+    }
+    .navlinks{display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end}
+    .pill{
+      border:1px solid var(--line); padding:9px 12px; border-radius:999px;
+      background:rgba(255,255,255,.04);
+      font-weight:700; color:var(--muted);
+    }
+    .pill:hover{border-color:rgba(234,240,255,.26); color:var(--text)}
+    .cta{
+      border:1px solid rgba(124,58,237,.55);
+      background: rgba(124,58,237,.16);
+      color: var(--text);
+    }
+    .cta:hover{background: rgba(124,58,237,.24); border-color: rgba(124,58,237,.75)}
+    .hero{padding:46px 6px 18px}
+    .kicker{
+      display:inline-flex; gap:10px; align-items:center;
+      border:1px solid var(--line); padding:10px 14px; border-radius:999px;
+      background: rgba(255,255,255,.04); color:var(--muted);
+      font-weight:800;
+    }
+    .h1{
+      margin:16px 0 10px;
+      font-size: clamp(30px, 4.2vw, 54px);
+      line-height:1.05;
+      letter-spacing:-.6px;
+      font-weight:950;
+    }
+    .sub{
+      margin:0;
+      font-size: clamp(16px, 1.8vw, 20px);
+      line-height:1.6;
+      color:var(--muted);
+      max-width: 68ch;
+    }
+    .heroActions{display:flex; gap:12px; flex-wrap:wrap; margin-top:18px}
+    .btn{
+      display:inline-flex; align-items:center; gap:10px;
+      border-radius:999px; padding:12px 16px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.05);
+      font-weight:900;
+    }
+    .btnPrimary{
+      border-color: rgba(34,197,94,.55);
+      background: rgba(34,197,94,.18);
+    }
+    .btnPrimary:hover{background: rgba(34,197,94,.25); border-color: rgba(34,197,94,.75)}
+    .btnGhost:hover{border-color:rgba(234,240,255,.26)}
+    .grid{display:grid; gap:14px; grid-template-columns: repeat(12, 1fr); margin-top:22px}
+    .card{
+      grid-column: span 12;
+      border:1px solid var(--line);
+      background: rgba(17,31,59,.74);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding:18px 18px;
+    }
+    @media (min-width: 860px){
+      .card.span6{grid-column: span 6}
+      .card.span7{grid-column: span 7}
+      .card.span5{grid-column: span 5}
+    }
+    .card h2{margin:0 0 10px; font-size:20px; letter-spacing:-.2px}
+    .card p{margin:0; color:var(--muted); line-height:1.65}
+    .bullets{margin:10px 0 0; padding-left:18px; color:var(--muted); line-height:1.7}
+    .badge{
+      display:inline-flex; align-items:center; gap:8px;
+      font-weight:900; color:rgba(234,240,255,.86);
+      border:1px solid var(--line); background: rgba(255,255,255,.04);
+      border-radius:999px; padding:7px 10px; margin-right:8px;
+    }
+    .step{
+      display:flex; gap:12px; align-items:flex-start;
+      padding:12px 0; border-top:1px dashed rgba(234,240,255,.14);
+    }
+    .step:first-child{border-top:none; padding-top:0}
+    .num{
+      width:34px; height:34px; border-radius:12px;
+      display:grid; place-items:center;
+      background: rgba(124,58,237,.18);
+      border:1px solid rgba(124,58,237,.35);
+      font-weight:950;
+    }
+    .faq details{
+      border-top:1px solid rgba(234,240,255,.14);
+      padding:12px 0;
+    }
+    .faq details:first-child{border-top:none}
+    .faq summary{cursor:pointer; font-weight:900}
+    .footer{
+      margin-top:26px;
+      border:1px solid var(--line);
+      background: rgba(15,26,47,.72);
+      border-radius: var(--radius);
+      padding:16px 18px;
+      color:var(--muted);
+      display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    }
+    .lang{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    }
+    .lang a{font-weight:900; color:var(--muted)}
+    .lang a.active{color:var(--text)}
+  </style>
+
+  <!-- FAQ Schema (EN) -->
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"FAQPage",
+    "mainEntity":[
+      {
+        "@type":"Question",
+        "name":"What is an AI slide generator?",
+        "acceptedAnswer":{"@type":"Answer","text":"An AI slide generator creates a draft slide deck from a topic or prompt, helping teachers start faster. Clazzee focuses on classroom-ready slides with interactive reveal and text-to-speech."}
+      },
+      {
+        "@type":"Question",
+        "name":"Can I use it for any subject?",
+        "acceptedAnswer":{"@type":"Answer","text":"Yes. Clazzee is designed for real classrooms across subjects. You can adapt the slides to English, Math, Science, Social Studies, and more."}
+      },
+      {
+        "@type":"Question",
+        "name":"Do slides include interactive features?",
+        "acceptedAnswer":{"@type":"Answer","text":"Yes. You can reveal meanings/answers, use pointer tools in class, and read aloud with text-to-speech for supported browsers."}
+      },
+      {
+        "@type":"Question",
+        "name":"Can I edit the slides after AI generates them?",
+        "acceptedAnswer":{"@type":"Answer","text":"Yes. You can edit content, add images, and adjust the slide flow to match your learners."}
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <div class="wrap">
+    <header class="nav" role="navigation" aria-label="Primary">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>Clazzee</div>
+      </div>
+      <nav class="navlinks" aria-label="Top links">
+        <a class="pill" href="/pricing">Pricing</a>
+        <a class="pill" href="/login">Login</a>
+        <a class="pill cta" href="/register">Start Free</a>
+      </nav>
+    </header>
+
+    <main class="hero" role="main">
+      <div class="kicker">✨ AI Slide Generator • Classroom-ready</div>
+      <h1 class="h1">AI Slide Generator for Classroom-Ready Slides</h1>
+      <p class="sub">
+        Create interactive slides with AI in minutes—then teach with confidence.
+        Clazzee helps teachers generate slides that work in real classrooms with <b>smart reveal</b> and <b>text-to-speech</b>.
+      </p>
+      <div class="heroActions">
+        <a class="btn btnPrimary" href="/register">🚀 Start Free</a>
+        <a class="btn btnGhost" href="/pricing">💡 See Plans</a>
+      </div>
+
+      <section class="grid" aria-label="Key points">
+        <article class="card span6">
+          <h2>Why teachers use Clazzee AI</h2>
+          <p>
+            Not just “pretty slides”—Clazzee focuses on <b>teaching flow</b>.
+            Reveal meanings/answers when you want, add images, and keep students engaged.
+          </p>
+          <ul class="bullets">
+            <li>Smart reveal for vocabulary, sentences, and prompts</li>
+            <li>Text-to-speech to model pronunciation / reading</li>
+            <li>Classroom-ready layout (readable fonts, spacing, pacing)</li>
+          </ul>
+        </article>
+
+        <article class="card span6">
+          <h2>What you can generate</h2>
+          <p>
+            Start from a topic and let AI draft a deck you can refine.
+          </p>
+          <div style="margin-top:12px">
+            <span class="badge">🧠 Concepts</span>
+            <span class="badge">🗣 Dialogues</span>
+            <span class="badge">📌 Vocabulary</span>
+            <span class="badge">🎯 Practice</span>
+            <span class="badge">🖼 Images</span>
+          </div>
+        </article>
+
+        <article class="card span7">
+          <h2>How it works</h2>
+          <div class="step">
+            <div class="num">1</div>
+            <div>
+              <b>Enter a topic</b>
+              <div style="color:var(--muted); margin-top:4px">Example: “Food & Health”, “Fractions”, “Photosynthesis”.</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="num">2</div>
+            <div>
+              <b>Generate slides with AI</b>
+              <div style="color:var(--muted); margin-top:4px">Get a draft deck with structured sections and teaching flow.</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="num">3</div>
+            <div>
+              <b>Edit & teach</b>
+              <div style="color:var(--muted); margin-top:4px">Add images, toggle meanings, and use TTS during class.</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card span5 faq" aria-label="FAQ">
+          <h2>FAQ</h2>
+          <details open>
+            <summary>Can I use this for any subject?</summary>
+            <p>Yes. Clazzee is built for teachers across subjects. Start generic now, then create subject-specific templates later.</p>
+          </details>
+          <details>
+            <summary>Is text-to-speech supported?</summary>
+            <p>Yes on modern browsers (Chrome/Edge). If voices load slowly, Clazzee waits and retries automatically.</p>
+          </details>
+          <details>
+            <summary>Can I add images from my computer?</summary>
+            <p>Yes. Upload images while editing slides, and they’ll appear in the viewer.</p>
+          </details>
+          <details>
+            <summary>Does Clazzee replace PowerPoint?</summary>
+            <p>Think of Clazzee as a teaching-first slide system: interactive reveal + in-class tools + classroom pacing.</p>
+          </details>
+        </article>
+      </section>
+
+      <section class="footer" aria-label="Footer">
+        <div>© Clazzee • Built for real classrooms</div>
+        <div class="lang">
+          <span>Language:</span>
+          <a class="active" href="/en/ai-slide-generator">English</a>
+          <a href="/th/ai-slide-generator">ไทย</a>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>

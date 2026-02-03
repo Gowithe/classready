@@ -1,0 +1,304 @@
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>สร้างสไลด์ด้วย AI – สไลด์พร้อมสอนในไม่กี่นาที | Clazzee</title>
+  <meta name="description" content="สร้างสไลด์พร้อมสอนด้วย AI ภายในไม่กี่นาที สร้างสไลด์แบบอินเทอร์แอคทีฟ เปิด-ปิดคำตอบ/ความหมายได้ มีอ่านออกเสียง (TTS) และโครงสไลด์ที่เหมาะกับการสอนจริง" />
+
+  <!-- Canonical + hreflang -->
+  <link rel="canonical" href="https://clazzee.com/th/ai-slide-generator" />
+  <link rel="alternate" hreflang="en" href="https://clazzee.com/en/ai-slide-generator" />
+  <link rel="alternate" hreflang="th" href="https://clazzee.com/th/ai-slide-generator" />
+  <link rel="alternate" hreflang="x-default" href="https://clazzee.com/en/ai-slide-generator" />
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website" />
+  <meta property="og:site_name" content="Clazzee" />
+  <meta property="og:title" content="สร้างสไลด์ด้วย AI – สไลด์พร้อมสอนในไม่กี่นาที" />
+  <meta property="og:description" content="สไลด์สำหรับการสอนจริง: เปิด-ปิดความหมาย/คำตอบ + อ่านออกเสียง (TTS) + เพิ่มรูปภาพได้" />
+  <meta property="og:url" content="https://clazzee.com/th/ai-slide-generator" />
+
+  <style>
+    :root{
+      --bg:#0b1220;
+      --panel:#0f1a2f;
+      --card:#111f3b;
+      --text:#eaf0ff;
+      --muted:rgba(234,240,255,.72);
+      --line:rgba(234,240,255,.14);
+      --accent:#7c3aed;
+      --accent2:#22c55e;
+      --shadow: 0 18px 50px rgba(0,0,0,.35);
+      --radius:18px;
+      --max: 1080px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family: system-ui, -apple-system, "Sarabun", "Kanit", Segoe UI, Roboto, Arial, sans-serif;
+      color:var(--text);
+      background:
+        radial-gradient(900px 450px at 18% 10%, rgba(124,58,237,.35), transparent 55%),
+        radial-gradient(900px 450px at 88% 30%, rgba(34,197,94,.18), transparent 55%),
+        linear-gradient(180deg, #081024, #070b14 80%);
+    }
+    a{color:inherit; text-decoration:none}
+    .wrap{max-width:var(--max); margin:0 auto; padding:28px 18px 70px}
+    .nav{
+      display:flex; align-items:center; justify-content:space-between;
+      gap:14px; padding:12px 14px; border:1px solid var(--line);
+      background:rgba(15,26,47,.72); border-radius:999px; backdrop-filter: blur(10px);
+    }
+    .brand{display:flex; align-items:center; gap:10px; font-weight:900; letter-spacing:.2px}
+    .logo{
+      width:34px; height:34px; border-radius:12px;
+      background: linear-gradient(135deg, rgba(124,58,237,1), rgba(34,197,94,1));
+      box-shadow: 0 10px 25px rgba(124,58,237,.25);
+    }
+    .navlinks{display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end}
+    .pill{
+      border:1px solid var(--line); padding:9px 12px; border-radius:999px;
+      background:rgba(255,255,255,.04);
+      font-weight:800; color:var(--muted);
+    }
+    .pill:hover{border-color:rgba(234,240,255,.26); color:var(--text)}
+    .cta{
+      border:1px solid rgba(124,58,237,.55);
+      background: rgba(124,58,237,.16);
+      color: var(--text);
+    }
+    .cta:hover{background: rgba(124,58,237,.24); border-color: rgba(124,58,237,.75)}
+    .hero{padding:46px 6px 18px}
+    .kicker{
+      display:inline-flex; gap:10px; align-items:center;
+      border:1px solid var(--line); padding:10px 14px; border-radius:999px;
+      background: rgba(255,255,255,.04); color:var(--muted);
+      font-weight:900;
+    }
+    .h1{
+      margin:16px 0 10px;
+      font-size: clamp(30px, 4.2vw, 52px);
+      line-height:1.05;
+      letter-spacing:-.6px;
+      font-weight:950;
+    }
+    .sub{
+      margin:0;
+      font-size: clamp(16px, 1.8vw, 20px);
+      line-height:1.6;
+      color:var(--muted);
+      max-width: 72ch;
+    }
+    .heroActions{display:flex; gap:12px; flex-wrap:wrap; margin-top:18px}
+    .btn{
+      display:inline-flex; align-items:center; gap:10px;
+      border-radius:999px; padding:12px 16px;
+      border:1px solid var(--line);
+      background: rgba(255,255,255,.05);
+      font-weight:950;
+    }
+    .btnPrimary{
+      border-color: rgba(34,197,94,.55);
+      background: rgba(34,197,94,.18);
+    }
+    .btnPrimary:hover{background: rgba(34,197,94,.25); border-color: rgba(34,197,94,.75)}
+    .btnGhost:hover{border-color:rgba(234,240,255,.26)}
+    .grid{display:grid; gap:14px; grid-template-columns: repeat(12, 1fr); margin-top:22px}
+    .card{
+      grid-column: span 12;
+      border:1px solid var(--line);
+      background: rgba(17,31,59,.74);
+      border-radius: var(--radius);
+      box-shadow: var(--shadow);
+      padding:18px 18px;
+    }
+    @media (min-width: 860px){
+      .card.span6{grid-column: span 6}
+      .card.span7{grid-column: span 7}
+      .card.span5{grid-column: span 5}
+    }
+    .card h2{margin:0 0 10px; font-size:20px; letter-spacing:-.2px}
+    .card p{margin:0; color:var(--muted); line-height:1.65}
+    .bullets{margin:10px 0 0; padding-left:18px; color:var(--muted); line-height:1.7}
+    .badge{
+      display:inline-flex; align-items:center; gap:8px;
+      font-weight:950; color:rgba(234,240,255,.86);
+      border:1px solid var(--line); background: rgba(255,255,255,.04);
+      border-radius:999px; padding:7px 10px; margin-right:8px;
+    }
+    .step{
+      display:flex; gap:12px; align-items:flex-start;
+      padding:12px 0; border-top:1px dashed rgba(234,240,255,.14);
+    }
+    .step:first-child{border-top:none; padding-top:0}
+    .num{
+      width:34px; height:34px; border-radius:12px;
+      display:grid; place-items:center;
+      background: rgba(124,58,237,.18);
+      border:1px solid rgba(124,58,237,.35);
+      font-weight:950;
+    }
+    .faq details{
+      border-top:1px solid rgba(234,240,255,.14);
+      padding:12px 0;
+    }
+    .faq details:first-child{border-top:none}
+    .faq summary{cursor:pointer; font-weight:950}
+    .footer{
+      margin-top:26px;
+      border:1px solid var(--line);
+      background: rgba(15,26,47,.72);
+      border-radius: var(--radius);
+      padding:16px 18px;
+      color:var(--muted);
+      display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;
+    }
+    .lang{
+      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+    }
+    .lang a{font-weight:950; color:var(--muted)}
+    .lang a.active{color:var(--text)}
+  </style>
+
+  <!-- FAQ Schema (TH) -->
+  <script type="application/ld+json">
+  {
+    "@context":"https://schema.org",
+    "@type":"FAQPage",
+    "mainEntity":[
+      {
+        "@type":"Question",
+        "name":"ระบบสร้างสไลด์ด้วย AI คืออะไร?",
+        "acceptedAnswer":{"@type":"Answer","text":"ระบบสร้างสไลด์ด้วย AI คือการให้ AI ช่วยร่างสไลด์จากหัวข้อ/คำสั่ง เพื่อให้ครูเริ่มต้นได้เร็วขึ้น โดย Clazzee เน้นสไลด์ที่พร้อมใช้สอนจริง มีเปิด-ปิดคำตอบ/ความหมาย และอ่านออกเสียง (TTS)."}
+      },
+      {
+        "@type":"Question",
+        "name":"ใช้ได้กับทุกวิชาไหม?",
+        "acceptedAnswer":{"@type":"Answer","text":"ได้ครับ Clazzee ออกแบบมาเพื่อครูทุกวิชา คุณสามารถปรับใช้กับภาษาอังกฤษ คณิต วิทย์ สังคม หรือวิชาอื่น ๆ ได้ และค่อยเพิ่มเทมเพลตเฉพาะวิชาในอนาคต."}
+      },
+      {
+        "@type":"Question",
+        "name":"สไลด์มีลูกเล่นอินเทอร์แอคทีฟไหม?",
+        "acceptedAnswer":{"@type":"Answer","text":"มีครับ เช่น เปิด-ปิดความหมาย/คำตอบตามจังหวะครู Pointer ช่วยชี้ และปุ่มอ่านออกเสียง (Text-to-speech) บนเบราว์เซอร์ที่รองรับ."}
+      },
+      {
+        "@type":"Question",
+        "name":"สร้างแล้วแก้ไขต่อได้ไหม?",
+        "acceptedAnswer":{"@type":"Answer","text":"ได้ครับ ครูสามารถแก้ไขข้อความ เพิ่มรูปจากเครื่อง จัดลำดับสไลด์ และปรับให้เหมาะกับผู้เรียนได้ตามต้องการ."}
+      }
+    ]
+  }
+  </script>
+</head>
+<body>
+  <div class="wrap">
+    <header class="nav" role="navigation" aria-label="Primary">
+      <div class="brand">
+        <div class="logo" aria-hidden="true"></div>
+        <div>Clazzee</div>
+      </div>
+      <nav class="navlinks" aria-label="Top links">
+        <a class="pill" href="/pricing">ราคา</a>
+        <a class="pill" href="/login">เข้าสู่ระบบ</a>
+        <a class="pill cta" href="/register">เริ่มใช้ฟรี</a>
+      </nav>
+    </header>
+
+    <main class="hero" role="main">
+      <div class="kicker">✨ สร้างสไลด์ด้วย AI • พร้อมสอนจริง</div>
+      <h1 class="h1">สร้างสไลด์ด้วย AI สำหรับห้องเรียนจริง</h1>
+      <p class="sub">
+        สร้างสไลด์พร้อมสอนในไม่กี่นาที แล้วสอนต่อได้อย่างมั่นใจ
+        Clazzee ช่วยครูสร้างสไลด์ที่ “ใช้สอนได้จริง” ด้วย <b>ระบบเปิด-ปิดความหมาย/คำตอบ</b> และ <b>อ่านออกเสียง (TTS)</b>
+      </p>
+      <div class="heroActions">
+        <a class="btn btnPrimary" href="/register">🚀 เริ่มใช้ฟรี</a>
+        <a class="btn btnGhost" href="/pricing">💡 ดูแพ็กเกจ</a>
+      </div>
+
+      <section class="grid" aria-label="Key points">
+        <article class="card span6">
+          <h2>ทำไมครูถึงใช้ Clazzee AI</h2>
+          <p>
+            ไม่ใช่แค่สไลด์สวย ๆ แต่เน้น “flow การสอน” ครูคุมจังหวะเอง เปิดเฉลยเมื่อพร้อม และเพิ่มรูป/ตัวอย่างได้ทันที
+          </p>
+          <ul class="bullets">
+            <li>เปิด-ปิดความหมาย/คำตอบได้ทั้งคำศัพท์และประโยค</li>
+            <li>อ่านออกเสียง (TTS) ใช้สอนการอ่าน/การออกเสียง</li>
+            <li>จัดรูปแบบเพื่อการสอนจริง (ตัวใหญ่ อ่านง่าย จังหวะดี)</li>
+          </ul>
+        </article>
+
+        <article class="card span6">
+          <h2>AI สร้างอะไรให้ได้บ้าง</h2>
+          <p>
+            เริ่มจากหัวข้อ แล้วให้ AI ช่วยร่างสไลด์ จากนั้นครูปรับให้เข้ากับผู้เรียน
+          </p>
+          <div style="margin-top:12px">
+            <span class="badge">🧠 แนวคิด/สาระ</span>
+            <span class="badge">🗣 บทสนทนา</span>
+            <span class="badge">📌 คำศัพท์</span>
+            <span class="badge">🎯 แบบฝึก</span>
+            <span class="badge">🖼 รูปภาพ</span>
+          </div>
+        </article>
+
+        <article class="card span7">
+          <h2>วิธีใช้งาน</h2>
+          <div class="step">
+            <div class="num">1</div>
+            <div>
+              <b>พิมพ์หัวข้อ</b>
+              <div style="color:var(--muted); margin-top:4px">เช่น “อาหารเพื่อสุขภาพ”, “เศษส่วน”, “การสังเคราะห์ด้วยแสง”.</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="num">2</div>
+            <div>
+              <b>ให้ AI สร้างสไลด์</b>
+              <div style="color:var(--muted); margin-top:4px">ได้โครงสไลด์ที่จัดเป็นส่วน ๆ และเหมาะกับการสอน.</div>
+            </div>
+          </div>
+          <div class="step">
+            <div class="num">3</div>
+            <div>
+              <b>แก้ไขแล้วนำไปสอน</b>
+              <div style="color:var(--muted); margin-top:4px">เพิ่มรูป เปิด-ปิดคำตอบ และใช้ TTS ระหว่างสอน.</div>
+            </div>
+          </div>
+        </article>
+
+        <article class="card span5 faq" aria-label="FAQ">
+          <h2>คำถามที่พบบ่อย</h2>
+          <details open>
+            <summary>ใช้ได้กับทุกวิชาไหม?</summary>
+            <p>ได้ครับ Clazzee ออกแบบมาเพื่อครูทุกวิชา คุณสามารถเริ่มแบบกว้าง ๆ แล้วค่อยเพิ่มเทมเพลตเฉพาะวิชาในอนาคต.</p>
+          </details>
+          <details>
+            <summary>อ่านออกเสียง (TTS) ใช้ได้ไหม?</summary>
+            <p>ใช้ได้บนเบราว์เซอร์สมัยใหม่ (Chrome/Edge) และระบบจะรอเสียงโหลดพร้อมก่อน (กันปัญหากดแล้วเงียบ).</p>
+          </details>
+          <details>
+            <summary>เพิ่มรูปจากเครื่องได้ไหม?</summary>
+            <p>ได้ครับ อัปโหลดรูปตอนแก้ไขสไลด์ แล้วรูปจะแสดงใน viewer.</p>
+          </details>
+          <details>
+            <summary>Clazzee แทน PowerPoint ได้ไหม?</summary>
+            <p>Clazzee เน้น “สอนง่ายขึ้น” ด้วยลูกเล่นแบบครูคุมจังหวะ + เครื่องมือในห้องเรียน + pacing ที่เหมาะกับการสอนจริง.</p>
+          </details>
+        </article>
+      </section>
+
+      <section class="footer" aria-label="Footer">
+        <div>© Clazzee • เพื่อห้องเรียนจริง</div>
+        <div class="lang">
+          <span>ภาษา:</span>
+          <a href="/en/ai-slide-generator">English</a>
+          <a class="active" href="/th/ai-slide-generator">ไทย</a>
+        </div>
+      </section>
+    </main>
+  </div>
+</body>
+</html>
