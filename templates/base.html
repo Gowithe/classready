@@ -46,6 +46,10 @@
       border:1px solid rgba(255,255,255,.40);
       border-radius:999px;padding:9px 16px;
     }
+    nav a.nav-account{
+      background:rgba(255,255,255,.15);
+      border-radius:999px;padding:9px 16px;
+    }
 
     /* Mobile menu */
     .nav-mobile-toggle{
@@ -139,11 +143,12 @@
 
         <a href="{{ url_for('library') }}">📚 คลังบทเรียน</a>
 
-        <!-- Premium (แก้จุดนี้ถ้า endpoint คุณไม่ใช่ pricing) -->
         <a href="{{ url_for('pricing') }}" class="nav-upgrade">💎 Premium</a>
 
+        <a href="{{ url_for('my_account') }}" class="nav-account">👤 บัญชี</a>
+
         <a href="{{ url_for('logout') }}" class="nav-pill">
-          🚪 Logout{% if session.email %} ({{ session.email }}){% endif %}
+          🚪 Logout
         </a>
       </nav>
 
@@ -158,6 +163,7 @@
           {% endif %}
 
           <a href="{{ url_for('library') }}">📚 คลังบทเรียน</a>
+          <a href="{{ url_for('my_account') }}">👤 บัญชีของฉัน</a>
           <a href="{{ url_for('pricing') }}" class="primary">💎 อัปเกรด Premium</a>
           <a href="{{ url_for('logout') }}" class="muted">
             🚪 ออกจากระบบ{% if session.email %} ({{ session.email }}){% endif %}
@@ -195,7 +201,7 @@
   </div>
 
   <script>
-    // Loading helpers (หน้า Generate เรียกใช้ได้แน่นอน)
+    // Loading helpers
     window.tpShowLoading = function(title, message){
       const ov = document.getElementById('tpOverlay');
       const t  = document.getElementById('tpTitle');
@@ -209,7 +215,7 @@
       if(ov) ov.classList.remove('show');
     }
 
-    // Mobile menu stable
+    // Mobile menu
     document.addEventListener('DOMContentLoaded', function(){
       const btn = document.getElementById('navToggle');
       const panel = document.getElementById('navMobilePanel');
