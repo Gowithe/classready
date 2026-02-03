@@ -1385,7 +1385,7 @@ body.fullscreen-mode .slide-footer {
    ============================================ */
 .reveal-btn{
   border: 1px solid rgba(15,23,42,0.12);
-  background: rgba(255,255,255,0.85);
+  background: rgba(228, 228, 21, 0.85);
   padding: 6px 10px;
   border-radius: 999px;
   font-weight: 800;
@@ -1399,7 +1399,7 @@ body.fullscreen-mode .slide-footer {
 .reveal-btn:hover{
   transform: translateY(-1px);
   box-shadow: 0 6px 18px rgba(0,0,0,0.12);
-  background: #fff;
+  background: #d23b3b;
 }
 .reveal-btn:active{ transform: translateY(0); box-shadow:none; }
 
@@ -1546,6 +1546,20 @@ body.fullscreen-mode .slide-footer {
   align-items:center;
   gap:8px;
   flex-wrap:wrap;
+}
+
+
+/* ===============================
+   FULLSCREEN: HIDE STICKERS + TOPIC LABEL (prevent blocking TTS)
+   =============================== */
+body.fullscreen-mode .sticker,
+.fullscreen-mode .sticker {
+  display: none !important;
+}
+
+body.fullscreen-mode .slide-footer,
+.fullscreen-mode .slide-footer {
+  display: none !important;
 }
 
 </style>
