@@ -1,475 +1,675 @@
-{% extends "base.html" %}
+<!doctype html>
+<html lang="th">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Clazzee – สร้างสไลด์พร้อมสอนด้วย AI | แพลตฟอร์มสำหรับครู</title>
+  <meta name="description" content="Clazzee ช่วยครูสร้างสไลด์ด้วย AI เกมส์ตอบคำถาม แบบฝึกหัดออนไลน์ และจัดการห้องเรียน ทุกอย่างในที่เดียว">
 
-{% block title %}clazzee – Interactive English Lessons for Teachers{% endblock %}
+  <!-- Canonical -->
+  <link rel="canonical" href="https://clazzee.com/">
+  <link rel="alternate" hreflang="th" href="https://clazzee.com/">
+  <link rel="alternate" hreflang="en" href="https://clazzee.com/en/">
+  <link rel="alternate" hreflang="x-default" href="https://clazzee.com/">
 
-{% block extra_css %}
-<style>
-  :root{
-    --brand1:#667eea;
-    --brand2:#764ba2;
-    --text:#1f2937;
-    --muted:#6b7280;
-    --card:#ffffff;
-    --bg:#f6f7fb;
-    --border:rgba(15,23,42,.10);
-  }
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Clazzee">
+  <meta property="og:title" content="Clazzee – สร้างสไลด์พร้อมสอนด้วย AI">
+  <meta property="og:description" content="แพลตฟอร์มสำหรับครู: สร้างสไลด์ด้วย AI เกมส์ตอบคำถาม แบบฝึกหัดออนไลน์ และจัดการห้องเรียน">
+  <meta property="og:url" content="https://clazzee.com/">
 
-  .landing-wrap{ padding: 1.25rem 0 3.5rem; }
-  .section{ margin: 2.25rem 0; }
-  .container{ max-width: 1100px; margin: 0 auto; padding: 0 1rem; }
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="Clazzee – สร้างสไลด์พร้อมสอนด้วย AI">
+  <meta name="twitter:description" content="แพลตฟอร์มสำหรับครู: สร้างสไลด์ด้วย AI เกมส์ตอบคำถาม แบบฝึกหัดออนไลน์ และจัดการห้องเรียน">
 
-  /* HERO */
-  .hero{
-    background: radial-gradient(1200px 500px at 20% 0%, rgba(255,255,255,.20), transparent 60%),
-                linear-gradient(135deg, var(--brand1) 0%, var(--brand2) 100%);
-    color:#fff;
-    border-radius: 18px;
-    overflow:hidden;
-    position:relative;
-    box-shadow: 0 18px 45px rgba(0,0,0,.18);
-  }
-  .hero-inner{
-    display:grid;
-    grid-template-columns: 1.2fr .8fr;
-    gap: 2rem;
-    padding: 3rem 2rem;
-    align-items:center;
-  }
-  .hero h1{
-    font-size: clamp(2rem, 4vw, 3.1rem);
-    line-height:1.05;
-    margin:0 0 1rem;
-    font-weight: 800;
-    letter-spacing: .2px;
-  }
-  .hero .subthai{
-    font-size: 1.15rem;
-    font-weight: 700;
-    opacity: .98;
-    margin-bottom: .5rem;
-  }
-  .hero p{
-    font-size: 1.05rem;
-    opacity: .96;
-    margin: 0.25rem 0 1.5rem;
-  }
-  .hero .badges{
-    display:flex;
-    flex-wrap:wrap;
-    gap:.6rem;
-    margin-top: 1rem;
-  }
-  .badge{
-    background: rgba(255,255,255,.18);
-    border: 1px solid rgba(255,255,255,.25);
-    padding: .45rem .7rem;
-    border-radius: 999px;
-    font-size: .92rem;
-    backdrop-filter: blur(8px);
-  }
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
-  .hero-visual{
-    background: rgba(255,255,255,.12);
-    border: 1px solid rgba(255,255,255,.20);
-    border-radius: 16px;
-    padding: 1.1rem;
-  }
-  .mini-shot{
-    background: rgba(255,255,255,.18);
-    border: 1px solid rgba(255,255,255,.22);
-    border-radius: 14px;
-    padding: 1rem;
-    margin-bottom: .8rem;
-  }
-  .mini-shot strong{ display:block; font-size: 1rem; margin-bottom: .35rem; }
-  .mini-shot span{ display:block; font-size: .92rem; opacity:.95; }
+  <style>
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
+    }
 
-  .cta-row{ display:flex; gap:.75rem; flex-wrap:wrap; margin-top: 1.2rem; }
-  .btnx{
-    display:inline-flex;
-    align-items:center;
-    justify-content:center;
-    gap:.5rem;
-    padding: .95rem 1.25rem;
-    border-radius: 12px;
-    font-weight: 800;
-    border: 0;
-    cursor:pointer;
-    text-decoration:none;
-    transition: transform .15s ease, box-shadow .15s ease, background .15s ease;
-    white-space: nowrap;
-  }
-  .btnx:hover{ transform: translateY(-2px); }
-  .btn-primary{
-    background:#fff;
-    color: var(--brand1);
-    box-shadow: 0 14px 30px rgba(0,0,0,.20);
-  }
-  .btn-primary:hover{ background:#f3f6ff; }
-  .btn-ghost{
-    background: rgba(255,255,255,.12);
-    color:#fff;
-    border: 1px solid rgba(255,255,255,.25);
-  }
-  .btn-ghost:hover{ background: rgba(255,255,255,.18); }
+    :root {
+      --bg-primary: #030712;
+      --bg-secondary: #0f172a;
+      --bg-card: rgba(15, 23, 42, 0.6);
+      --border: rgba(148, 163, 184, 0.1);
+      --border-hover: rgba(148, 163, 184, 0.2);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-purple: #a855f7;
+      --accent-purple-dim: rgba(168, 85, 247, 0.15);
+      --accent-green: #22c55e;
+      --accent-green-dim: rgba(34, 197, 94, 0.15);
+      --accent-blue: #3b82f6;
+      --accent-blue-dim: rgba(59, 130, 246, 0.15);
+      --accent-orange: #f59e0b;
+      --accent-orange-dim: rgba(245, 158, 11, 0.15);
+      --gradient-purple: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+      --gradient-green: linear-gradient(135deg, #22c55e 0%, #10b981 100%);
+      --gradient-blue: linear-gradient(135deg, #3b82f6 0%, #06b6d4 100%);
+      --shadow-glow: 0 0 60px -12px;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      --radius-full: 9999px;
+      --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      --max-width: 1200px;
+    }
 
-  /* SECTION TITLES */
-  .kicker{
-    color: var(--brand1);
-    font-weight: 900;
-    letter-spacing: .3px;
-    margin-bottom: .35rem;
-  }
-  .h2{
-    color: var(--text);
-    font-size: 1.75rem;
-    margin: 0 0 .5rem;
-    font-weight: 900;
-  }
-  .lead{ color: var(--muted); margin: 0 0 1.25rem; line-height: 1.7; }
+    html { scroll-behavior: smooth; }
 
-  /* CARDS / GRID */
-  .grid{
-    display:grid;
-    grid-template-columns: repeat(12, 1fr);
-    gap: 1rem;
-  }
-  .card{
-    background: var(--card);
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1.2rem 1.2rem;
-    box-shadow: 0 8px 20px rgba(15,23,42,.06);
-  }
-  .card h3{ margin: .2rem 0 .35rem; font-size: 1.15rem; }
-  .card p{ margin:0; color: var(--muted); line-height: 1.7; }
-  .icon{
-    width: 44px; height: 44px;
-    border-radius: 12px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-size: 1.35rem;
-    background: rgba(102,126,234,.10);
-    border: 1px solid rgba(102,126,234,.18);
-  }
+    body {
+      font-family: 'IBM Plex Sans Thai', 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.7;
+      min-height: 100vh;
+      overflow-x: hidden;
+    }
 
-  .span-4{ grid-column: span 4; }
-  .span-6{ grid-column: span 6; }
-  .span-12{ grid-column: span 12; }
+    /* Animated Background */
+    .bg-gradient {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      overflow: hidden;
+    }
 
-  /* HOW IT WORKS */
-  .steps{
-    display:grid;
-    grid-template-columns: repeat(3, 1fr);
-    gap: 1rem;
-  }
-  .step{
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 16px;
-    padding: 1.1rem 1.1rem;
-  }
-  .step .num{
-    width: 34px; height: 34px;
-    border-radius: 999px;
-    display:flex;
-    align-items:center;
-    justify-content:center;
-    font-weight: 900;
-    color: #fff;
-    background: linear-gradient(135deg, var(--brand1), var(--brand2));
-    margin-bottom: .65rem;
-  }
-  .step h4{ margin:0 0 .25rem; font-size:1.05rem; }
-  .step p{ margin:0; color: var(--muted); line-height: 1.7; }
+    .bg-gradient::before,
+    .bg-gradient::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(120px);
+      opacity: 0.35;
+      animation: pulse 10s ease-in-out infinite alternate;
+    }
 
-  /* DEMO / CTA BLOCK */
-  .cta-block{
-    background: linear-gradient(135deg, rgba(102,126,234,.10), rgba(118,75,162,.10));
-    border: 1px solid rgba(102,126,234,.18);
-    border-radius: 18px;
-    padding: 1.6rem 1.4rem;
-  }
-  .cta-block .row{
-    display:flex;
-    align-items:center;
-    justify-content:space-between;
-    gap: 1rem;
-    flex-wrap:wrap;
-  }
-  .cta-block .row strong{ font-size: 1.1rem; color: var(--text); }
-  .cta-block .row span{ color: var(--muted); }
+    .bg-gradient::before {
+      width: 700px;
+      height: 700px;
+      background: var(--accent-purple);
+      top: -250px;
+      left: -150px;
+    }
 
-  /* FAQ */
-  .faq details{
-    background: #fff;
-    border: 1px solid var(--border);
-    border-radius: 14px;
-    padding: .95rem 1rem;
-    margin-bottom: .75rem;
-  }
-  .faq summary{
-    cursor:pointer;
-    font-weight: 900;
-    color: var(--text);
-  }
-  .faq p{ margin:.65rem 0 0; color: var(--muted); line-height: 1.75; }
+    .bg-gradient::after {
+      width: 600px;
+      height: 600px;
+      background: var(--accent-green);
+      bottom: -200px;
+      right: -150px;
+      animation-delay: -5s;
+    }
 
-  /* FOOT CTA */
-  .foot-cta{
-    background: linear-gradient(135deg, var(--brand1), var(--brand2));
-    color:#fff;
-    border-radius: 18px;
-    padding: 2rem 1.6rem;
-    box-shadow: 0 18px 45px rgba(0,0,0,.16);
-  }
-  .foot-cta h2{ margin:0 0 .35rem; font-size: 1.85rem; font-weight: 900; }
-  .foot-cta p{ margin:0 0 1.1rem; opacity:.95; line-height:1.7; }
-  .foot-cta .btn-primary{ box-shadow: 0 14px 30px rgba(0,0,0,.22); }
+    @keyframes pulse {
+      0% { transform: scale(1) translate(0, 0); opacity: 0.25; }
+      100% { transform: scale(1.15) translate(40px, 30px); opacity: 0.45; }
+    }
 
-  /* RESPONSIVE */
-  @media (max-width: 920px){
-    .hero-inner{ grid-template-columns: 1fr; padding: 2.4rem 1.3rem; }
-    .steps{ grid-template-columns: 1fr; }
-    .span-4, .span-6{ grid-column: span 12; }
-  }
-</style>
-{% endblock %}
+    /* Container */
+    .container {
+      width: 100%;
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 24px;
+    }
 
-{% block content %}
-<div class="landing-wrap">
-  <div class="container">
+    /* Navigation */
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 16px 0;
+      background: rgba(3, 7, 18, 0.85);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
+    }
 
-    {% if not session.user_id %}
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+    }
 
-    <!-- HERO -->
-    <section class="hero" aria-label="Hero">
-      <div class="hero-inner">
-        <div>
-          <div class="subthai">สำหรับครูภาษาอังกฤษในห้องเรียนจริง</div>
-          <h1>Teach English smarter,<br>not harder.</h1>
-          <p>
-            สร้าง <b>สไลด์</b> + <b>เกม</b> + <b>แบบฝึกหัด</b> ได้ในไม่กี่นาที<br>
-            แล้วสอนได้ทันที พร้อมเครื่องมือช่วยจัดการคาบเรียน
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+
+    .logo {
+      width: 42px;
+      height: 42px;
+      border-radius: var(--radius-md);
+      background: var(--gradient-purple);
+      box-shadow: var(--shadow-glow) var(--accent-purple);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.25rem;
+    }
+
+    .brand-name {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-link {
+      padding: 10px 18px;
+      border-radius: var(--radius-full);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      border: 1px solid transparent;
+      transition: var(--transition);
+    }
+
+    .nav-link:hover {
+      color: var(--text-primary);
+      background: rgba(255,255,255,0.05);
+    }
+
+    .nav-link.primary {
+      background: var(--gradient-purple);
+      color: white;
+      border: none;
+    }
+
+    .nav-link.primary:hover {
+      box-shadow: var(--shadow-glow) var(--accent-purple);
+      transform: translateY(-1px);
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 160px 0 100px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      background: var(--accent-purple-dim);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #c084fc;
+      margin-bottom: 28px;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.5rem, 6vw, 4.5rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.15;
+      margin-bottom: 24px;
+      background: linear-gradient(180deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(1.1rem, 2vw, 1.35rem);
+      color: var(--text-secondary);
+      max-width: 700px;
+      margin: 0 auto 44px;
+      line-height: 1.8;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+      margin-bottom: 60px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 32px;
+      border-radius: var(--radius-full);
+      font-weight: 700;
+      font-size: 1.05rem;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: var(--text-primary);
+      transition: var(--transition);
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+    }
+
+    .btn-primary {
+      background: var(--gradient-green);
+      border: none;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      box-shadow: var(--shadow-glow) var(--accent-green);
+    }
+
+    /* Stats */
+    .stats {
+      display: flex;
+      justify-content: center;
+      gap: 48px;
+      flex-wrap: wrap;
+    }
+
+    .stat {
+      text-align: center;
+    }
+
+    .stat-value {
+      font-size: 2.5rem;
+      font-weight: 800;
+      background: var(--gradient-purple);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .stat-label {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+      margin-top: 4px;
+    }
+
+    /* Features Section */
+    .section {
+      padding: 80px 0;
+    }
+
+    .section-header {
+      text-align: center;
+      margin-bottom: 56px;
+    }
+
+    .section-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: var(--radius-full);
+      background: var(--accent-green-dim);
+      border: 1px solid rgba(34, 197, 94, 0.3);
+      font-size: 0.8rem;
+      font-weight: 700;
+      color: #4ade80;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      margin-bottom: 16px;
+    }
+
+    .section-title {
+      font-size: clamp(1.75rem, 4vw, 2.75rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      margin-bottom: 16px;
+    }
+
+    .section-subtitle {
+      font-size: 1.1rem;
+      color: var(--text-secondary);
+      max-width: 600px;
+      margin: 0 auto;
+    }
+
+    /* Feature Cards */
+    .features-grid {
+      display: grid;
+      gap: 24px;
+      grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    }
+
+    .feature-card {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 32px;
+      backdrop-filter: blur(10px);
+      transition: var(--transition);
+    }
+
+    .feature-card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-4px);
+      box-shadow: 0 24px 48px rgba(0,0,0,0.2);
+    }
+
+    .feature-icon {
+      width: 64px;
+      height: 64px;
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.75rem;
+      margin-bottom: 20px;
+    }
+
+    .feature-icon.purple {
+      background: var(--accent-purple-dim);
+      border: 1px solid rgba(168, 85, 247, 0.2);
+    }
+
+    .feature-icon.green {
+      background: var(--accent-green-dim);
+      border: 1px solid rgba(34, 197, 94, 0.2);
+    }
+
+    .feature-icon.blue {
+      background: var(--accent-blue-dim);
+      border: 1px solid rgba(59, 130, 246, 0.2);
+    }
+
+    .feature-icon.orange {
+      background: var(--accent-orange-dim);
+      border: 1px solid rgba(245, 158, 11, 0.2);
+    }
+
+    .feature-card h3 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 12px;
+    }
+
+    .feature-card p {
+      color: var(--text-secondary);
+      line-height: 1.7;
+      margin-bottom: 16px;
+    }
+
+    .feature-link {
+      display: inline-flex;
+      align-items: center;
+      gap: 6px;
+      color: var(--accent-purple);
+      font-weight: 600;
+      font-size: 0.9rem;
+      text-decoration: none;
+      transition: var(--transition);
+    }
+
+    .feature-link:hover {
+      gap: 10px;
+    }
+
+    /* CTA Section */
+    .cta-section {
+      padding: 80px 0;
+    }
+
+    .cta-box {
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 64px 32px;
+      text-align: center;
+      backdrop-filter: blur(10px);
+      position: relative;
+      overflow: hidden;
+    }
+
+    .cta-box::before {
+      content: '';
+      position: absolute;
+      top: 0;
+      left: 50%;
+      transform: translateX(-50%);
+      width: 400px;
+      height: 200px;
+      background: radial-gradient(ellipse, var(--accent-purple-dim) 0%, transparent 70%);
+      pointer-events: none;
+    }
+
+    .cta-box h2 {
+      font-size: clamp(1.5rem, 3vw, 2.25rem);
+      font-weight: 700;
+      margin-bottom: 16px;
+      position: relative;
+    }
+
+    .cta-box p {
+      color: var(--text-secondary);
+      max-width: 500px;
+      margin: 0 auto 32px;
+      position: relative;
+    }
+
+    .cta-box .btn {
+      position: relative;
+    }
+
+    /* Footer */
+    .footer {
+      padding: 32px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .footer-text {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .footer-links {
+      display: flex;
+      align-items: center;
+      gap: 24px;
+    }
+
+    .footer-links a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-size: 0.9rem;
+      transition: var(--transition);
+    }
+
+    .footer-links a:hover {
+      color: var(--text-primary);
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 768px) {
+      .nav-link:not(.primary) { display: none; }
+      .nav-link.primary { padding: 10px 16px; }
+      .hero { padding: 120px 0 60px; }
+      .stats { gap: 32px; }
+      .stat-value { font-size: 2rem; }
+      .section { padding: 60px 0; }
+      .cta-box { padding: 48px 24px; }
+    }
+  </style>
+</head>
+<body>
+  <div class="bg-gradient"></div>
+
+  <!-- Navigation -->
+  <header class="nav" role="navigation" aria-label="เมนูหลัก">
+    <div class="container">
+      <div class="nav-inner">
+        <a href="/" class="brand" aria-label="Clazzee หน้าแรก">
+          <div class="logo" aria-hidden="true">C</div>
+          <span class="brand-name">Clazzee</span>
+        </a>
+        <nav class="nav-links" aria-label="เมนู">
+          <a href="/pricing" class="nav-link">ราคา</a>
+          <a href="/login" class="nav-link">เข้าสู่ระบบ</a>
+          <a href="/register" class="nav-link primary">เริ่มใช้ฟรี →</a>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <main>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="container">
+        <div class="hero-badge">
+          <span>🎓</span>
+          <span>แพลตฟอร์มสำหรับครู</span>
+        </div>
+        <h1>คลิกแค่หนึ่ง<br>ได้ถึงสาม สไลด์ เกม แบบทดสอบ</h1>
+        <p class="hero-subtitle">
+          Clazzee ช่วยครูสร้างสไลด์ด้วย AI เกมส์ตอบคำถาม แบบฝึกหัดออนไลน์ 
+          และจัดการห้องเรียน — ทุกอย่างในที่เดียว พร้อมใช้งานทันที
+        </p>
+        <div class="hero-actions">
+          <a href="/register" class="btn btn-primary">🚀 เริ่มใช้ฟรี</a>
+          <a href="/th/ai-slide-generator" class="btn">✨ ดู AI Slide Generator</a>
+        </div>
+        <div class="stats">
+          <div class="stat">
+            <div class="stat-value">500+</div>
+            <div class="stat-label">ครูใช้งาน</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">5,000+</div>
+            <div class="stat-label">สไลด์ที่สร้าง</div>
+          </div>
+          <div class="stat">
+            <div class="stat-value">50,000+</div>
+            <div class="stat-label">นักเรียนเข้าร่วม</div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- Features -->
+    <section class="section">
+      <div class="container">
+        <div class="section-header">
+          <div class="section-badge">✨ ฟีเจอร์หลัก</div>
+          <h2 class="section-title">ทุกเครื่องมือที่ครูต้องการ</h2>
+          <p class="section-subtitle">
+            ออกแบบมาเพื่อการสอนจริง ใช้งานง่าย ไม่ต้องเรียนรู้นาน
           </p>
-
-          <div class="cta-row">
-            <!-- Demo: ใช้หน้าที่เราทำ SEO ไว้แล้ว -->
-            <a class="btnx btn-primary" href="/th/ai-slide-generator">ดูเดโม (ไม่ต้องสมัคร)</a>
-            <a class="btnx btn-ghost" href="{{ url_for('register') }}">เริ่มใช้ฟรี</a>
-            <a class="btnx btn-ghost" href="{{ url_for('login') }}">เข้าสู่ระบบ</a>
-          </div>
-
-          <div class="badges" aria-label="Trust badges">
-            <div class="badge">✅ HTTPS + Cloudflare</div>
-            <div class="badge">🎮 Interactive Games</div>
-            <div class="badge">✨ AI Slides</div>
-            <div class="badge">📈 Track Practice</div>
-          </div>
         </div>
 
-        <div class="hero-visual" aria-label="Preview">
-          <div class="mini-shot">
-            <strong>Example Lesson</strong>
-            <span>Food • Daily Routines • Conversation</span>
-          </div>
-          <div class="mini-shot">
-            <strong>In-class Tools</strong>
-            <span>Timer • Scoreboard • Random • Classroom mode</span>
-          </div>
-          <div class="mini-shot" style="margin-bottom:0;">
-            <strong>Practice & Scores</strong>
-            <span>Students submit → Teacher exports CSV</span>
-          </div>
-        </div>
-      </div>
-    </section>
+        <div class="features-grid">
+          <article class="feature-card">
+            <div class="feature-icon purple">🤖</div>
+            <h3>AI Slide Generator</h3>
+            <p>
+              สร้างสไลด์พร้อมสอนในไม่กี่นาที ด้วยระบบเปิด-ปิดความหมาย/คำตอบ 
+              และอ่านออกเสียง (TTS) ที่ออกแบบมาสำหรับห้องเรียนจริง
+            </p>
+            <a href="/th/ai-slide-generator" class="feature-link">
+              เรียนรู้เพิ่มเติม →
+            </a>
+          </article>
 
-    <!-- WHY -->
-    <section class="section" id="why">
-      <div class="kicker">Why clazzee</div>
-      <div class="h2">ครูได้อะไรจากการใช้ clazzee?</div>
-      <p class="lead">
-        clazzee ออกแบบมาเพื่อ “ลดเวลาทำสื่อ” และ “เพิ่มความสนุกในคาบเรียน”
-        โดยไม่ทำให้ครูต้องมานั่งเซ็ตระบบเองให้ยุ่งยาก
-      </p>
+          <article class="feature-card">
+            <div class="feature-icon green">🎮</div>
+            <h3>เกมส์ตอบคำถาม</h3>
+            <p>
+              สร้างเกมส์แบบ Kahoot สำหรับทบทวนบทเรียน นักเรียนเข้าร่วมผ่าน QR Code 
+              ดูคะแนนแบบ Real-time
+            </p>
+            <a href="/register" class="feature-link">
+              ลองใช้งาน →
+            </a>
+          </article>
 
-      <div class="grid">
-        <div class="card span-4">
-          <div class="icon">⏱️</div>
-          <h3>ทำสื่อเร็วขึ้น</h3>
-          <p>ลดเวลาทำสไลด์/กิจกรรม ให้ครูมีเวลาโฟกัสการสอนและดูแลนักเรียน</p>
-        </div>
-        <div class="card span-4">
-          <div class="icon">🎯</div>
-          <h3>คาบเรียนสนุกขึ้น</h3>
-          <p>เกมและกิจกรรมแบบโต้ตอบ ช่วยดึงความสนใจและเพิ่มการมีส่วนร่วม</p>
-        </div>
-        <div class="card span-4">
-          <div class="icon">📊</div>
-          <h3>ติดตามผลได้จริง</h3>
-          <p>แบบฝึกหัด + คะแนน + export CSV ใช้ทำรายงานหรือเก็บคะแนนระหว่างภาคได้</p>
+          <article class="feature-card">
+            <div class="feature-icon blue">📝</div>
+            <h3>แบบฝึกหัดออนไลน์</h3>
+            <p>
+              สร้างแบบฝึกหลายรูปแบบ: ปรนัย, เติมคำ, จับคู่, เรียงประโยค 
+              ตรวจให้อัตโนมัติ ดูคะแนนรายคน
+            </p>
+            <a href="/register" class="feature-link">
+              ลองใช้งาน →
+            </a>
+          </article>
+
+          <article class="feature-card">
+            <div class="feature-icon orange">👥</div>
+            <h3>จัดการห้องเรียน</h3>
+            <p>
+              สร้างห้องเรียน เพิ่มนักเรียน มอบหมายงาน ดูผลคะแนน 
+              และติดตามความก้าวหน้าได้ในที่เดียว
+            </p>
+            <a href="/register" class="feature-link">
+              ลองใช้งาน →
+            </a>
+          </article>
         </div>
       </div>
     </section>
 
-    <!-- HOW IT WORKS -->
-    <section class="section" id="how">
-      <div class="kicker">How it works</div>
-      <div class="h2">ใช้งาน 3 ขั้นตอน</div>
-      <p class="lead">ทำสื่อ → สอน → ดูผลลัพธ์ ได้ในระบบเดียว</p>
-
-      <div class="steps">
-        <div class="step">
-          <div class="num">1</div>
-          <h4>เลือกหัวข้อบทเรียน</h4>
-          <p>เช่น Daily Routines / Food / Travel หรือหัวข้อที่คุณสอนอยู่แล้ว</p>
-        </div>
-        <div class="step">
-          <div class="num">2</div>
-          <h4>สร้างสไลด์ + เกม + แบบฝึก</h4>
-          <p>ใช้ AI ช่วย “เริ่มต้นให้” แล้วครูปรับแต่งให้เข้ากับนักเรียนได้ทันที</p>
-        </div>
-        <div class="step">
-          <div class="num">3</div>
-          <h4>สอนและเก็บคะแนน</h4>
-          <p>นักเรียนทำแบบฝึกผ่านลิงก์ ครูดูตารางคะแนนและ export เป็น CSV ได้</p>
+    <!-- CTA Section -->
+    <section class="cta-section">
+      <div class="container">
+        <div class="cta-box">
+          <h2>พร้อมเปลี่ยนการสอนของคุณ?</h2>
+          <p>
+            เริ่มใช้งาน Clazzee ฟรีวันนี้ ไม่ต้องใส่บัตรเครดิต 
+            อัปเกรดเมื่อพร้อม
+          </p>
+          <a href="/register" class="btn btn-primary">🚀 เริ่มใช้ฟรี — ไม่มีค่าใช้จ่าย</a>
         </div>
       </div>
     </section>
+  </main>
 
-    <!-- FEATURES (Benefits-first) -->
-    <section class="section" id="features">
-      <div class="kicker">Features</div>
-      <div class="h2">เครื่องมือหลักที่ครูใช้จริง</div>
-      <p class="lead">ทั้งหมดนี้ออกแบบเพื่อห้องเรียนไทย: ใช้ง่าย ชัดเจน และทำงานไว</p>
-
-      <div class="grid">
-        <div class="card span-6">
-          <div class="icon">✨</div>
-          <h3>Create lessons in minutes</h3>
-          <p>สร้างสไลด์สวย ๆ ได้เร็ว พร้อมโครงกิจกรรมและคำถามประกอบบทเรียน</p>
-        </div>
-        <div class="card span-6">
-          <div class="icon">🎮</div>
-          <h3>Interactive games for classrooms</h3>
-          <p>เกมแบบทีม/คะแนน/สุ่ม/จับเวลา ทำให้เด็กมีส่วนร่วมมากขึ้นแบบเห็นได้ชัด</p>
-        </div>
-        <div class="card span-6">
-          <div class="icon">📝</div>
-          <h3>Practice links + score tracking</h3>
-          <p>นักเรียนเปิดลิงก์ทำแบบฝึก ครูดูผลรวมและ export CSV ได้ทันที</p>
-        </div>
-        <div class="card span-6">
-          <div class="icon">🧑‍🏫</div>
-          <h3>Designed for teachers</h3>
-          <p>เหมาะกับ: ประถม/มัธยม/ติว/English Camp และครูที่อยากได้สื่อพร้อมใช้</p>
+  <!-- Footer -->
+  <footer class="footer" role="contentinfo" aria-label="ส่วนท้าย">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-text">© 2024 Clazzee • เพื่อห้องเรียนจริง</div>
+        <div class="footer-links">
+          <a href="/pricing">ราคา</a>
+          <a href="/th/ai-slide-generator">AI Slide Generator</a>
+          <a href="/login">เข้าสู่ระบบ</a>
         </div>
       </div>
-
-      <div class="section cta-block">
-        <div class="row">
-          <div>
-            <strong>อยากเห็นตัวอย่างก่อนสมัคร?</strong><br>
-            <span>เปิดเดโมได้ทันที — ไม่ต้องสมัคร ไม่ต้องใส่บัตร</span>
-          </div>
-          <div class="cta-row" style="margin-top:0;">
-            <a class="btnx btn-primary" href="/th/ai-slide-generator">เปิดเดโมภาษาไทย</a>
-            <a class="btnx btn-ghost" href="/en/ai-slide-generator">Open English Demo</a>
-          </div>
-        </div>
-      </div>
-    </section>
-
-    <!-- PRICING PREVIEW -->
-    <section class="section" id="pricing">
-      <div class="kicker">Pricing</div>
-      <div class="h2">เริ่มใช้ฟรี แล้วค่อยอัปเกรดเมื่อพร้อม</div>
-      <p class="lead">
-        Free ใช้ได้จริงสำหรับครูที่อยากลองระบบก่อน • Pro สำหรับครูที่ใช้สอนจริงทั้งเทอม
-      </p>
-
-      <div class="grid">
-        <div class="card span-6">
-          <div class="icon">🆓</div>
-          <h3>Free</h3>
-          <p>เหมาะสำหรับทดลองใช้งานและสร้างบทเรียนพื้นฐาน</p>
-          <ul style="margin:.8rem 0 0; color:var(--muted); line-height:1.9;">
-            <li>สร้างบทเรียนจำนวนจำกัด/เดือน</li>
-            <li>ใช้สไลด์และเกมพื้นฐาน</li>
-            <li>เหมาะสำหรับลองกับ 1 ห้อง</li>
-          </ul>
-        </div>
-
-        <div class="card span-6">
-          <div class="icon">💎</div>
-          <h3>Pro</h3>
-          <p>เหมาะสำหรับครูที่ใช้จริง: สร้างสื่อได้เต็มที่และติดตามผลได้ละเอียด</p>
-          <ul style="margin:.8rem 0 0; color:var(--muted); line-height:1.9;">
-            <li>สร้างบทเรียนมากขึ้น/ไม่อั้น</li>
-            <li>เครื่องมือห้องเรียนครบ (timer/scoreboard ฯลฯ)</li>
-            <li>ติดตามผล + export สำหรับงานคะแนน</li>
-          </ul>
-        </div>
-      </div>
-
-      <div class="cta-row" style="justify-content:flex-start; margin-top: 1rem;">
-        <a class="btnx btn-primary" href="{{ url_for('register') }}">เริ่มใช้ฟรี</a>
-        <!-- ถ้าคุณมีหน้า /pricing อยู่แล้ว ใช้ลิงก์นี้ได้เลย -->
-        <a class="btnx" style="background:#111827;color:#fff;" href="/pricing">ดูรายละเอียดราคา</a>
-      </div>
-      <p style="margin:.8rem 0 0; color: var(--muted);">* คุณปรับรายละเอียดแพ็กเกจและลิมิตภายหลังได้ เราแค่ทำให้หน้าเข้าใจง่ายก่อน</p>
-    </section>
-
-    <!-- FAQ -->
-    <section class="section faq" id="faq">
-      <div class="kicker">FAQ</div>
-      <div class="h2">คำถามที่ครูมักถาม</div>
-      <p class="lead">ตอบให้ชัด ๆ ก่อนตัดสินใจ</p>
-
-      <details>
-        <summary>ต้องเก่งคอมไหมถึงใช้ได้?</summary>
-        <p>ไม่จำเป็นครับ clazzee ออกแบบให้ครูใช้ง่าย: เลือกหัวข้อ → ได้สื่อ → สอนได้เลย</p>
-      </details>
-
-      <details>
-        <summary>นักเรียนต้องสมัครด้วยไหม?</summary>
-        <p>โดยทั่วไป “ไม่จำเป็น” ถ้าคุณใช้โหมดลิงก์แบบฝึก (นักเรียนกรอกชื่อ/เลขที่แล้วทำได้ทันที)</p>
-      </details>
-
-      <details>
-        <summary>ใช้กับมือถือได้ไหม?</summary>
-        <p>ได้ครับ ทั้งฝั่งครูและนักเรียน (แนะนำใช้ Chrome/Edge เพื่อประสิทธิภาพดีที่สุด)</p>
-      </details>
-
-      <details>
-        <summary>ความปลอดภัยเป็นอย่างไร?</summary>
-        <p>ระบบอยู่หลัง Cloudflare/HTTPS และมีการควบคุมสิทธิ์การเข้าถึงสำหรับครู/แอดมิน</p>
-      </details>
-    </section>
-
-    <!-- FINAL CTA -->
-    <section class="section foot-cta" aria-label="Final CTA">
-      <h2>พร้อมทำคาบเรียนให้สนุกขึ้นไหม?</h2>
-      <p>เริ่มใช้ฟรีวันนี้ แล้วลองสร้างบทเรียนแรกของคุณในไม่กี่นาที</p>
-      <div class="cta-row">
-        <a class="btnx btn-primary" href="{{ url_for('register') }}">เริ่มใช้ฟรี</a>
-        <a class="btnx btn-ghost" href="/th/ai-slide-generator">ดูเดโมก่อน</a>
-      </div>
-    </section>
-
-    {% else %}
-
-    <section class="card">
-      <h2 style="margin:0 0 .5rem;">Welcome back 👋</h2>
-      <p style="margin:0; color: var(--muted); line-height: 1.75;">
-        You are logged in as <b>{{ session.email }}</b>.
-        <a href="{{ url_for('dashboard') }}">Go to your dashboard</a>.
-      </p>
-    </section>
-
-    {% endif %}
-  </div>
-</div>
-{% endblock %}
+    </div>
+  </footer>
+</body>
+</html>
