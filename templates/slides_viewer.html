@@ -1444,6 +1444,65 @@ body.fullscreen-mode .slide-footer {
 }
 .laser-pointer.on{ display: block; }
 
+
+  /* ===========================
+     Premium Sentence Cards
+     =========================== */
+  .sentence-stack{ display:flex; flex-direction:column; gap:14px; margin: 10px 0 2px; }
+  .sentence-card{
+    background: rgba(255, 240, 178, 0.92);
+    border: 2px solid rgba(17, 24, 39, 0.14);
+    border-left: 8px solid rgba(245, 158, 11, 0.95);
+    border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: 0 14px 35px rgba(0,0,0,0.10);
+  }
+  .sentence-row{ display:flex; gap:12px; align-items:flex-start; }
+  .sentence-icon{
+    flex: 0 0 auto;
+    width: 34px; height: 34px;
+    display:flex; align-items:center; justify-content:center;
+    border-radius: 12px;
+    background: rgba(245,158,11,0.18);
+    border: 1px solid rgba(245,158,11,0.35);
+    font-size: 18px;
+    margin-top: 2px;
+  }
+  .sentence-en{
+    font-size: clamp(22px, 2.4vw, 34px);
+    font-weight: 900;
+    line-height: 1.25;
+    letter-spacing: -0.02em;
+  }
+  .sentence-actions{ margin-top: 10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
+  .sentence-meaning{
+    margin-top: 10px;
+    padding: 12px 14px;
+    background: rgba(255,255,255,0.9);
+    border-radius: 12px;
+    border: 1px solid rgba(17, 24, 39, 0.10);
+    font-size: clamp(18px, 2vw, 26px);
+    font-weight: 800;
+    line-height: 1.45;
+  }
+  .sentence-card .reveal-btn{
+    border-radius: 999px;
+    padding: 8px 14px;
+    font-weight: 900;
+  }
+  .sentence-card .meaning{ font-weight: 900; }
+  /* Keep readable on blackboard theme */
+  body[data-theme="blackboard"] .sentence-card{
+    background: rgba(255, 220, 120, 0.16);
+    border-color: rgba(255,255,255,0.22);
+    border-left-color: rgba(255, 209, 102, 0.95);
+    box-shadow: 0 14px 35px rgba(0,0,0,0.25);
+  }
+  body[data-theme="blackboard"] .sentence-meaning{
+    background: rgba(255,255,255,0.08);
+    border-color: rgba(255,255,255,0.16);
+  }
+
 </style>
 {% endblock %}
 
@@ -1570,7 +1629,7 @@ function toggleAllMeanings(force){
     }
     // fallback: search the nearest reasonable container
     if (!meaningEl) {
-      const container = btn.closest('.vocab-card, .vocab-line, li, p, .dialogue-line, .practice-item');
+      const container = btn.closest('.sentence-card, .vocab-card, .vocab-line, li, p, .dialogue-line, .practice-item');
       if (container) meaningEl = container.querySelector('[data-reveal="meaning"]');
     }
 
@@ -1606,7 +1665,7 @@ function wireSlideInteractions(){
 
       // Fallback: search nearest logical container
       if (!meaningEl) {
-        const container = btn.closest('.vocab-card, .vocab-line, li, p, .dialogue-line, .practice-item');
+        const container = btn.closest('.sentence-card, .vocab-card, .vocab-line, li, p, .dialogue-line, .practice-item');
         if (container) meaningEl = container.querySelector('[data-reveal="meaning"]');
       }
 
@@ -1936,11 +1995,11 @@ function extractContent(slide, type) {
           html += `<p>${escapeHtml(c)}</p>`;
         } else if (c.en) {
           const th = c.th || c.meaning || c.translation || '';
-          if (th && /[\u0E00-\u0E7F]/.test(th)) {
-            html += `<p>${escapeHtml(c.en)} <button class="reveal-btn" type="button" data-action="toggle-meaning" aria-expanded="false">👁 Show</button>
-                     <span class="meaning is-hidden" data-reveal="meaning">(${escapeHtml(th)})</span></p>`;
+          if (th && String(th).trim() !== '') {
+            // Premium sentence card (default: hide meaning)
+            html += renderSentenceCard(String(c.en), String(th).replace(/^\(|\)$/g,''), '⭐');
           } else {
-            html += `<p>${escapeHtml(c.en)}${th ? ` <span style="color:#6b7280">(${escapeHtml(th)})</span>` : ''}</p>`;
+            html += `<p>${escapeHtml(c.en)}</p>`;
           }
         }
       });
@@ -1985,28 +2044,35 @@ function extractContent(slide, type) {
     }
   }
   
-  // Examples - show ALL items (no limit)
+  // Examples / Phrases (Premium sentence cards when meaning exists)
   if (slide.examples && Array.isArray(slide.examples)) {
-    html += '<ul>';
+    const cards = [];
+    const bullets = [];
     slide.examples.forEach(ex => {
       if (typeof ex === 'string') {
-        // If teacher typed "EN - TH" (or "EN: TH"), auto-hide TH meaning
         const raw = String(ex);
         const m = raw.match(/^(.+?)\s*(?:-|–|—|:)\s*(.+)$/);
-        if (m && /[\u0E00-\u0E7F]/.test(m[2])) {
-          html += `<li>${escapeHtml(m[1])} <button class="reveal-btn" type="button" data-action="toggle-meaning" aria-expanded="false">👁 Show</button>
-                   <span class="meaning is-hidden" data-reveal="meaning">(${escapeHtml(m[2])})</span></li>`;
+        if (m && m[2] && /[\u0E00-\u0E7F]/.test(m[2])) {
+          cards.push(renderSentenceCard(m[1].trim(), m[2].trim().replace(/^\(|\)$/g,''), '⭐'));
         } else {
-          html += `<li>${escapeHtml(raw)}</li>`;
+          bullets.push(`<li>${escapeHtml(raw)}</li>`);
         }
-      } else if (ex.en) {
-        html += `<li>${escapeHtml(ex.en)}${
-          ex.th ? ` <button class="reveal-btn" type="button" data-action="toggle-meaning" aria-expanded="false">👁 Show</button>
-                   <span class="meaning is-hidden" data-reveal="meaning">(${escapeHtml(ex.th)})</span>` : ''
-        }</li>`;
+      } else if (ex && ex.en) {
+        const th = ex.th || ex.meaning || ex.translation || '';
+        if (th && String(th).trim() !== '') {
+          cards.push(renderSentenceCard(String(ex.en), String(th).trim().replace(/^\(|\)$/g,''), '⭐'));
+        } else {
+          bullets.push(`<li>${escapeHtml(ex.en)}</li>`);
+        }
       }
     });
-    html += '</ul>';
+
+    if (cards.length) {
+      html += `<div class="sentence-stack">${cards.join('')}</div>`;
+    }
+    if (bullets.length) {
+      html += `<ul>${bullets.join('')}</ul>`;
+    }
   }
   
   // Highlights
@@ -2141,6 +2207,28 @@ function escapeHtml(text) {
   const div = document.createElement('div');
   div.textContent = text;
   return div.innerHTML;
+}
+
+
+
+function renderSentenceCard(en, th, icon){
+  const safeEn = escapeHtml(en || "");
+  const safeTh = escapeHtml(th || "");
+  const ico = icon || "⭐";
+  return `
+    <div class="sentence-card">
+      <div class="sentence-row">
+        <div class="sentence-icon">${ico}</div>
+        <div style="flex:1 1 auto;">
+          <div class="sentence-en">${safeEn}</div>
+          <div class="sentence-actions">
+            <button class="reveal-btn" type="button" data-action="toggle-meaning" aria-expanded="false">👁 Show</button>
+          </div>
+          <div class="sentence-meaning meaning is-hidden" data-reveal="meaning">${safeTh}</div>
+        </div>
+      </div>
+    </div>
+  `;
 }
 
 // Create thumbnails
