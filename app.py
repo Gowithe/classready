@@ -310,6 +310,225 @@ def logout():
     session.clear()
     return redirect(url_for("landing"))
 
+
+# ==============================================================================
+# Resend Verification Email
+# ==============================================================================
+@app.route("/resend-verification", methods=["GET", "POST"])
+def resend_verification():
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+        
+        if not email:
+            flash("กรุณากรอกอีเมล", "error")
+            return render_template("resend_verification.html")
+        
+        user = User.get_by_email(email)
+        
+        if not user:
+            flash("ไม่พบอีเมลนี้ในระบบ", "error")
+            return render_template("resend_verification.html")
+        
+        if user.get("is_verified"):
+            flash("อีเมลนี้ได้รับการยืนยันแล้ว สามารถเข้าสู่ระบบได้เลย", "success")
+            return redirect(url_for("login"))
+        
+        # Refresh token and send email
+        token = User.refresh_verify_token(user["id"])
+        if token:
+            verify_path = url_for("verify_email", token=token)
+            verify_link = _build_external_url(verify_path) if APP_BASE_URL else url_for("verify_email", token=token, _external=True)
+            try:
+                send_verify_email(email, verify_link)
+                flash("ส่งลิงก์ยืนยันใหม่ไปที่อีเมลของคุณแล้ว กรุณาตรวจสอบกล่องจดหมาย", "success")
+            except Exception as e:
+                print(f"[EMAIL ERROR] {e}")
+                flash("ไม่สามารถส่งอีเมลได้ กรุณาลองใหม่อีกครั้ง", "error")
+        
+        return redirect(url_for("login"))
+    
+    return render_template("resend_verification.html")
+
+
+# ==============================================================================
+# Forgot Password
+# ==============================================================================
+@app.route("/forgot-password", methods=["GET", "POST"])
+def forgot_password():
+    if request.method == "POST":
+        email = (request.form.get("email") or "").strip().lower()
+        
+        if not email:
+            flash("กรุณากรอกอีเมล", "error")
+            return render_template("forgot_password.html")
+        
+        user = User.get_by_email(email)
+        
+        # Always show success message (security: don't reveal if email exists)
+        if user:
+            token = User.set_reset_token(user["id"])
+            if token:
+                reset_path = url_for("reset_password", token=token)
+                reset_link = _build_external_url(reset_path) if APP_BASE_URL else url_for("reset_password", token=token, _external=True)
+                try:
+                    send_reset_password_email(email, reset_link)
+                except Exception as e:
+                    print(f"[EMAIL ERROR] {e}")
+        
+        flash("หากอีเมลนี้มีอยู่ในระบบ เราได้ส่งลิงก์รีเซ็ตรหัสผ่านไปแล้ว กรุณาตรวจสอบกล่องจดหมาย", "success")
+        return redirect(url_for("login"))
+    
+    return render_template("forgot_password.html")
+
+
+@app.route("/reset-password/<token>", methods=["GET", "POST"])
+def reset_password(token):
+    user = User.get_by_reset_token(token)
+    
+    if not user:
+        flash("ลิงก์รีเซ็ตรหัสผ่านไม่ถูกต้องหรือหมดอายุแล้ว", "error")
+        return redirect(url_for("forgot_password"))
+    
+    if request.method == "POST":
+        password = request.form.get("password", "")
+        confirm = request.form.get("confirm_password", "")
+        
+        if len(password) < 6:
+            flash("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร", "error")
+            return render_template("reset_password.html", token=token)
+        
+        if password != confirm:
+            flash("รหัสผ่านไม่ตรงกัน", "error")
+            return render_template("reset_password.html", token=token)
+        
+        User.reset_password(user["id"], password)
+        flash("รีเซ็ตรหัสผ่านสำเร็จ! สามารถเข้าสู่ระบบด้วยรหัสผ่านใหม่ได้แล้ว", "success")
+        return redirect(url_for("login"))
+    
+    return render_template("reset_password.html", token=token)
+
+
+# ==============================================================================
+# My Account
+# ==============================================================================
+@app.route("/my-account")
+@login_required
+def my_account():
+    user = User.get_by_id(session["user_id"])
+    if not user:
+        return redirect(url_for("logout"))
+    
+    # Get subscription info
+    subscription = UserSubscription.get_active_subscription(user["id"])
+    is_premium = subscription is not None
+    
+    # Get usage stats
+    stats = UsageLimits.get_user_stats(user["id"])
+    
+    # Get limits
+    if is_premium:
+        limits = {
+            "topics": "ไม่จำกัด",
+            "classrooms": "ไม่จำกัด",
+            "ai_generate": "ไม่จำกัด",
+            "students_per_classroom": "ไม่จำกัด",
+        }
+    else:
+        limits = {
+            "topics": UsageLimits.FREE_TOPICS,
+            "classrooms": UsageLimits.FREE_CLASSROOMS,
+            "ai_generate": UsageLimits.FREE_AI_GENERATE_PER_MONTH,
+            "students_per_classroom": UsageLimits.FREE_STUDENTS_PER_CLASSROOM,
+        }
+    
+    return render_template("my_account.html", 
+                         user=user, 
+                         subscription=subscription, 
+                         is_premium=is_premium,
+                         stats=stats,
+                         limits=limits)
+
+
+@app.route("/my-account/update", methods=["POST"])
+@login_required
+def my_account_update():
+    display_name = (request.form.get("display_name") or "").strip()[:100]
+    User.update_profile(session["user_id"], display_name)
+    flash("อัปเดตข้อมูลเรียบร้อย", "success")
+    return redirect(url_for("my_account"))
+
+
+@app.route("/my-account/change-password", methods=["POST"])
+@login_required
+def my_account_change_password():
+    user = User.get_by_id(session["user_id"])
+    if not user:
+        return redirect(url_for("logout"))
+    
+    current_password = request.form.get("current_password", "")
+    new_password = request.form.get("new_password", "")
+    confirm_password = request.form.get("confirm_password", "")
+    
+    # Verify current password
+    if not check_password_hash(user["password_hash"], current_password):
+        flash("รหัสผ่านปัจจุบันไม่ถูกต้อง", "error")
+        return redirect(url_for("my_account"))
+    
+    if len(new_password) < 6:
+        flash("รหัสผ่านใหม่ต้องมีอย่างน้อย 6 ตัวอักษร", "error")
+        return redirect(url_for("my_account"))
+    
+    if new_password != confirm_password:
+        flash("รหัสผ่านใหม่ไม่ตรงกัน", "error")
+        return redirect(url_for("my_account"))
+    
+    User.update_password(session["user_id"], new_password)
+    flash("เปลี่ยนรหัสผ่านสำเร็จ!", "success")
+    return redirect(url_for("my_account"))
+
+
+# ==============================================================================
+# Send Reset Password Email
+# ==============================================================================
+def send_reset_password_email(to_email: str, reset_link: str) -> None:
+    """Send password reset link via Gmail SMTP."""
+    if not GMAIL_USER or not GMAIL_APP_PASSWORD:
+        print("[EMAIL] SMTP not configured. RESET LINK:", reset_link)
+        return
+
+    msg = MIMEMultipart("alternative")
+    msg["From"] = GMAIL_USER
+    msg["To"] = to_email
+    msg["Subject"] = "รีเซ็ตรหัสผ่าน - Teacher Platform"
+
+    html = f"""
+    <div style="font-family:Arial,sans-serif;line-height:1.6;max-width:500px;margin:0 auto;">
+      <h2 style="color:#667eea;">🔐 รีเซ็ตรหัสผ่าน</h2>
+      <p>คุณได้ร้องขอรีเซ็ตรหัสผ่านสำหรับบัญชี Teacher Platform</p>
+      <p>คลิกปุ่มด้านล่างเพื่อตั้งรหัสผ่านใหม่:</p>
+      <p style="text-align:center;margin:24px 0;">
+        <a href="{reset_link}" style="display:inline-block;padding:12px 24px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;text-decoration:none;border-radius:10px;font-weight:bold;">
+          ตั้งรหัสผ่านใหม่
+        </a>
+      </p>
+      <p style="color:#64748b;font-size:13px;">ถ้าปุ่มกดไม่ได้ ให้คัดลอกลิงก์นี้ไปวางในเบราว์เซอร์:</p>
+      <p style="word-break:break-all;font-size:13px;background:#f1f5f9;padding:10px;border-radius:6px;">{reset_link}</p>
+      <p style="color:#ef4444;font-size:13px;">⚠️ ลิงก์นี้มีอายุ 1 ชั่วโมง</p>
+      <hr style="border:none;border-top:1px solid #e2e8f0;margin:20px 0;">
+      <p style="color:#94a3b8;font-size:12px;">หากคุณไม่ได้ร้องขอรีเซ็ตรหัสผ่าน กรุณาเพิกเฉยอีเมลนี้</p>
+    </div>
+    """
+
+    msg.attach(MIMEText(html, "html", "utf-8"))
+
+    with smtplib.SMTP("smtp.gmail.com", 587, timeout=20) as server:
+        server.ehlo()
+        server.starttls()
+        server.ehlo()
+        server.login(GMAIL_USER, GMAIL_APP_PASSWORD)
+        server.send_message(msg)
+
+
 @app.route("/uploads/<path:filename>")
 @login_required
 def uploaded_file(filename): return send_from_directory(app.config["UPLOAD_FOLDER"], filename)
