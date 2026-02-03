@@ -1559,16 +1559,27 @@ function toggleAllMeanings(force){
     else if(meaningsHiddenByDefault) el.classList.add('is-hidden');
   });
 
-  // Sync per-item buttons
+  // Sync per-item buttons (works for vocab + sentences + dialogue)
   document.querySelectorAll('[data-action="toggle-meaning"]').forEach(btn => {
-    const wrap = btn.closest('.vocab-card') || btn.closest('.vocab-line');
-    const meaningEl = wrap ? wrap.querySelector('[data-reveal="meaning"]') : null;
+    // meaning span is usually next to the button, or inside the same parent
+    let meaningEl = null;
+    if (btn.nextElementSibling && btn.nextElementSibling.matches('[data-reveal="meaning"]')) {
+      meaningEl = btn.nextElementSibling;
+    } else if (btn.parentElement) {
+      meaningEl = btn.parentElement.querySelector('[data-reveal="meaning"]');
+    }
+    // fallback: search the nearest reasonable container
+    if (!meaningEl) {
+      const container = btn.closest('.vocab-card, .vocab-line, li, p, .dialogue-line, .practice-item');
+      if (container) meaningEl = container.querySelector('[data-reveal="meaning"]');
+    }
+
     const expanded = meaningEl ? !meaningEl.classList.contains('is-hidden') : false;
     btn.setAttribute('aria-expanded', expanded ? 'true' : 'false');
     btn.textContent = expanded ? '🙈 Hide' : '👁 Show';
   });
 
-  const topBtn = document.getElementById('meaningToggleBtn');
+const topBtn = document.getElementById('meaningToggleBtn');
   if(topBtn){
     topBtn.textContent = meaningsGloballyRevealed ? '👁 Meanings: ON' : '👁 Meanings';
   }
@@ -1580,13 +1591,26 @@ function wireSlideInteractions(){
     document.querySelectorAll('[data-reveal="meaning"]').forEach(el => el.classList.add('is-hidden'));
   }
 
-  // Per-item toggle
+  // Per-item toggle (works for vocab + sentences + dialogue)
   document.querySelectorAll('[data-action="toggle-meaning"]').forEach(btn => {
     btn.addEventListener('click', () => {
-      const wrap = btn.closest('.vocab-card') || btn.closest('.vocab-line');
-      if(!wrap) return;
-      const meaningEl = wrap.querySelector('[data-reveal="meaning"]');
-      if(!meaningEl) return;
+      let meaningEl = null;
+
+      // Most layouts put the meaning right after the button
+      if (btn.nextElementSibling && btn.nextElementSibling.matches('[data-reveal="meaning"]')) {
+        meaningEl = btn.nextElementSibling;
+      } else if (btn.parentElement) {
+        // Or somewhere inside the same parent (e.g., vocab card)
+        meaningEl = btn.parentElement.querySelector('[data-reveal="meaning"]');
+      }
+
+      // Fallback: search nearest logical container
+      if (!meaningEl) {
+        const container = btn.closest('.vocab-card, .vocab-line, li, p, .dialogue-line, .practice-item');
+        if (container) meaningEl = container.querySelector('[data-reveal="meaning"]');
+      }
+
+      if (!meaningEl) return;
 
       const willShow = meaningEl.classList.contains('is-hidden');
       meaningEl.classList.toggle('is-hidden', !willShow);
@@ -1596,7 +1620,7 @@ function wireSlideInteractions(){
     });
   });
 
-  // Keep top button state sane
+// Keep top button state sane
   const topBtn = document.getElementById('meaningToggleBtn');
   if(topBtn){
     topBtn.textContent = meaningsGloballyRevealed ? '👁 Meanings: ON' : '👁 Meanings';
