@@ -1,304 +1,725 @@
 <!doctype html>
 <html lang="th">
 <head>
-  <meta charset="utf-8" />
-  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
   <title>สร้างสไลด์ด้วย AI – สไลด์พร้อมสอนในไม่กี่นาที | Clazzee</title>
-  <meta name="description" content="สร้างสไลด์พร้อมสอนด้วย AI ภายในไม่กี่นาที สร้างสไลด์แบบอินเทอร์แอคทีฟ เปิด-ปิดคำตอบ/ความหมายได้ มีอ่านออกเสียง (TTS) และโครงสไลด์ที่เหมาะกับการสอนจริง" />
+  <meta name="description" content="สร้างสไลด์พร้อมสอนด้วย AI ภายในไม่กี่นาที สร้างสไลด์แบบอินเทอร์แอคทีฟ เปิด-ปิดคำตอบ/ความหมายได้ มีอ่านออกเสียง (TTS)">
 
   <!-- Canonical + hreflang -->
-  <link rel="canonical" href="https://clazzee.com/th/ai-slide-generator" />
-  <link rel="alternate" hreflang="en" href="https://clazzee.com/en/ai-slide-generator" />
-  <link rel="alternate" hreflang="th" href="https://clazzee.com/th/ai-slide-generator" />
-  <link rel="alternate" hreflang="x-default" href="https://clazzee.com/en/ai-slide-generator" />
+  <link rel="canonical" href="https://clazzee.com/th/ai-slide-generator">
+  <link rel="alternate" hreflang="en" href="https://clazzee.com/en/ai-slide-generator">
+  <link rel="alternate" hreflang="th" href="https://clazzee.com/th/ai-slide-generator">
+  <link rel="alternate" hreflang="x-default" href="https://clazzee.com/en/ai-slide-generator">
 
   <!-- Open Graph -->
-  <meta property="og:type" content="website" />
-  <meta property="og:site_name" content="Clazzee" />
-  <meta property="og:title" content="สร้างสไลด์ด้วย AI – สไลด์พร้อมสอนในไม่กี่นาที" />
-  <meta property="og:description" content="สไลด์สำหรับการสอนจริง: เปิด-ปิดความหมาย/คำตอบ + อ่านออกเสียง (TTS) + เพิ่มรูปภาพได้" />
-  <meta property="og:url" content="https://clazzee.com/th/ai-slide-generator" />
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Clazzee">
+  <meta property="og:title" content="สร้างสไลด์ด้วย AI – สไลด์พร้อมสอนในไม่กี่นาที">
+  <meta property="og:description" content="สไลด์สำหรับการสอนจริง: เปิด-ปิดความหมาย/คำตอบ + อ่านออกเสียง (TTS)">
+  <meta property="og:url" content="https://clazzee.com/th/ai-slide-generator">
+
+  <!-- Twitter Card -->
+  <meta name="twitter:card" content="summary_large_image">
+  <meta name="twitter:title" content="สร้างสไลด์ด้วย AI – สไลด์พร้อมสอนในไม่กี่นาที">
+  <meta name="twitter:description" content="สไลด์สำหรับการสอนจริง: เปิด-ปิดความหมาย/คำตอบ + อ่านออกเสียง (TTS)">
+
+  <!-- Google Fonts -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Sans+Thai:wght@400;500;600;700&family=Inter:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">
 
   <style>
-    :root{
-      --bg:#0b1220;
-      --panel:#0f1a2f;
-      --card:#111f3b;
-      --text:#eaf0ff;
-      --muted:rgba(234,240,255,.72);
-      --line:rgba(234,240,255,.14);
-      --accent:#7c3aed;
-      --accent2:#22c55e;
-      --shadow: 0 18px 50px rgba(0,0,0,.35);
-      --radius:18px;
-      --max: 1080px;
+    *, *::before, *::after {
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
-    *{box-sizing:border-box}
-    body{
-      margin:0;
-      font-family: system-ui, -apple-system, "Sarabun", "Kanit", Segoe UI, Roboto, Arial, sans-serif;
-      color:var(--text);
-      background:
-        radial-gradient(900px 450px at 18% 10%, rgba(124,58,237,.35), transparent 55%),
-        radial-gradient(900px 450px at 88% 30%, rgba(34,197,94,.18), transparent 55%),
-        linear-gradient(180deg, #081024, #070b14 80%);
+
+    :root {
+      --bg-primary: #030712;
+      --bg-secondary: #0f172a;
+      --bg-card: rgba(15, 23, 42, 0.6);
+      --border: rgba(148, 163, 184, 0.1);
+      --border-hover: rgba(148, 163, 184, 0.2);
+      --text-primary: #f8fafc;
+      --text-secondary: #94a3b8;
+      --text-muted: #64748b;
+      --accent-purple: #a855f7;
+      --accent-purple-dim: rgba(168, 85, 247, 0.15);
+      --accent-green: #22c55e;
+      --accent-green-dim: rgba(34, 197, 94, 0.15);
+      --accent-blue: #3b82f6;
+      --gradient-purple: linear-gradient(135deg, #a855f7 0%, #6366f1 100%);
+      --gradient-green: linear-gradient(135deg, #22c55e 0%, #10b981 100%);
+      --shadow-glow: 0 0 60px -12px;
+      --radius-sm: 8px;
+      --radius-md: 12px;
+      --radius-lg: 16px;
+      --radius-xl: 24px;
+      --radius-full: 9999px;
+      --transition: 0.2s cubic-bezier(0.4, 0, 0.2, 1);
+      --max-width: 1200px;
     }
-    a{color:inherit; text-decoration:none}
-    .wrap{max-width:var(--max); margin:0 auto; padding:28px 18px 70px}
-    .nav{
-      display:flex; align-items:center; justify-content:space-between;
-      gap:14px; padding:12px 14px; border:1px solid var(--line);
-      background:rgba(15,26,47,.72); border-radius:999px; backdrop-filter: blur(10px);
+
+    html { scroll-behavior: smooth; }
+
+    body {
+      font-family: 'IBM Plex Sans Thai', 'Inter', system-ui, -apple-system, sans-serif;
+      background: var(--bg-primary);
+      color: var(--text-primary);
+      line-height: 1.7;
+      min-height: 100vh;
+      overflow-x: hidden;
     }
-    .brand{display:flex; align-items:center; gap:10px; font-weight:900; letter-spacing:.2px}
-    .logo{
-      width:34px; height:34px; border-radius:12px;
-      background: linear-gradient(135deg, rgba(124,58,237,1), rgba(34,197,94,1));
-      box-shadow: 0 10px 25px rgba(124,58,237,.25);
+
+    /* Animated Background */
+    .bg-gradient {
+      position: fixed;
+      inset: 0;
+      z-index: -1;
+      overflow: hidden;
     }
-    .navlinks{display:flex; align-items:center; gap:10px; flex-wrap:wrap; justify-content:flex-end}
-    .pill{
-      border:1px solid var(--line); padding:9px 12px; border-radius:999px;
-      background:rgba(255,255,255,.04);
-      font-weight:800; color:var(--muted);
+
+    .bg-gradient::before,
+    .bg-gradient::after {
+      content: '';
+      position: absolute;
+      border-radius: 50%;
+      filter: blur(100px);
+      opacity: 0.4;
+      animation: pulse 8s ease-in-out infinite alternate;
     }
-    .pill:hover{border-color:rgba(234,240,255,.26); color:var(--text)}
-    .cta{
-      border:1px solid rgba(124,58,237,.55);
-      background: rgba(124,58,237,.16);
-      color: var(--text);
+
+    .bg-gradient::before {
+      width: 600px;
+      height: 600px;
+      background: var(--accent-purple);
+      top: -200px;
+      left: -100px;
     }
-    .cta:hover{background: rgba(124,58,237,.24); border-color: rgba(124,58,237,.75)}
-    .hero{padding:46px 6px 18px}
-    .kicker{
-      display:inline-flex; gap:10px; align-items:center;
-      border:1px solid var(--line); padding:10px 14px; border-radius:999px;
-      background: rgba(255,255,255,.04); color:var(--muted);
-      font-weight:900;
+
+    .bg-gradient::after {
+      width: 500px;
+      height: 500px;
+      background: var(--accent-green);
+      bottom: -150px;
+      right: -100px;
+      animation-delay: -4s;
     }
-    .h1{
-      margin:16px 0 10px;
-      font-size: clamp(30px, 4.2vw, 52px);
-      line-height:1.05;
-      letter-spacing:-.6px;
-      font-weight:950;
+
+    @keyframes pulse {
+      0% { transform: scale(1) translate(0, 0); opacity: 0.3; }
+      100% { transform: scale(1.1) translate(30px, 20px); opacity: 0.5; }
     }
-    .sub{
-      margin:0;
-      font-size: clamp(16px, 1.8vw, 20px);
-      line-height:1.6;
-      color:var(--muted);
-      max-width: 72ch;
+
+    /* Container */
+    .container {
+      width: 100%;
+      max-width: var(--max-width);
+      margin: 0 auto;
+      padding: 0 24px;
     }
-    .heroActions{display:flex; gap:12px; flex-wrap:wrap; margin-top:18px}
-    .btn{
-      display:inline-flex; align-items:center; gap:10px;
-      border-radius:999px; padding:12px 16px;
-      border:1px solid var(--line);
-      background: rgba(255,255,255,.05);
-      font-weight:950;
+
+    /* Navigation */
+    .nav {
+      position: fixed;
+      top: 0;
+      left: 0;
+      right: 0;
+      z-index: 100;
+      padding: 16px 0;
+      background: rgba(3, 7, 18, 0.8);
+      backdrop-filter: blur(20px);
+      border-bottom: 1px solid var(--border);
     }
-    .btnPrimary{
-      border-color: rgba(34,197,94,.55);
-      background: rgba(34,197,94,.18);
+
+    .nav-inner {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
     }
-    .btnPrimary:hover{background: rgba(34,197,94,.25); border-color: rgba(34,197,94,.75)}
-    .btnGhost:hover{border-color:rgba(234,240,255,.26)}
-    .grid{display:grid; gap:14px; grid-template-columns: repeat(12, 1fr); margin-top:22px}
-    .card{
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      text-decoration: none;
+      color: var(--text-primary);
+    }
+
+    .logo {
+      width: 42px;
+      height: 42px;
+      border-radius: var(--radius-md);
+      background: var(--gradient-purple);
+      box-shadow: var(--shadow-glow) var(--accent-purple);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-weight: 800;
+      font-size: 1.25rem;
+    }
+
+    .brand-name {
+      font-size: 1.35rem;
+      font-weight: 700;
+      letter-spacing: -0.02em;
+    }
+
+    .nav-links {
+      display: flex;
+      align-items: center;
+      gap: 8px;
+    }
+
+    .nav-link {
+      padding: 10px 18px;
+      border-radius: var(--radius-full);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      color: var(--text-secondary);
+      border: 1px solid transparent;
+      transition: var(--transition);
+    }
+
+    .nav-link:hover {
+      color: var(--text-primary);
+      background: rgba(255,255,255,0.05);
+    }
+
+    .nav-link.primary {
+      background: var(--gradient-purple);
+      color: white;
+      border: none;
+    }
+
+    .nav-link.primary:hover {
+      box-shadow: var(--shadow-glow) var(--accent-purple);
+      transform: translateY(-1px);
+    }
+
+    /* Hero Section */
+    .hero {
+      padding: 140px 0 80px;
+      text-align: center;
+    }
+
+    .hero-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 8px 16px;
+      border-radius: var(--radius-full);
+      background: var(--accent-purple-dim);
+      border: 1px solid rgba(168, 85, 247, 0.3);
+      font-size: 0.875rem;
+      font-weight: 600;
+      color: #c084fc;
+      margin-bottom: 24px;
+    }
+
+    .hero h1 {
+      font-size: clamp(2.25rem, 5vw, 4rem);
+      font-weight: 700;
+      letter-spacing: -0.02em;
+      line-height: 1.2;
+      margin-bottom: 24px;
+      background: linear-gradient(180deg, var(--text-primary) 0%, var(--text-secondary) 100%);
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+      background-clip: text;
+    }
+
+    .hero-subtitle {
+      font-size: clamp(1.05rem, 2vw, 1.25rem);
+      color: var(--text-secondary);
+      max-width: 680px;
+      margin: 0 auto 40px;
+      line-height: 1.8;
+    }
+
+    .hero-subtitle strong {
+      color: var(--text-primary);
+      font-weight: 600;
+    }
+
+    .hero-actions {
+      display: flex;
+      gap: 16px;
+      justify-content: center;
+      flex-wrap: wrap;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      gap: 10px;
+      padding: 16px 28px;
+      border-radius: var(--radius-full);
+      font-weight: 700;
+      font-size: 1rem;
+      text-decoration: none;
+      border: 1px solid var(--border);
+      background: rgba(255,255,255,0.03);
+      color: var(--text-primary);
+      transition: var(--transition);
+      cursor: pointer;
+    }
+
+    .btn:hover {
+      background: rgba(255,255,255,0.08);
+      border-color: var(--border-hover);
+      transform: translateY(-2px);
+    }
+
+    .btn-primary {
+      background: var(--gradient-green);
+      border: none;
+      color: white;
+    }
+
+    .btn-primary:hover {
+      box-shadow: var(--shadow-glow) var(--accent-green);
+    }
+
+    /* Features Section */
+    .features {
+      padding: 60px 0 80px;
+    }
+
+    .grid {
+      display: grid;
+      gap: 20px;
+      grid-template-columns: repeat(12, 1fr);
+    }
+
+    .card {
       grid-column: span 12;
-      border:1px solid var(--line);
-      background: rgba(17,31,59,.74);
-      border-radius: var(--radius);
-      box-shadow: var(--shadow);
-      padding:18px 18px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      border-radius: var(--radius-xl);
+      padding: 32px;
+      backdrop-filter: blur(10px);
+      transition: var(--transition);
     }
-    @media (min-width: 860px){
-      .card.span6{grid-column: span 6}
-      .card.span7{grid-column: span 7}
-      .card.span5{grid-column: span 5}
+
+    .card:hover {
+      border-color: var(--border-hover);
+      transform: translateY(-4px);
+      box-shadow: 0 24px 48px rgba(0,0,0,0.2);
     }
-    .card h2{margin:0 0 10px; font-size:20px; letter-spacing:-.2px}
-    .card p{margin:0; color:var(--muted); line-height:1.65}
-    .bullets{margin:10px 0 0; padding-left:18px; color:var(--muted); line-height:1.7}
-    .badge{
-      display:inline-flex; align-items:center; gap:8px;
-      font-weight:950; color:rgba(234,240,255,.86);
-      border:1px solid var(--line); background: rgba(255,255,255,.04);
-      border-radius:999px; padding:7px 10px; margin-right:8px;
+
+    @media (min-width: 768px) {
+      .card.col-6 { grid-column: span 6; }
+      .card.col-7 { grid-column: span 7; }
+      .card.col-5 { grid-column: span 5; }
     }
-    .step{
-      display:flex; gap:12px; align-items:flex-start;
-      padding:12px 0; border-top:1px dashed rgba(234,240,255,.14);
+
+    .card-icon {
+      width: 56px;
+      height: 56px;
+      border-radius: var(--radius-lg);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 1.5rem;
+      margin-bottom: 20px;
+      background: var(--accent-purple-dim);
+      border: 1px solid rgba(168, 85, 247, 0.2);
     }
-    .step:first-child{border-top:none; padding-top:0}
-    .num{
-      width:34px; height:34px; border-radius:12px;
-      display:grid; place-items:center;
-      background: rgba(124,58,237,.18);
-      border:1px solid rgba(124,58,237,.35);
-      font-weight:950;
+
+    .card-icon.green {
+      background: var(--accent-green-dim);
+      border-color: rgba(34, 197, 94, 0.2);
     }
-    .faq details{
-      border-top:1px solid rgba(234,240,255,.14);
-      padding:12px 0;
+
+    .card h2 {
+      font-size: 1.25rem;
+      font-weight: 700;
+      margin-bottom: 12px;
     }
-    .faq details:first-child{border-top:none}
-    .faq summary{cursor:pointer; font-weight:950}
-    .footer{
-      margin-top:26px;
-      border:1px solid var(--line);
-      background: rgba(15,26,47,.72);
-      border-radius: var(--radius);
-      padding:16px 18px;
-      color:var(--muted);
-      display:flex; justify-content:space-between; gap:12px; flex-wrap:wrap;
+
+    .card > p {
+      color: var(--text-secondary);
+      line-height: 1.8;
+      margin-bottom: 20px;
     }
-    .lang{
-      display:flex; gap:10px; flex-wrap:wrap; align-items:center;
+
+    .feature-list {
+      list-style: none;
+      display: flex;
+      flex-direction: column;
+      gap: 12px;
     }
-    .lang a{font-weight:950; color:var(--muted)}
-    .lang a.active{color:var(--text)}
+
+    .feature-list li {
+      display: flex;
+      align-items: flex-start;
+      gap: 12px;
+      color: var(--text-secondary);
+      line-height: 1.7;
+    }
+
+    .feature-list li::before {
+      content: '✓';
+      flex-shrink: 0;
+      width: 22px;
+      height: 22px;
+      border-radius: 50%;
+      background: var(--accent-green-dim);
+      color: var(--accent-green);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 0.75rem;
+      font-weight: 700;
+      margin-top: 2px;
+    }
+
+    /* Tags */
+    .tags {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 10px;
+    }
+
+    .tag {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 10px 16px;
+      border-radius: var(--radius-full);
+      background: rgba(255,255,255,0.03);
+      border: 1px solid var(--border);
+      font-size: 0.9rem;
+      font-weight: 600;
+      color: var(--text-secondary);
+      transition: var(--transition);
+    }
+
+    .tag:hover {
+      background: rgba(255,255,255,0.06);
+      border-color: var(--border-hover);
+    }
+
+    /* Steps */
+    .steps {
+      display: flex;
+      flex-direction: column;
+      gap: 24px;
+    }
+
+    .step {
+      display: flex;
+      gap: 20px;
+      align-items: flex-start;
+    }
+
+    .step-num {
+      width: 48px;
+      height: 48px;
+      border-radius: var(--radius-md);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--gradient-purple);
+      color: white;
+      font-weight: 700;
+      font-size: 1.1rem;
+      flex-shrink: 0;
+      box-shadow: var(--shadow-glow) var(--accent-purple);
+    }
+
+    .step-content h4 {
+      font-size: 1.05rem;
+      font-weight: 700;
+      margin-bottom: 6px;
+    }
+
+    .step-content p {
+      color: var(--text-secondary);
+      font-size: 0.95rem;
+      line-height: 1.7;
+    }
+
+    /* FAQ */
+    .faq-list {
+      display: flex;
+      flex-direction: column;
+    }
+
+    .faq-list details {
+      border-bottom: 1px solid var(--border);
+    }
+
+    .faq-list details:first-of-type {
+      border-top: 1px solid var(--border);
+    }
+
+    .faq-list summary {
+      padding: 20px 0;
+      cursor: pointer;
+      font-weight: 700;
+      font-size: 1rem;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 16px;
+      transition: var(--transition);
+    }
+
+    .faq-list summary:hover {
+      color: var(--accent-purple);
+    }
+
+    .faq-list summary::-webkit-details-marker {
+      display: none;
+    }
+
+    .faq-list summary::after {
+      content: '+';
+      font-size: 1.5rem;
+      font-weight: 300;
+      color: var(--text-muted);
+      transition: var(--transition);
+    }
+
+    .faq-list details[open] summary::after {
+      transform: rotate(45deg);
+    }
+
+    .faq-list details p {
+      padding-bottom: 20px;
+      color: var(--text-secondary);
+      line-height: 1.8;
+    }
+
+    /* Footer */
+    .footer {
+      margin-top: 60px;
+      padding: 32px 0;
+      border-top: 1px solid var(--border);
+    }
+
+    .footer-inner {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      flex-wrap: wrap;
+      gap: 20px;
+    }
+
+    .footer-text {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .lang-switch {
+      display: flex;
+      align-items: center;
+      gap: 16px;
+    }
+
+    .lang-switch span {
+      color: var(--text-muted);
+      font-size: 0.9rem;
+    }
+
+    .lang-switch a {
+      color: var(--text-muted);
+      text-decoration: none;
+      font-weight: 600;
+      font-size: 0.9rem;
+      padding: 6px 12px;
+      border-radius: var(--radius-sm);
+      transition: var(--transition);
+    }
+
+    .lang-switch a:hover {
+      color: var(--text-primary);
+      background: rgba(255,255,255,0.05);
+    }
+
+    .lang-switch a.active {
+      color: var(--text-primary);
+      background: rgba(255,255,255,0.1);
+    }
+
+    /* Mobile Responsive */
+    @media (max-width: 640px) {
+      .nav-link:not(.primary) { display: none; }
+      .nav-link.primary { padding: 10px 16px; }
+      .hero { padding: 120px 0 60px; }
+      .card { padding: 24px; }
+      .step { gap: 16px; }
+      .step-num { width: 40px; height: 40px; font-size: 1rem; }
+    }
   </style>
 
-  <!-- FAQ Schema (TH) -->
+  <!-- FAQ Schema -->
   <script type="application/ld+json">
   {
     "@context":"https://schema.org",
     "@type":"FAQPage",
     "mainEntity":[
-      {
-        "@type":"Question",
-        "name":"ระบบสร้างสไลด์ด้วย AI คืออะไร?",
-        "acceptedAnswer":{"@type":"Answer","text":"ระบบสร้างสไลด์ด้วย AI คือการให้ AI ช่วยร่างสไลด์จากหัวข้อ/คำสั่ง เพื่อให้ครูเริ่มต้นได้เร็วขึ้น โดย Clazzee เน้นสไลด์ที่พร้อมใช้สอนจริง มีเปิด-ปิดคำตอบ/ความหมาย และอ่านออกเสียง (TTS)."}
-      },
-      {
-        "@type":"Question",
-        "name":"ใช้ได้กับทุกวิชาไหม?",
-        "acceptedAnswer":{"@type":"Answer","text":"ได้ครับ Clazzee ออกแบบมาเพื่อครูทุกวิชา คุณสามารถปรับใช้กับภาษาอังกฤษ คณิต วิทย์ สังคม หรือวิชาอื่น ๆ ได้ และค่อยเพิ่มเทมเพลตเฉพาะวิชาในอนาคต."}
-      },
-      {
-        "@type":"Question",
-        "name":"สไลด์มีลูกเล่นอินเทอร์แอคทีฟไหม?",
-        "acceptedAnswer":{"@type":"Answer","text":"มีครับ เช่น เปิด-ปิดความหมาย/คำตอบตามจังหวะครู Pointer ช่วยชี้ และปุ่มอ่านออกเสียง (Text-to-speech) บนเบราว์เซอร์ที่รองรับ."}
-      },
-      {
-        "@type":"Question",
-        "name":"สร้างแล้วแก้ไขต่อได้ไหม?",
-        "acceptedAnswer":{"@type":"Answer","text":"ได้ครับ ครูสามารถแก้ไขข้อความ เพิ่มรูปจากเครื่อง จัดลำดับสไลด์ และปรับให้เหมาะกับผู้เรียนได้ตามต้องการ."}
-      }
+      {"@type":"Question","name":"ระบบสร้างสไลด์ด้วย AI คืออะไร?","acceptedAnswer":{"@type":"Answer","text":"ระบบสร้างสไลด์ด้วย AI คือการให้ AI ช่วยร่างสไลด์จากหัวข้อ เพื่อให้ครูเริ่มต้นได้เร็วขึ้น โดย Clazzee เน้นสไลด์ที่พร้อมใช้สอนจริง มีเปิด-ปิดคำตอบ/ความหมาย และอ่านออกเสียง (TTS)"}},
+      {"@type":"Question","name":"ใช้ได้กับทุกวิชาไหม?","acceptedAnswer":{"@type":"Answer","text":"ได้ครับ Clazzee ออกแบบมาเพื่อครูทุกวิชา ไม่ว่าจะเป็นภาษาอังกฤษ คณิต วิทย์ สังคม หรือวิชาอื่น ๆ"}},
+      {"@type":"Question","name":"สไลด์มีลูกเล่นอินเทอร์แอคทีฟไหม?","acceptedAnswer":{"@type":"Answer","text":"มีครับ เช่น เปิด-ปิดความหมาย/คำตอบตามจังหวะครู และปุ่มอ่านออกเสียง (TTS) บนเบราว์เซอร์ที่รองรับ"}},
+      {"@type":"Question","name":"สร้างแล้วแก้ไขต่อได้ไหม?","acceptedAnswer":{"@type":"Answer","text":"ได้ครับ ครูสามารถแก้ไขข้อความ เพิ่มรูปจากเครื่อง จัดลำดับสไลด์ และปรับให้เหมาะกับผู้เรียนได้"}}
     ]
   }
   </script>
 </head>
 <body>
-  <div class="wrap">
-    <header class="nav" role="navigation" aria-label="Primary">
-      <div class="brand">
-        <div class="logo" aria-hidden="true"></div>
-        <div>Clazzee</div>
+  <div class="bg-gradient"></div>
+
+  <!-- Navigation -->
+  <header class="nav" role="navigation" aria-label="เมนูหลัก">
+    <div class="container">
+      <div class="nav-inner">
+        <a href="/" class="brand" aria-label="Clazzee หน้าแรก">
+          <div class="logo" aria-hidden="true">C</div>
+          <span class="brand-name">Clazzee</span>
+        </a>
+        <nav class="nav-links" aria-label="เมนู">
+          <a href="/pricing" class="nav-link">ราคา</a>
+          <a href="/login" class="nav-link">เข้าสู่ระบบ</a>
+          <a href="/register" class="nav-link primary">เริ่มใช้ฟรี →</a>
+        </nav>
       </div>
-      <nav class="navlinks" aria-label="Top links">
-        <a class="pill" href="/pricing">ราคา</a>
-        <a class="pill" href="/login">เข้าสู่ระบบ</a>
-        <a class="pill cta" href="/register">เริ่มใช้ฟรี</a>
-      </nav>
-    </header>
+    </div>
+  </header>
 
-    <main class="hero" role="main">
-      <div class="kicker">✨ สร้างสไลด์ด้วย AI • พร้อมสอนจริง</div>
-      <h1 class="h1">สร้างสไลด์ด้วย AI สำหรับห้องเรียนจริง</h1>
-      <p class="sub">
-        สร้างสไลด์พร้อมสอนในไม่กี่นาที แล้วสอนต่อได้อย่างมั่นใจ
-        Clazzee ช่วยครูสร้างสไลด์ที่ “ใช้สอนได้จริง” ด้วย <b>ระบบเปิด-ปิดความหมาย/คำตอบ</b> และ <b>อ่านออกเสียง (TTS)</b>
-      </p>
-      <div class="heroActions">
-        <a class="btn btnPrimary" href="/register">🚀 เริ่มใช้ฟรี</a>
-        <a class="btn btnGhost" href="/pricing">💡 ดูแพ็กเกจ</a>
+  <main>
+    <!-- Hero -->
+    <section class="hero">
+      <div class="container">
+        <div class="hero-badge">
+          <span>✨</span>
+          <span>สร้างสไลด์ด้วย AI • พร้อมสอนจริง</span>
+        </div>
+        <h1>สร้างสไลด์ที่ใช้สอน<br>ในห้องเรียนได้จริง</h1>
+        <p class="hero-subtitle">
+          สร้างสไลด์พร้อมสอนในไม่กี่นาที แล้วสอนต่อได้อย่างมั่นใจ
+          Clazzee ช่วยครูสร้างสไลด์ด้วย <strong>ระบบเปิด-ปิดความหมาย/คำตอบ</strong> 
+          และ <strong>อ่านออกเสียง (TTS)</strong> ที่ออกแบบมาสำหรับห้องเรียนจริง
+        </p>
+        <div class="hero-actions">
+          <a href="/register" class="btn btn-primary">🚀 เริ่มใช้ฟรี</a>
+          <a href="/pricing" class="btn">💡 ดูแพ็กเกจ</a>
+        </div>
       </div>
+    </section>
 
-      <section class="grid" aria-label="Key points">
-        <article class="card span6">
-          <h2>ทำไมครูถึงใช้ Clazzee AI</h2>
-          <p>
-            ไม่ใช่แค่สไลด์สวย ๆ แต่เน้น “flow การสอน” ครูคุมจังหวะเอง เปิดเฉลยเมื่อพร้อม และเพิ่มรูป/ตัวอย่างได้ทันที
-          </p>
-          <ul class="bullets">
-            <li>เปิด-ปิดความหมาย/คำตอบได้ทั้งคำศัพท์และประโยค</li>
-            <li>อ่านออกเสียง (TTS) ใช้สอนการอ่าน/การออกเสียง</li>
-            <li>จัดรูปแบบเพื่อการสอนจริง (ตัวใหญ่ อ่านง่าย จังหวะดี)</li>
-          </ul>
-        </article>
+    <!-- Features -->
+    <section class="features" aria-label="ฟีเจอร์หลัก">
+      <div class="container">
+        <div class="grid">
+          <!-- Why Teachers Use -->
+          <article class="card col-6">
+            <div class="card-icon">🎯</div>
+            <h2>ทำไมครูถึงใช้ Clazzee</h2>
+            <p>
+              ไม่ใช่แค่สไลด์สวย ๆ แต่เน้น <strong>"flow การสอน"</strong>
+              ครูคุมจังหวะเอง เปิดเฉลยเมื่อพร้อม และเพิ่มรูป/ตัวอย่างได้ทันที
+            </p>
+            <ul class="feature-list">
+              <li>เปิด-ปิดความหมาย/คำตอบได้ทั้งคำศัพท์และประโยค</li>
+              <li>อ่านออกเสียง (TTS) ใช้สอนการอ่าน/การออกเสียง</li>
+              <li>จัดรูปแบบเพื่อการสอนจริง (ตัวใหญ่ อ่านง่าย จังหวะดี)</li>
+            </ul>
+          </article>
 
-        <article class="card span6">
-          <h2>AI สร้างอะไรให้ได้บ้าง</h2>
-          <p>
-            เริ่มจากหัวข้อ แล้วให้ AI ช่วยร่างสไลด์ จากนั้นครูปรับให้เข้ากับผู้เรียน
-          </p>
-          <div style="margin-top:12px">
-            <span class="badge">🧠 แนวคิด/สาระ</span>
-            <span class="badge">🗣 บทสนทนา</span>
-            <span class="badge">📌 คำศัพท์</span>
-            <span class="badge">🎯 แบบฝึก</span>
-            <span class="badge">🖼 รูปภาพ</span>
-          </div>
-        </article>
-
-        <article class="card span7">
-          <h2>วิธีใช้งาน</h2>
-          <div class="step">
-            <div class="num">1</div>
-            <div>
-              <b>พิมพ์หัวข้อ</b>
-              <div style="color:var(--muted); margin-top:4px">เช่น “อาหารเพื่อสุขภาพ”, “เศษส่วน”, “การสังเคราะห์ด้วยแสง”.</div>
+          <!-- What You Can Generate -->
+          <article class="card col-6">
+            <div class="card-icon green">🧠</div>
+            <h2>AI สร้างอะไรให้ได้บ้าง</h2>
+            <p>
+              เริ่มจากหัวข้อ แล้วให้ AI ช่วยร่างสไลด์
+              จากนั้นครูปรับให้เข้ากับผู้เรียน ใช้ได้ทุกวิชา!
+            </p>
+            <div class="tags">
+              <span class="tag">🧠 แนวคิด/สาระ</span>
+              <span class="tag">🗣️ บทสนทนา</span>
+              <span class="tag">📌 คำศัพท์</span>
+              <span class="tag">🎯 แบบฝึก</span>
+              <span class="tag">🖼️ รูปภาพ</span>
             </div>
-          </div>
-          <div class="step">
-            <div class="num">2</div>
-            <div>
-              <b>ให้ AI สร้างสไลด์</b>
-              <div style="color:var(--muted); margin-top:4px">ได้โครงสไลด์ที่จัดเป็นส่วน ๆ และเหมาะกับการสอน.</div>
-            </div>
-          </div>
-          <div class="step">
-            <div class="num">3</div>
-            <div>
-              <b>แก้ไขแล้วนำไปสอน</b>
-              <div style="color:var(--muted); margin-top:4px">เพิ่มรูป เปิด-ปิดคำตอบ และใช้ TTS ระหว่างสอน.</div>
-            </div>
-          </div>
-        </article>
+          </article>
 
-        <article class="card span5 faq" aria-label="FAQ">
-          <h2>คำถามที่พบบ่อย</h2>
-          <details open>
-            <summary>ใช้ได้กับทุกวิชาไหม?</summary>
-            <p>ได้ครับ Clazzee ออกแบบมาเพื่อครูทุกวิชา คุณสามารถเริ่มแบบกว้าง ๆ แล้วค่อยเพิ่มเทมเพลตเฉพาะวิชาในอนาคต.</p>
-          </details>
-          <details>
-            <summary>อ่านออกเสียง (TTS) ใช้ได้ไหม?</summary>
-            <p>ใช้ได้บนเบราว์เซอร์สมัยใหม่ (Chrome/Edge) และระบบจะรอเสียงโหลดพร้อมก่อน (กันปัญหากดแล้วเงียบ).</p>
-          </details>
-          <details>
-            <summary>เพิ่มรูปจากเครื่องได้ไหม?</summary>
-            <p>ได้ครับ อัปโหลดรูปตอนแก้ไขสไลด์ แล้วรูปจะแสดงใน viewer.</p>
-          </details>
-          <details>
-            <summary>Clazzee แทน PowerPoint ได้ไหม?</summary>
-            <p>Clazzee เน้น “สอนง่ายขึ้น” ด้วยลูกเล่นแบบครูคุมจังหวะ + เครื่องมือในห้องเรียน + pacing ที่เหมาะกับการสอนจริง.</p>
-          </details>
-        </article>
-      </section>
+          <!-- How It Works -->
+          <article class="card col-7">
+            <div class="card-icon">⚡</div>
+            <h2>วิธีใช้งาน</h2>
+            <div class="steps">
+              <div class="step">
+                <div class="step-num">1</div>
+                <div class="step-content">
+                  <h4>พิมพ์หัวข้อ</h4>
+                  <p>"อาหารเพื่อสุขภาพ", "เศษส่วน", "การสังเคราะห์ด้วยแสง" หรือหัวข้ออะไรก็ได้</p>
+                </div>
+              </div>
+              <div class="step">
+                <div class="step-num">2</div>
+                <div class="step-content">
+                  <h4>ให้ AI สร้างสไลด์</h4>
+                  <p>ได้โครงสไลด์ที่จัดเป็นส่วน ๆ และเหมาะกับการสอนภายในไม่กี่วินาที</p>
+                </div>
+              </div>
+              <div class="step">
+                <div class="step-num">3</div>
+                <div class="step-content">
+                  <h4>แก้ไขแล้วนำไปสอน</h4>
+                  <p>เพิ่มรูป เปิด-ปิดคำตอบ และใช้ TTS ระหว่างสอน</p>
+                </div>
+              </div>
+            </div>
+          </article>
 
-      <section class="footer" aria-label="Footer">
-        <div>© Clazzee • เพื่อห้องเรียนจริง</div>
-        <div class="lang">
+          <!-- FAQ -->
+          <article class="card col-5" aria-label="คำถามที่พบบ่อย">
+            <div class="card-icon">❓</div>
+            <h2>คำถามที่พบบ่อย</h2>
+            <div class="faq-list">
+              <details open>
+                <summary>ใช้ได้กับทุกวิชาไหม?</summary>
+                <p>ได้ครับ Clazzee ออกแบบมาเพื่อครูทุกวิชา ไม่ว่าจะเป็นภาษาอังกฤษ คณิต วิทย์ สังคม หรือวิชาอื่น ๆ</p>
+              </details>
+              <details>
+                <summary>อ่านออกเสียง (TTS) ใช้ได้ไหม?</summary>
+                <p>ใช้ได้บนเบราว์เซอร์สมัยใหม่ (Chrome/Edge) และระบบจะรอเสียงโหลดพร้อมก่อน</p>
+              </details>
+              <details>
+                <summary>เพิ่มรูปจากเครื่องได้ไหม?</summary>
+                <p>ได้ครับ อัปโหลดรูปตอนแก้ไขสไลด์ แล้วรูปจะแสดงใน viewer</p>
+              </details>
+              <details>
+                <summary>Clazzee แทน PowerPoint ได้ไหม?</summary>
+                <p>Clazzee เน้น "สอนง่ายขึ้น" ด้วยลูกเล่นแบบครูคุมจังหวะ + เครื่องมือในห้องเรียน</p>
+              </details>
+            </div>
+          </article>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <!-- Footer -->
+  <footer class="footer" role="contentinfo" aria-label="ส่วนท้าย">
+    <div class="container">
+      <div class="footer-inner">
+        <div class="footer-text">© 2024 Clazzee • เพื่อห้องเรียนจริง</div>
+        <div class="lang-switch">
           <span>ภาษา:</span>
           <a href="/en/ai-slide-generator">English</a>
-          <a class="active" href="/th/ai-slide-generator">ไทย</a>
+          <a href="/th/ai-slide-generator" class="active">ไทย</a>
         </div>
-      </section>
-    </main>
-  </div>
+      </div>
+    </div>
+  </footer>
 </body>
 </html>
