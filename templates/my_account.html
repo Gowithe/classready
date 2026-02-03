@@ -301,9 +301,9 @@
         <div class="stat-item">
           <div class="stat-value">{{ stats.topics }}</div>
           <div class="stat-label">Topics</div>
-          {% if not is_premium %}
+          {% if not is_premium and limits.topics %}
             <div class="progress-bar">
-              {% set pct = (stats.topics / limits.topics * 100) if limits.topics else 0 %}
+              {% set pct = (stats.topics / limits.topics * 100) %}
               <div class="progress-fill {% if pct >= 80 %}red{% elif pct >= 50 %}yellow{% else %}green{% endif %}" style="width:{{ pct|min(100) }}%"></div>
             </div>
             <div style="font-size:0.7rem;color:#64748b;margin-top:4px;">{{ stats.topics }}/{{ limits.topics }}</div>
@@ -312,9 +312,9 @@
         <div class="stat-item">
           <div class="stat-value">{{ stats.classrooms }}</div>
           <div class="stat-label">Classrooms</div>
-          {% if not is_premium %}
+          {% if not is_premium and limits.classrooms %}
             <div class="progress-bar">
-              {% set pct = (stats.classrooms / limits.classrooms * 100) if limits.classrooms else 0 %}
+              {% set pct = (stats.classrooms / limits.classrooms * 100) %}
               <div class="progress-fill {% if pct >= 80 %}red{% elif pct >= 50 %}yellow{% else %}green{% endif %}" style="width:{{ pct|min(100) }}%"></div>
             </div>
             <div style="font-size:0.7rem;color:#64748b;margin-top:4px;">{{ stats.classrooms }}/{{ limits.classrooms }}</div>
@@ -323,9 +323,9 @@
         <div class="stat-item">
           <div class="stat-value">{{ stats.ai_this_month }}</div>
           <div class="stat-label">AI เดือนนี้</div>
-          {% if not is_premium %}
+          {% if not is_premium and limits.ai_generate %}
             <div class="progress-bar">
-              {% set pct = (stats.ai_this_month / limits.ai_generate * 100) if limits.ai_generate else 0 %}
+              {% set pct = (stats.ai_this_month / limits.ai_generate * 100) %}
               <div class="progress-fill {% if pct >= 80 %}red{% elif pct >= 50 %}yellow{% else %}green{% endif %}" style="width:{{ pct|min(100) }}%"></div>
             </div>
             <div style="font-size:0.7rem;color:#64748b;margin-top:4px;">{{ stats.ai_this_month }}/{{ limits.ai_generate }}</div>
