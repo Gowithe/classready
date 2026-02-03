@@ -273,7 +273,7 @@
       <button class="dropdown-btn games {% if not has_game %}disabled{% endif %}">🎮 Games ▼</button>
       <div class="dropdown-content">
         {% if has_game %}
-        <a href="{{ url_for('game', topic_id=topic.id) }}">🎯 Bamboozle</a>
+        <a href="{{ url_for('game', topic_id=topic.id) }}">🎯 Mystery Tiles</a>
         <a href="{{ url_for('game_memory', topic_id=topic.id) }}">🃏 Memory Match</a>
         <a href="{{ url_for('game_sentence_builder', topic_id=topic.id) }}">🏗️ Sentence Builder</a>
         {% if has_practice %}
@@ -530,3 +530,4 @@
   if(btnPractice) btnPractice.addEventListener('click', () => callGenerate('practice'));
 </script>
 {% endblock %}
+
