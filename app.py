@@ -2,7 +2,7 @@
 # FILE: app.py
 # Teacher Platform MVP (Flask + SQLite)
 # UPDATED: Classroom Management + Assignments + Game Sessions + Practice Export
-# FIXED: Sentence Builder Syntax Error
+# SECURITY: Production-ready security patches applied (2026-02-03)
 # ==============================================================================
 
 import os
@@ -12,10 +12,13 @@ import traceback
 import base64
 import csv
 import re
+import time
+import html as html_module
 from io import BytesIO, StringIO
 from functools import wraps
 from datetime import datetime
 from typing import Optional, Dict, Any, List
+from collections import defaultdict
 
 from flask import (
     Flask, render_template, request, redirect, url_for,
@@ -37,17 +40,37 @@ from reportlab.pdfgen import canvas
 from reportlab.lib.units import cm
 from reportlab.lib.utils import simpleSplit
 
-from functools import wraps
-from flask import abort, session
-# from models import (..., PaymentTransaction)  # <-- INVALID (old pasted line). Kept as comment.
 import requests
 import urllib.parse
 from dotenv import load_dotenv
-load_dotenv()  # โหลดค่าจากไฟล์ .env เข้า os.environ
+load_dotenv()
 
-init_db()  # ensure DB tables exist (Render + Persistent Disk)
+init_db()
 app = Flask(__name__)
-app.secret_key = os.environ.get("SECRET_KEY", "dev-secret-key-change-in-prod")
+
+# ==============================================================================
+# 🔒 SECURITY: SECRET_KEY Configuration
+# ==============================================================================
+SECRET_KEY = os.environ.get("SECRET_KEY", "").strip()
+if not SECRET_KEY:
+    if os.environ.get("RENDER") or os.environ.get("FLASK_ENV") == "production":
+        raise RuntimeError("❌ CRITICAL: SECRET_KEY environment variable must be set in production!")
+    else:
+        SECRET_KEY = "dev-only-secret-key-not-for-production"
+        print("⚠️  WARNING: Using default SECRET_KEY. Set SECRET_KEY env var for production!")
+app.secret_key = SECRET_KEY
+
+# ==============================================================================
+# 🔒 SECURITY: Session Cookie Configuration
+# ==============================================================================
+app.config.update(
+    SESSION_COOKIE_SECURE=True,
+    SESSION_COOKIE_HTTPONLY=True,
+    SESSION_COOKIE_SAMESITE='Lax',
+    PERMANENT_SESSION_LIFETIME=86400,
+)
+if not (os.environ.get("RENDER") or os.environ.get("FLASK_ENV") == "production"):
+    app.config['SESSION_COOKIE_SECURE'] = False
 
 
 # ==============================================================================
@@ -126,11 +149,103 @@ ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
 def allowed_file(filename): return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_EXTENSIONS
 def allowed_image(filename): return "." in filename and filename.rsplit(".", 1)[1].lower() in ALLOWED_IMAGE_EXTENSIONS
 
+# ==============================================================================
+# 🔒 SECURITY: Admin Account Creation
+# ==============================================================================
 with app.app_context():
-    admin_email = os.environ.get("ADMIN_EMAIL", "admin@teacherplatform.com")
-    admin_password = os.environ.get("ADMIN_PASSWORD", "Admin@12345")
-    if not User.get_by_email(admin_email):
-        User.create(admin_email, admin_password, "admin")
+    admin_email = os.environ.get("ADMIN_EMAIL", "").strip()
+    admin_password = os.environ.get("ADMIN_PASSWORD", "").strip()
+    
+    if os.environ.get("RENDER") or os.environ.get("FLASK_ENV") == "production":
+        if admin_email and admin_password:
+            if len(admin_password) < 12:
+                print("⚠️  WARNING: ADMIN_PASSWORD should be at least 12 characters!")
+            if not User.get_by_email(admin_email):
+                User.create(admin_email, admin_password, "admin")
+                print(f"✅ Admin account created: {admin_email}")
+        else:
+            print("ℹ️  INFO: ADMIN_EMAIL/ADMIN_PASSWORD not set. No admin account created.")
+    else:
+        dev_email = admin_email or "admin@localhost.dev"
+        dev_password = admin_password or "DevAdmin123!"
+        if not User.get_by_email(dev_email):
+            User.create(dev_email, dev_password, "admin")
+            print(f"⚠️  DEV MODE: Admin created - {dev_email} / {dev_password}")
+
+# ==============================================================================
+# 🔒 SECURITY: HTTP Security Headers
+# ==============================================================================
+@app.after_request
+def add_security_headers(response):
+    response.headers['X-Frame-Options'] = 'SAMEORIGIN'
+    response.headers['X-Content-Type-Options'] = 'nosniff'
+    response.headers['X-XSS-Protection'] = '1; mode=block'
+    response.headers['Referrer-Policy'] = 'strict-origin-when-cross-origin'
+    response.headers['Permissions-Policy'] = 'geolocation=(), microphone=(), camera=()'
+    return response
+
+# ==============================================================================
+# 🔒 SECURITY: HTTPS Redirect in Production
+# ==============================================================================
+@app.before_request
+def redirect_to_https():
+    if os.environ.get("RENDER") or os.environ.get("FLASK_ENV") == "production":
+        if request.headers.get('X-Forwarded-Proto', 'http') == 'http':
+            url = request.url.replace('http://', 'https://', 1)
+            return redirect(url, code=301)
+
+# ==============================================================================
+# 🔒 SECURITY: Login Brute Force Protection
+# ==============================================================================
+_login_attempts = defaultdict(lambda: {"count": 0, "first_attempt": 0, "locked_until": 0})
+LOGIN_MAX_ATTEMPTS = 5
+LOGIN_LOCKOUT_SECONDS = 300
+
+def check_login_allowed(email: str) -> tuple:
+    key = email.lower()
+    now = time.time()
+    data = _login_attempts[key]
+    if data["locked_until"] > now:
+        return False, int(data["locked_until"] - now)
+    if now - data["first_attempt"] > 900:
+        _login_attempts[key] = {"count": 0, "first_attempt": 0, "locked_until": 0}
+    return True, 0
+
+def record_failed_login(email: str):
+    key = email.lower()
+    now = time.time()
+    data = _login_attempts[key]
+    if data["count"] == 0:
+        data["first_attempt"] = now
+    data["count"] += 1
+    if data["count"] >= LOGIN_MAX_ATTEMPTS:
+        data["locked_until"] = now + LOGIN_LOCKOUT_SECONDS
+
+def clear_login_attempts(email: str):
+    key = email.lower()
+    if key in _login_attempts:
+        del _login_attempts[key]
+
+# ==============================================================================
+# 🔒 SECURITY: Password Validation
+# ==============================================================================
+def validate_password(password: str) -> tuple:
+    if len(password) < 8:
+        return False, "รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร"
+    if not re.search(r'[A-Za-z]', password):
+        return False, "รหัสผ่านต้องมีตัวอักษรอย่างน้อย 1 ตัว"
+    if not re.search(r'\d', password):
+        return False, "รหัสผ่านต้องมีตัวเลขอย่างน้อย 1 ตัว"
+    return True, ""
+
+# ==============================================================================
+# 🔒 SECURITY: Input Sanitization
+# ==============================================================================
+def sanitize_input(text: str, max_length: int = 500) -> str:
+    if not text:
+        return ""
+    clean = html_module.escape(str(text))
+    return clean.strip()[:max_length]
 
 def login_required(f):
     @wraps(f)
@@ -236,6 +351,13 @@ def register():
         if password != confirm:
             flash("Passwords do not match.", "error")
             return render_template("register.html")
+        
+        # 🔒 SECURITY: Validate password strength
+        is_valid, error_msg = validate_password(password)
+        if not is_valid:
+            flash(error_msg, "error")
+            return render_template("register.html")
+        
         if User.get_by_email(email):
             flash("Email already registered.", "error")
             return render_template("register.html")
@@ -292,17 +414,27 @@ def login():
     if request.method == "POST":
         email = (request.form.get("email") or "").strip().lower()
         password = (request.form.get("password") or "").strip()
+        
+        # 🔒 SECURITY: Check brute force protection
+        allowed, wait_seconds = check_login_allowed(email)
+        if not allowed:
+            flash(f"บัญชีถูกล็อคชั่วคราว กรุณารอ {wait_seconds} วินาที", "error")
+            return render_template("login.html")
+        
         user = User.get_by_email(email)
         if user and check_password_hash(user["password_hash"], password):
-            # Require email verification
             if not int(user.get("is_verified") or 0):
                 flash("กรุณายืนยันอีเมลก่อนเข้าใช้งาน (ตรวจสอบในกล่องจดหมาย)", "error")
                 return redirect(url_for("login"))
+            clear_login_attempts(email)
             session["user_id"] = user["id"]
             session["email"] = user["email"]
             session["role"] = user["role"]
+            session.permanent = True
             return redirect(url_for("dashboard"))
-        flash("Invalid email or password.", "error")
+        
+        record_failed_login(email)
+        flash("อีเมลหรือรหัสผ่านไม่ถูกต้อง", "error")
     return render_template("login.html")
 
 @app.route("/logout")
@@ -393,8 +525,10 @@ def reset_password(token):
         password = request.form.get("password", "")
         confirm = request.form.get("confirm_password", "")
         
-        if len(password) < 6:
-            flash("รหัสผ่านต้องมีอย่างน้อย 6 ตัวอักษร", "error")
+        # 🔒 SECURITY: Validate password strength
+        is_valid, error_msg = validate_password(password)
+        if not is_valid:
+            flash(error_msg, "error")
             return render_template("reset_password.html", token=token)
         
         if password != confirm:
