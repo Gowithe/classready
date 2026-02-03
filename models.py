@@ -79,6 +79,38 @@ def ensure_user_email_verify_schema() -> None:
 
 
 
+def ensure_user_reset_password_schema() -> None:
+    """Ensure reset_token and reset_expires columns exist."""
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("PRAGMA table_info(users)")
+        cols = {row[1] for row in c.fetchall()}
+        if "reset_token" not in cols:
+            c.execute("ALTER TABLE users ADD COLUMN reset_token TEXT")
+        if "reset_expires" not in cols:
+            c.execute("ALTER TABLE users ADD COLUMN reset_expires TEXT")
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
+def ensure_user_profile_schema() -> None:
+    """Ensure display_name column exists."""
+    try:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("PRAGMA table_info(users)")
+        cols = {row[1] for row in c.fetchall()}
+        if "display_name" not in cols:
+            c.execute("ALTER TABLE users ADD COLUMN display_name TEXT")
+        conn.commit()
+        conn.close()
+    except Exception:
+        pass
+
+
 def _column_exists(conn: sqlite3.Connection, table: str, column: str) -> bool:
     c = conn.cursor()
     c.execute(f"PRAGMA table_info({table})")
@@ -922,6 +954,89 @@ class User:
         conn.commit()
         conn.close()
         return token
+
+    # --------------------------------------------------------------------------
+    # Reset Password Methods
+    # --------------------------------------------------------------------------
+    @staticmethod
+    def set_reset_token(user_id: int) -> Optional[str]:
+        """Create a password reset token (1 hour expiry)."""
+        ensure_user_reset_password_schema()
+        token = secrets.token_urlsafe(32)
+        expires = (datetime.utcnow() + timedelta(hours=1)).isoformat()
+        conn = get_db()
+        c = conn.cursor()
+        c.execute(
+            "UPDATE users SET reset_token = ?, reset_expires = ? WHERE id = ?",
+            (token, expires, user_id),
+        )
+        conn.commit()
+        conn.close()
+        return token
+
+    @staticmethod
+    def get_by_reset_token(token: str) -> Optional[Dict[str, Any]]:
+        """Get user by reset token (check expiry)."""
+        ensure_user_reset_password_schema()
+        if not token:
+            return None
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM users WHERE reset_token = ? LIMIT 1", (token,))
+        row = c.fetchone()
+        conn.close()
+        if not row:
+            return None
+        user = dict(row)
+        # Check if token expired
+        if user.get("reset_expires"):
+            expires = datetime.fromisoformat(user["reset_expires"])
+            if datetime.utcnow() > expires:
+                return None
+        return user
+
+    @staticmethod
+    def reset_password(user_id: int, new_password: str) -> bool:
+        """Reset user password and clear reset token."""
+        ensure_user_reset_password_schema()
+        password_hash = generate_password_hash(new_password)
+        conn = get_db()
+        c = conn.cursor()
+        c.execute(
+            "UPDATE users SET password_hash = ?, reset_token = NULL, reset_expires = NULL WHERE id = ?",
+            (password_hash, user_id),
+        )
+        conn.commit()
+        conn.close()
+        return True
+
+    @staticmethod
+    def update_password(user_id: int, new_password: str) -> bool:
+        """Update user password (for logged-in user)."""
+        password_hash = generate_password_hash(new_password)
+        conn = get_db()
+        c = conn.cursor()
+        c.execute(
+            "UPDATE users SET password_hash = ? WHERE id = ?",
+            (password_hash, user_id),
+        )
+        conn.commit()
+        conn.close()
+        return True
+
+    @staticmethod
+    def update_profile(user_id: int, display_name: str = None) -> bool:
+        """Update user profile."""
+        ensure_user_profile_schema()
+        conn = get_db()
+        c = conn.cursor()
+        c.execute(
+            "UPDATE users SET display_name = ? WHERE id = ?",
+            (display_name, user_id),
+        )
+        conn.commit()
+        conn.close()
+        return True
 
 
 # [moved into class User] @staticmethod
