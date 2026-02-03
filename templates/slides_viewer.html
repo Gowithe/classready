@@ -1512,6 +1512,42 @@ body.fullscreen-mode .slide-footer {
   display: none !important;
 }
 
+
+/* ===============================
+   TTS (Text-to-Speech) buttons
+   =============================== */
+.tts-btn{
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  gap:6px;
+  padding: 6px 10px;
+  border-radius: 999px;
+  border: 1px solid rgba(15, 23, 42, 0.14);
+  background: rgba(17, 24, 39, 0.06);
+  color: #111827;
+  font-weight: 900;
+  font-size: .85rem;
+  cursor: pointer;
+}
+.tts-btn:hover{ background: rgba(17, 24, 39, 0.10); }
+.tts-btn:active{ transform: translateY(1px); }
+.tts-btn[disabled]{ opacity:.55; cursor:not-allowed; }
+
+.theme-minimal .tts-btn,
+.theme-corporate .tts-btn,
+.theme-colorful .tts-btn,
+.theme-playful .tts-btn{
+  /* Keep consistent across themes (most themes use dark text areas) */
+}
+
+.tts-inline{
+  display:inline-flex;
+  align-items:center;
+  gap:8px;
+  flex-wrap:wrap;
+}
+
 </style>
 {% endblock %}
 
@@ -1653,6 +1689,69 @@ const topBtn = document.getElementById('meaningToggleBtn');
   }
 }
 
+
+// ===============================
+// TTS (Text-to-Speech) – English
+// ===============================
+let ttsVoices = [];
+let ttsReady = false;
+
+function loadVoices(){
+  try{
+    if (!('speechSynthesis' in window)) return;
+    ttsVoices = window.speechSynthesis.getVoices() || [];
+    if (ttsVoices.length > 0) ttsReady = true;
+  }catch(e){}
+}
+
+// Prefer en-GB, then en-US, then any English voice
+function pickEnglishVoice(){
+  if (!ttsVoices || ttsVoices.length === 0) return null;
+  const byLang = (lang) => ttsVoices.find(v => (v.lang || '').toLowerCase().startsWith(lang));
+  return byLang('en-gb') || byLang('en-us') || byLang('en') || ttsVoices[0] || null;
+}
+
+function speakEnglish(text){
+  if (!text) return;
+  if (!('speechSynthesis' in window)) {
+    alert('Text-to-speech is not supported in this browser.');
+    return;
+  }
+
+  // Some browsers load voices asynchronously
+  if (!ttsReady) loadVoices();
+
+  // Stop anything currently speaking
+  try{ window.speechSynthesis.cancel(); }catch(e){}
+
+  const u = new SpeechSynthesisUtterance(String(text));
+  const v = pickEnglishVoice();
+  if (v) u.voice = v;
+  u.lang = (v && v.lang) ? v.lang : 'en-US';
+  u.rate = 0.95;  // slightly slower for classroom clarity
+  u.pitch = 1.0;
+
+  try{
+    window.speechSynthesis.speak(u);
+  }catch(e){
+    // Retry once after voices load
+    setTimeout(() => {
+      loadVoices();
+      const v2 = pickEnglishVoice();
+      if (v2) u.voice = v2;
+      try{ window.speechSynthesis.speak(u); }catch(_e){}
+    }, 250);
+  }
+}
+
+// Ensure voices become available
+try{
+  if ('speechSynthesis' in window){
+    window.speechSynthesis.onvoiceschanged = loadVoices;
+    loadVoices();
+  }
+}catch(e){}
+
 function wireSlideInteractions(){
   // Ensure default hidden state
   if(!meaningsGloballyRevealed && meaningsHiddenByDefault){
@@ -1685,6 +1784,15 @@ function wireSlideInteractions(){
 
       btn.setAttribute('aria-expanded', willShow ? 'true' : 'false');
       btn.textContent = willShow ? '🙈 Hide' : '👁 Show';
+    });
+  });
+
+
+  // TTS buttons (English)
+  document.querySelectorAll('[data-action="tts"]').forEach(btn => {
+    btn.addEventListener('click', () => {
+      const t = btn.getAttribute('data-tts') || '';
+      speakEnglish(t);
     });
   });
 
@@ -2032,8 +2140,9 @@ function extractContent(slide, type) {
         html += `
           <div class="vocab-card">
             <div class="word-row">
-              <div class="word">${escapeHtml(v.word || '')}</div>
-              <button class="reveal-btn" type="button" data-action="toggle-meaning" aria-expanded="false">👁 Show</button>
+              <div class="tts-inline"><div class="word">${escapeHtml(v.word || '')}</div>
+              <button class="tts-btn" type="button" data-action="tts" data-tts="${escapeAttr(v.word || '')}">🔊 Speak</button>
+              <button class="reveal-btn" type="button" data-action="toggle-meaning" aria-expanded="false">👁 Show</button></div>
             </div>
             <div class="meaning is-hidden" data-reveal="meaning">${escapeHtml(v.meaning || v.th || '')}</div>
           </div>
@@ -2044,6 +2153,7 @@ function extractContent(slide, type) {
       html += '<ul>';
       slide.vocabulary.forEach(v => {
         html += `<li class="vocab-line"><strong>${escapeHtml(v.word || '')}</strong>
+          <button class="tts-btn" type="button" data-action="tts" data-tts="${escapeAttr(v.word || '')}">🔊 Speak</button>
           <button class="reveal-btn" type="button" data-action="toggle-meaning" aria-expanded="false">👁 Show</button>
           <span class="meaning is-hidden" data-reveal="meaning">${escapeHtml(v.meaning || v.th || '')}</span>
           ${v.example ? `<br><em style="color:#6b7280;font-size:0.9rem">Ex: ${escapeHtml(v.example)}</em>` : ''}
@@ -2119,10 +2229,11 @@ function extractContent(slide, type) {
         const th = line.th || line.meaning || line.translation || '';
         if (th && /[\u0E00-\u0E7F]/.test(th)) {
           html += `<p class="dialogue-line"><strong>${escapeHtml(line.speaker)}:</strong> ${escapeHtml(text)}
+                   <button class="tts-btn" type="button" data-action="tts" data-tts="${escapeAttr(text)}" style="margin-left:10px">🔊 Speak</button>
                    <button class="reveal-btn" type="button" data-action="toggle-meaning" aria-expanded="false" style="margin-left:10px">👁 Show</button>
                    <span class="meaning is-hidden" data-reveal="meaning">(${escapeHtml(th)})</span></p>`;
         } else {
-          html += `<p class="dialogue-line"><strong>${escapeHtml(line.speaker)}:</strong> ${escapeHtml(text)}</p>`;
+          html += `<p class="dialogue-line"><strong>${escapeHtml(line.speaker)}:</strong> ${escapeHtml(text)} <button class="tts-btn" type="button" data-action="tts" data-tts="${escapeAttr(text)}" style="margin-left:10px">🔊 Speak</button></p>`;
         }
       }
     });
@@ -2218,6 +2329,17 @@ function escapeHtml(text) {
   return div.innerHTML;
 }
 
+// Escape for HTML attribute values
+function escapeAttr(text){
+  if (text === null || text === undefined) return '';
+  return String(text)
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/'/g, '&#39;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;');
+}
+
 
 
 function renderSentenceCard(en, th, icon){
@@ -2231,6 +2353,7 @@ function renderSentenceCard(en, th, icon){
         <div style="flex:1 1 auto;">
           <div class="sentence-en">${safeEn}</div>
           <div class="sentence-actions">
+            <button class="tts-btn" type="button" data-action="tts" data-tts="${escapeAttr(en)}">🔊 Speak</button>
             <button class="reveal-btn" type="button" data-action="toggle-meaning" aria-expanded="false">👁 Show</button>
           </div>
           <div class="sentence-meaning meaning is-hidden" data-reveal="meaning">${safeTh}</div>
