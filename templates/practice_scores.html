@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}📝 MCQ Scores | {{ topic.name }}{% endblock %}
+{% block title %}📝 {{ practice_type|default('Multiple Choice (MCQ)') }} | {{ topic.name }}{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -31,6 +31,8 @@
     margin-bottom:8px;
   }
   .type-mcq{background:#eef2ff;color:#4338ca;}
+  .type-fill{background:#fef3c7;color:#92400e;}
+  .type-unscramble{background:#dcfce7;color:#166534;}
   
   /* Buttons */
   .btn{
@@ -227,14 +229,34 @@
   <!-- Header -->
   <div class="head">
     <div>
-      <span class="type-badge type-mcq">📝 Multiple Choice (MCQ)</span>
+      {% set ptype = practice_type|default('Multiple Choice (MCQ)') %}
+      {% if 'Fill' in ptype %}
+        {% set badge_class = 'type-fill' %}
+        {% set badge_icon = '✏️' %}
+        {% set back_url = url_for('practice_fill_blanks', topic_id=topic.id) %}
+      {% elif 'Unscramble' in ptype %}
+        {% set badge_class = 'type-unscramble' %}
+        {% set badge_icon = '🔀' %}
+        {% set back_url = url_for('practice_unscramble', topic_id=topic.id) %}
+      {% else %}
+        {% set badge_class = 'type-mcq' %}
+        {% set badge_icon = '📝' %}
+        {% set back_url = url_for('practice', topic_id=topic.id) %}
+      {% endif %}
+      <span class="type-badge {{ badge_class }}">{{ badge_icon }} {{ ptype }}</span>
       <div class="title">{{ topic.name }}</div>
-      <div class="muted">ตารางคะแนนนักเรียนจากแบบฝึกหัด MCQ</div>
+      <div class="muted">ตารางคะแนนนักเรียนจากแบบฝึกหัด {{ ptype }}</div>
     </div>
     <div class="btn-group">
-      <a class="btn" href="{{ url_for('practice', topic_id=topic.id) }}">← กลับ</a>
+      <a class="btn" href="{{ back_url }}">← กลับ</a>
+      {% if 'Fill' in ptype %}
+      <a class="btn btn-success" href="{{ url_for('practice_fill_blanks_scores', topic_id=topic.id) }}?export=excel">📥 Excel</a>
+      {% elif 'Unscramble' in ptype %}
+      <a class="btn btn-success" href="{{ url_for('practice_unscramble_scores', topic_id=topic.id) }}?export=excel">📥 Excel</a>
+      {% else %}
       <a class="btn btn-success" href="{{ url_for('practice_scores_excel', topic_id=topic.id) }}">📥 Excel</a>
       <a class="btn" href="{{ url_for('practice_scores_csv', topic_id=topic.id) }}">📄 CSV</a>
+      {% endif %}
     </div>
   </div>
 
@@ -313,7 +335,7 @@
             <td colspan="7">
               <div class="empty">
                 <div class="empty-icon">📭</div>
-                <p>ยังไม่มีนักเรียนส่งแบบฝึกหัด MCQ</p>
+                <p>ยังไม่มีนักเรียนส่งแบบฝึกหัด {{ practice_type|default('MCQ') }}</p>
                 <p class="muted">แชร์ลิงก์แบบฝึกหัดให้นักเรียนได้เลย!</p>
               </div>
             </td>
