@@ -1848,7 +1848,8 @@ def practice_fill_blanks_scores(topic_id):
     c.execute("SELECT ps.* FROM practice_submissions ps JOIN practice_links pl ON ps.link_id=pl.id WHERE pl.topic_id=? AND pl.practice_type='fill' ORDER BY ps.id DESC LIMIT 500", (topic_id,))
     submissions = [dict(r) for r in c.fetchall()]
     conn.close()
-    return render_template("practice_scores.html", topic=topic, submissions=submissions, practice_type="Fill in the Blanks")
+    classrooms = sorted(set(s.get("classroom") or "" for s in submissions if s.get("classroom")))
+    return render_template("practice_scores.html", topic=topic, submissions=submissions, classrooms=classrooms, practice_type="Fill in the Blanks")
 
 
 @app.route("/p/fill/<token>")
@@ -1917,7 +1918,8 @@ def practice_unscramble_scores(topic_id):
     c.execute("SELECT ps.* FROM practice_submissions ps JOIN practice_links pl ON ps.link_id=pl.id WHERE pl.topic_id=? AND pl.practice_type='unscramble' ORDER BY ps.id DESC LIMIT 500", (topic_id,))
     submissions = [dict(r) for r in c.fetchall()]
     conn.close()
-    return render_template("practice_scores.html", topic=topic, submissions=submissions, practice_type="Sentence Unscramble")
+    classrooms = sorted(set(s.get("classroom") or "" for s in submissions if s.get("classroom")))
+    return render_template("practice_scores.html", topic=topic, submissions=submissions, classrooms=classrooms, practice_type="Sentence Unscramble")
 
 
 @app.route("/p/unscramble/<token>")
@@ -2000,7 +2002,7 @@ def practice_scores(topic_id):
     submissions = [dict(r) for r in c.fetchall()]
     conn.close()
     classrooms = sorted(set(s.get("classroom") or "" for s in submissions if s.get("classroom")))
-    return render_template("practice_scores.html", topic=topic, submissions=submissions, classrooms=classrooms)
+    return render_template("practice_scores.html", topic=topic, submissions=submissions, classrooms=classrooms, practice_type="Multiple Choice (MCQ)")
 
 @app.route("/topic/<int:topic_id>/practice/scores/csv")
 @login_required
@@ -2319,7 +2321,19 @@ def assignment_detail(assignment_id):
     topic = Topic.get_by_id(a["topic_id"])
     status = Assignment.get_submissions_status(assignment_id)
     practice_link = PracticeLink.get_by_id(a.get("practice_link_id")) if a.get("practice_link_id") else None
-    student_url = (request.url_root.rstrip("/") + url_for("public_practice", token=practice_link["token"])) if practice_link else None
+    
+    # 🔧 FIX: สร้าง student_url ตาม practice_type
+    student_url = None
+    if practice_link:
+        token = practice_link["token"]
+        ptype = practice_link.get("practice_type", "mcq")
+        if ptype in ("fill", "fill_blanks"):  # รองรับทั้งค่าเก่าและใหม่
+            student_url = request.url_root.rstrip("/") + url_for("public_fill_blanks", token=token)
+        elif ptype == "unscramble":
+            student_url = request.url_root.rstrip("/") + url_for("public_unscramble", token=token)
+        else:
+            student_url = request.url_root.rstrip("/") + url_for("public_practice", token=token)
+    
     # Calculate average score
     avg = 0
     submissions = status.get("submissions") or []
