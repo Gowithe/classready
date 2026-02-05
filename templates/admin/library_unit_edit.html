@@ -8,271 +8,232 @@
     color: white;
     padding: 1.5rem 2rem;
     border-radius: 16px;
-    margin-bottom: 1.5rem;
+    margin-bottom: 1.25rem;
+    display:flex;
+    align-items:center;
+    justify-content:space-between;
+    gap:1rem;
+    flex-wrap:wrap;
   }
-  .page-header h2 { margin: 0 0 0.25rem; }
-  .page-header p { margin: 0; opacity: 0.8; }
-  
-  .form-grid { display: grid; grid-template-columns: 2fr 1fr; gap: 1.5rem; }
-  @media (max-width: 900px) { .form-grid { grid-template-columns: 1fr; } }
-  
+  .page-header h2 { margin: 0; font-size: 1.35rem; }
+  .page-header p { margin: 0.25rem 0 0; opacity: 0.85; }
+  .header-actions { display:flex; gap:.75rem; flex-wrap:wrap; align-items:center; }
+
   .card {
     background: white;
     border-radius: 16px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.04);
-    overflow: hidden;
-    margin-bottom: 1.5rem;
+    box-shadow: 0 2px 10px rgba(0,0,0,0.05);
+    border: 1px solid rgba(0,0,0,0.05);
+    padding: 1.25rem;
+    margin-bottom: 1rem;
   }
-  .card-header {
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid #f1f5f9;
-    font-weight: 700;
-    color: #1e293b;
+
+  .grid {
+    display:grid;
+    grid-template-columns: 2fr 1fr;
+    gap: 1rem;
   }
-  .card-body { padding: 1.5rem; }
-  
-  .form-group { margin-bottom: 1.25rem; }
-  .form-group label { display: block; font-weight: 600; margin-bottom: 0.5rem; color: #334155; }
-  .form-group input, .form-group select, .form-group textarea {
-    width: 100%; padding: 0.75rem 1rem; border: 1px solid #e2e8f0; border-radius: 10px; font-size: 1rem;
+  @media (max-width: 900px){
+    .grid{ grid-template-columns: 1fr; }
   }
-  .form-group textarea { resize: vertical; min-height: 100px; font-family: inherit; }
-  .form-row { display: grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
-  
-  .checkbox-label {
-    display: flex; align-items: center; gap: 0.5rem;
-    padding: 0.75rem 1rem; background: #f0fdf4; border-radius: 10px; cursor: pointer;
+
+  label { font-weight: 800; font-size: .9rem; color:#334155; display:block; margin-bottom:.35rem; }
+  input[type="text"], input[type="number"], textarea {
+    width: 100%;
+    padding: .75rem .85rem;
+    border-radius: 12px;
+    border: 1px solid #e2e8f0;
+    background: #fff;
+    outline: none;
   }
-  .checkbox-label input { width: auto; }
-  
-  .pdf-box {
-    border: 2px dashed #cbd5e1; border-radius: 12px; padding: 2rem; text-align: center; background: #f8fafc;
+  textarea { min-height: 110px; resize: vertical; }
+
+  .row { display:grid; grid-template-columns: 1fr 1fr; gap: 1rem; }
+  @media (max-width: 900px){ .row{ grid-template-columns: 1fr; } }
+
+  .btn {
+    border: none;
+    border-radius: 12px;
+    padding: .7rem 1rem;
+    font-weight: 900;
+    cursor: pointer;
+    display:inline-flex;
+    align-items:center;
+    gap:.5rem;
+    text-decoration:none;
   }
-  .pdf-box.has-file { border-color: #22c55e; background: #f0fdf4; }
-  .pdf-current { background: #dbeafe; padding: 0.75rem 1rem; border-radius: 8px; margin-top: 1rem; }
-  .pdf-current a { color: #2563eb; font-weight: 600; }
-  
-  .ai-section {
-    background: linear-gradient(135deg, #fef3c7, #fde68a);
-    border-radius: 12px; padding: 1.5rem; margin-bottom: 1rem;
+  .btn-primary { background:#2563eb; color:white; }
+  .btn-primary:hover { filter:brightness(1.05); }
+  .btn-ghost { background:#f1f5f9; color:#0f172a; border:1px solid #e2e8f0; }
+  .btn-danger { background:#ef4444; color:white; }
+  .btn-danger:hover { filter:brightness(1.05); }
+
+  .pill {
+    background:#f1f5f9;
+    border:1px solid #e2e8f0;
+    border-radius: 999px;
+    padding:.35rem .65rem;
+    font-size:.85rem;
+    font-weight:800;
+    color:#334155;
   }
-  .ai-section h4 { margin: 0 0 0.5rem; color: #92400e; }
-  .ai-section p { margin: 0 0 1rem; font-size: 0.9rem; color: #a16207; }
-  .ai-buttons { display: flex; gap: 0.75rem; flex-wrap: wrap; }
-  
-  .btn-ai {
-    padding: 0.75rem 1.25rem; border: none; border-radius: 10px;
-    font-weight: 700; font-size: 0.9rem; cursor: pointer;
+
+  .stats { display:flex; gap:.6rem; flex-wrap:wrap; }
+  .small { font-size:.9rem; color:#64748b; }
+
+  .switch {
+    display:flex; align-items:center; gap:.6rem;
+    padding:.65rem .75rem;
+    border:1px solid #e2e8f0;
+    border-radius: 12px;
+    background:#fff;
   }
-  .btn-ai:disabled { opacity: 0.6; cursor: not-allowed; }
-  .btn-ai.all { background: #f59e0b; color: white; }
-  .btn-ai.slides { background: #8b5cf6; color: white; }
-  .btn-ai.game { background: #22c55e; color: white; }
-  .btn-ai.practice { background: #3b82f6; color: white; }
-  
-  .stats-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 1rem; margin-bottom: 1rem; }
-  .stat-box { background: #f8fafc; padding: 1rem; border-radius: 10px; text-align: center; }
-  .stat-box .number { font-size: 1.5rem; font-weight: 800; color: #667eea; }
-  .stat-box .label { font-size: 0.8rem; color: #64748b; }
-  
-  .json-editor {
-    font-family: monospace; font-size: 0.85rem; min-height: 150px;
-    background: #1e293b; color: #e2e8f0; border: none; border-radius: 10px;
-  }
-  
-  .btn-submit {
-    width: 100%; padding: 1rem;
-    background: linear-gradient(135deg, #667eea, #764ba2);
-    color: white; border: none; border-radius: 12px; font-weight: 700; font-size: 1rem; cursor: pointer;
-  }
-  .btn-back { display: inline-block; color: #667eea; text-decoration: none; font-weight: 600; margin-bottom: 1rem; }
-  
-  .loading-overlay {
-    position: fixed; top: 0; left: 0; right: 0; bottom: 0;
-    background: rgba(0,0,0,0.7); display: none; justify-content: center; align-items: center; z-index: 1000;
-  }
-  .loading-overlay.show { display: flex; }
-  .loading-box { background: white; padding: 2rem 3rem; border-radius: 16px; text-align: center; }
-  .loading-spinner {
-    width: 50px; height: 50px; border: 4px solid #e2e8f0; border-top-color: #667eea;
-    border-radius: 50%; animation: spin 1s linear infinite; margin: 0 auto 1rem;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  
-  .toast {
-    position: fixed; bottom: 20px; left: 50%; transform: translateX(-50%);
-    background: #1e293b; color: white; padding: 1rem 2rem; border-radius: 12px;
-    font-weight: 600; z-index: 1001; display: none;
-  }
-  .toast.show { display: block; }
+  .switch input { transform: scale(1.15); }
+
+  .jsonarea textarea { font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, "Liberation Mono", "Courier New", monospace; min-height: 200px; }
 </style>
 {% endblock %}
 
 {% block content %}
-<a href="{{ url_for('admin_library') }}" class="btn-back">← กลับ</a>
-
 <div class="page-header">
-  <h2>{% if unit %}✏️ แก้ไขบทเรียน{% else %}➕ สร้างบทเรียนใหม่{% endif %}</h2>
-  <p>วิชา: {{ subject.icon }} {{ subject.name }}</p>
-</div>
-
-<form method="POST" enctype="multipart/form-data">
-<div class="form-grid">
   <div>
-    <div class="card">
-      <div class="card-header">📝 ข้อมูลพื้นฐาน</div>
-      <div class="card-body">
-        <div class="form-group">
-          <label>ชื่อบทเรียน *</label>
-          <input type="text" name="name" id="unitName" value="{{ unit.name if unit else '' }}" required placeholder="เช่น Unit 1: Greetings">
-        </div>
-        <div class="form-group">
-          <label>คำอธิบาย</label>
-          <textarea name="description" rows="2" placeholder="อธิบายสั้นๆ">{{ unit.description if unit else '' }}</textarea>
-        </div>
-        <div class="form-row">
-          <div class="form-group">
-            <label>ลำดับบท</label>
-            <input type="number" name="unit_number" value="{{ unit.unit_number if unit else 1 }}" min="1">
-          </div>
-          <div class="form-group">
-            <label>เวลา (นาที)</label>
-            <input type="number" name="estimated_time" value="{{ unit.estimated_time if unit else 60 }}" min="1">
-          </div>
-        </div>
-        <label class="checkbox-label">
-          <input type="checkbox" name="is_free" value="1" {% if unit and unit.is_free %}checked{% endif %}>
-          🎁 บทเรียนฟรี
-        </label>
-      </div>
-    </div>
-    
-    <div class="card">
-      <div class="card-header">📄 ไฟล์ PDF</div>
-      <div class="card-body">
-        <div class="pdf-box {% if unit and unit.pdf_file %}has-file{% endif %}" id="pdfBox">
-          <div style="font-size:2.5rem;">📤</div>
-          <p>คลิกเพื่อเลือกไฟล์ PDF</p>
-          <input type="file" name="pdf_file" accept=".pdf" id="pdfInput" style="display:none;" onchange="showPdfName(this)">
-          <button type="button" class="btn-ai slides" onclick="document.getElementById('pdfInput').click()">📁 เลือกไฟล์</button>
-          {% if unit and unit.pdf_file %}
-          <div class="pdf-current">📄 ปัจจุบัน: <a href="{{ url_for('uploaded_file', filename=unit.pdf_file) }}" target="_blank">{{ unit.pdf_file }}</a></div>
-          {% endif %}
-          <div class="pdf-current" id="newPdf" style="display:none;">📄 ใหม่: <span id="newPdfName"></span></div>
-        </div>
-      </div>
-    </div>
-    
-    {% if unit %}
-    <div class="card">
-      <div class="card-header">🤖 AI Generate</div>
-      <div class="card-body">
-        <div class="ai-section">
-          <h4>✨ สร้างเนื้อหาอัตโนมัติ</h4>
-          <p>ใช้ AI สร้าง Slides, Game และแบบฝึกหัด</p>
-          <div class="ai-buttons">
-            <button type="button" class="btn-ai all" onclick="generateContent('all')">🚀 Generate ทั้งหมด</button>
-            <button type="button" class="btn-ai slides" onclick="generateContent('slides')">🎬 Slides</button>
-            <button type="button" class="btn-ai game" onclick="generateContent('game')">🎮 Game</button>
-            <button type="button" class="btn-ai practice" onclick="generateContent('practice')">📝 Practice</button>
-          </div>
-        </div>
-        <div class="stats-grid">
-          <div class="stat-box"><div class="number" id="statSlides">{{ slides_count }}</div><div class="label">Slides</div></div>
-          <div class="stat-box"><div class="number" id="statGame">{{ game_count }}</div><div class="label">Game Q</div></div>
-          <div class="stat-box"><div class="number" id="statPractice">{{ practice_count }}</div><div class="label">Practice Q</div></div>
-        </div>
-      </div>
-    </div>
-    
-    <div class="card">
-      <div class="card-header" style="cursor:pointer;" onclick="document.getElementById('jsonSection').style.display = document.getElementById('jsonSection').style.display === 'none' ? 'block' : 'none'">
-        📦 JSON (คลิกเพื่อแสดง/ซ่อน)
-      </div>
-      <div class="card-body" id="jsonSection" style="display:none;">
-        <div class="form-group"><label>Slides JSON</label><textarea name="slides_json" class="json-editor" id="slidesJson">{{ unit.slides_json if unit else '{}' }}</textarea></div>
-        <div class="form-group"><label>Game JSON</label><textarea name="game_json" class="json-editor" id="gameJson">{{ unit.game_json if unit else '{}' }}</textarea></div>
-        <div class="form-group"><label>Practice JSON</label><textarea name="practice_json" class="json-editor" id="practiceJson">{{ unit.practice_json if unit else '[]' }}</textarea></div>
-      </div>
-    </div>
-    {% endif %}
+    <h2>{% if unit %}🧩 แก้ไขบทเรียนในคลัง{% else %}➕ เพิ่มบทเรียนในคลัง{% endif %}</h2>
+    <p class="small">วิชา: <b>{{ subject.name }}</b> {% if unit %} • Unit ID: <b>{{ unit.id }}</b>{% endif %}</p>
   </div>
-  
-  <div>
-    <div class="card">
-      <div class="card-header">💾 บันทึก</div>
-      <div class="card-body">
-        <button type="submit" class="btn-submit">{% if unit %}💾 บันทึก{% else %}➕ สร้างบทเรียน{% endif %}</button>
-        {% if not unit %}<p style="color:#64748b; font-size:0.85rem; margin-top:1rem; text-align:center;">หลังสร้างแล้ว สามารถ Generate เนื้อหาได้</p>{% endif %}
-      </div>
-    </div>
+  <div class="header-actions">
+    <a class="btn btn-ghost" href="{{ url_for('admin_library') }}">← กลับหน้าคลัง</a>
+
     {% if unit %}
-    <div class="card">
-      <div class="card-header">📋 สรุป</div>
-      <div class="card-body">
-        <p><strong>ID:</strong> {{ unit.id }}</p>
-        <p><strong>สถานะ:</strong> {% if unit.is_free %}🎁 ฟรี{% else %}👑 Premium{% endif %}</p>
-        <p><strong>Clone:</strong> {{ unit.clone_count }} ครั้ง</p>
-        <p><strong>เข้าชม:</strong> {{ unit.view_count }} ครั้ง</p>
-      </div>
-    </div>
-    <div class="card">
-      <div class="card-body">
-        <a href="{{ url_for('library_unit_detail', unit_id=unit.id) }}" class="btn-ai slides" style="width:100%;text-align:center;text-decoration:none;display:block;" target="_blank">👁️ ดูหน้าบทเรียน</a>
-      </div>
-    </div>
+      <form method="POST"
+            action="{{ url_for('admin_library_unit_delete', unit_id=unit.id) }}"
+            onsubmit="return confirm('ยืนยันลบบทเรียนนี้จากคลังกลางแบบถาวร? (จะลบทุกคนที่ clone ไปด้วย)');"
+            style="display:inline-block;">
+        <button type="submit" class="btn btn-danger">🗑️ ลบจากคลังกลาง</button>
+      </form>
     {% endif %}
   </div>
 </div>
-</form>
 
-<div class="loading-overlay" id="loading"><div class="loading-box"><div class="loading-spinner"></div><div id="loadingText">กำลัง Generate...</div></div></div>
-<div class="toast" id="toast"></div>
+<div class="grid">
+  <div>
+    <div class="card">
+      <h3 style="margin:0 0 .9rem;">ข้อมูลบทเรียน</h3>
 
-<script>
-const unitId = {{ unit.id if unit else 'null' }};
+      {% if unit %}
+      <div class="stats" style="margin-bottom:.85rem;">
+        <span class="pill">📄 สไลด์: {{ slides_count }}</span>
+        <span class="pill">🎮 เกม: {{ game_count }}</span>
+        <span class="pill">📝 แบบฝึก: {{ practice_count }}</span>
+        <span class="pill">📥 Clone: {{ unit.clone_count or 0 }}</span>
+        <span class="pill">⭐ เรต: {{ "%.1f"|format(unit.avg_rating or 0) }}</span>
+      </div>
+      {% endif %}
 
-function showPdfName(input) {
-  if (input.files[0]) {
-    document.getElementById('newPdfName').textContent = input.files[0].name;
-    document.getElementById('newPdf').style.display = 'block';
-    document.getElementById('pdfBox').classList.add('has-file');
-  }
-}
+      <form method="POST" enctype="multipart/form-data">
+        <div class="row">
+          <div>
+            <label>ชื่อบทเรียน</label>
+            <input type="text" name="name" value="{{ unit.name if unit else '' }}" required>
+          </div>
+          <div>
+            <label>ลำดับบทเรียน</label>
+            <input type="number" name="unit_number" min="1" value="{{ unit.unit_number if unit else 1 }}">
+          </div>
+        </div>
 
-function showToast(msg) {
-  const t = document.getElementById('toast');
-  t.textContent = msg;
-  t.classList.add('show');
-  setTimeout(() => t.classList.remove('show'), 3000);
-}
+        <div style="margin-top:1rem;">
+          <label>คำอธิบาย (สั้น ๆ)</label>
+          <textarea name="description">{{ unit.description if unit else '' }}</textarea>
+        </div>
 
-async function generateContent(type) {
-  if (!unitId) { showToast('❌ บันทึกบทเรียนก่อน'); return; }
-  
-  document.getElementById('loading').classList.add('show');
-  document.getElementById('loadingText').textContent = 'กำลัง Generate ' + type + '... (30-60 วินาที)';
-  
-  try {
-    const res = await fetch('/admin/library/unit/' + unitId + '/generate/' + type, { method: 'POST' });
-    const data = await res.json();
-    
-    if (data.ok) {
-      showToast('✅ Generate สำเร็จ!');
-      if (data.slides_count !== undefined) document.getElementById('statSlides').textContent = data.slides_count;
-      if (data.game_count !== undefined) document.getElementById('statGame').textContent = data.game_count;
-      if (data.practice_count !== undefined) document.getElementById('statPractice').textContent = data.practice_count;
-      if (data.slides_json) document.getElementById('slidesJson').value = data.slides_json;
-      if (data.game_json) document.getElementById('gameJson').value = data.game_json;
-      if (data.practice_json) document.getElementById('practiceJson').value = data.practice_json;
-    } else {
-      showToast('❌ ' + (data.error || 'Error'));
-    }
-  } catch (e) {
-    showToast('❌ ' + e.message);
-  } finally {
-    document.getElementById('loading').classList.remove('show');
-  }
-}
-</script>
+        <div class="row" style="margin-top:1rem;">
+          <div>
+            <label>เวลาที่ใช้โดยประมาณ (นาที)</label>
+            <input type="number" name="estimated_time" min="1" value="{{ unit.estimated_time if unit else 60 }}">
+          </div>
+          <div>
+            <label>ไฟล์ PDF (ถ้ามี)</label>
+            <input type="file" name="pdf_file" accept="application/pdf">
+            {% if unit and unit.pdf_file %}
+              <div class="small" style="margin-top:.35rem;">ไฟล์เดิม: {{ unit.pdf_file }}</div>
+            {% endif %}
+          </div>
+        </div>
+
+        <div style="margin-top:1rem; display:flex; gap:1rem; flex-wrap:wrap;">
+          <div class="switch">
+            <input type="checkbox" id="is_free" name="is_free" value="1" {% if unit and unit.is_free %}checked{% endif %}>
+            <label for="is_free" style="margin:0; font-weight:900;">บทเรียนฟรี</label>
+          </div>
+        </div>
+
+        <div style="margin-top:1.1rem;">
+          <button class="btn btn-primary" type="submit">💾 บันทึก</button>
+        </div>
+      </form>
+    </div>
+
+    {% if unit %}
+    <div class="card jsonarea">
+      <h3 style="margin:0 0 .25rem;">แก้ไข JSON เนื้อหา (ถ้าต้องการ)</h3>
+      <div class="small" style="margin-bottom:.85rem;">แก้ได้โดยตรง (ระบบจะใช้ค่าที่บันทึกไว้)</div>
+
+      <form method="POST">
+        <label>Slides JSON</label>
+        <textarea name="slides_json">{{ unit.slides_json or '{}' }}</textarea>
+
+        <div style="height:.8rem;"></div>
+
+        <label>Game JSON</label>
+        <textarea name="game_json">{{ unit.game_json or '{}' }}</textarea>
+
+        <div style="height:.8rem;"></div>
+
+        <label>Practice JSON</label>
+        <textarea name="practice_json">{{ unit.practice_json or '[]' }}</textarea>
+
+        <div style="margin-top:1rem;">
+          <button class="btn btn-primary" type="submit">💾 บันทึก JSON</button>
+        </div>
+      </form>
+    </div>
+    {% endif %}
+  </div>
+
+  <div>
+    {% if unit %}
+    <div class="card">
+      <h3 style="margin:0 0 .75rem;">Generate ด้วย AI</h3>
+      <div class="small" style="margin-bottom:.8rem;">สร้าง Slides / Game / Practice จากหัวข้อบทเรียน</div>
+
+      <form method="POST" action="{{ url_for('admin_library_unit_generate', unit_id=unit.id, gen_type='all') }}">
+        <button class="btn btn-primary" type="submit">🤖 Generate ทั้งหมด</button>
+      </form>
+
+      <div style="height:.75rem;"></div>
+
+      <form method="POST" action="{{ url_for('admin_library_unit_generate', unit_id=unit.id, gen_type='slides') }}">
+        <button class="btn btn-ghost" type="submit">📄 Generate Slides</button>
+      </form>
+
+      <div style="height:.6rem;"></div>
+
+      <form method="POST" action="{{ url_for('admin_library_unit_generate', unit_id=unit.id, gen_type='game') }}">
+        <button class="btn btn-ghost" type="submit">🎮 Generate Game</button>
+      </form>
+
+      <div style="height:.6rem;"></div>
+
+      <form method="POST" action="{{ url_for('admin_library_unit_generate', unit_id=unit.id, gen_type='practice') }}">
+        <button class="btn btn-ghost" type="submit">📝 Generate Practice</button>
+      </form>
+    </div>
+    {% else %}
+    <div class="card">
+      <h3 style="margin:0 0 .5rem;">สร้างบทเรียนก่อน</h3>
+      <div class="small">บันทึกชื่อบทเรียนก่อน แล้วค่อย Generate เนื้อหาได้</div>
+    </div>
+    {% endif %}
+  </div>
+</div>
 {% endblock %}
