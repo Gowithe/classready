@@ -126,7 +126,7 @@ def init_db() -> None:
     conn = get_db()
     c = conn.cursor()
 
-        # ================== Library Subjects ==================
+    # ================== Library Subjects ==================
     c.execute("""
     CREATE TABLE IF NOT EXISTS library_subjects (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -256,6 +256,8 @@ def init_db() -> None:
     """)
     # ensure email verification columns
     ensure_user_email_verify_schema()
+    ensure_user_reset_password_schema()
+    ensure_user_profile_schema()
 
 
     # ---------------- topics ----------------
@@ -450,24 +452,30 @@ class LibrarySubject:
     """วิชาในคลังบทเรียน"""
     
     @staticmethod
-    def create(subject_id: int, name: str, unit_number: int = 1, description: str = "",
-               slides_json: str = "", game_json: str = "", practice_json: str = "",
-               is_free: bool = False, estimated_time: int = 60, pdf_file: str = None) -> Dict[str, Any]:
+    def create(name: str, description: str = "", is_active: bool = True) -> Dict[str, Any]:
+        """สร้างวิชาในคลังบทเรียน (library_subjects)"""
         conn = get_db()
         c = conn.cursor()
         now = datetime.utcnow().isoformat()
-        c.execute('''
-            INSERT INTO library_units 
-            (subject_id, name, unit_number, description, slides_json, game_json, practice_json, 
-             is_free, estimated_time, pdf_file, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (subject_id, name, unit_number, description, slides_json, game_json, practice_json,
-              1 if is_free else 0, estimated_time, pdf_file, now, now))
+        c.execute(
+            """
+            INSERT INTO library_subjects (name, description, is_active, created_at)
+            VALUES (?, ?, ?, ?)
+            """,
+            (name, description, 1 if is_active else 0, now)
+        )
         conn.commit()
-        unit_id = c.lastrowid
+        subject_id = c.lastrowid
         conn.close()
-        return LibraryUnit.get_by_id(unit_id)
-    
+        subject = LibrarySubject.get_by_id(subject_id)
+        return subject if subject else {
+            "id": subject_id,
+            "name": name,
+            "description": description,
+            "is_active": 1 if is_active else 0,
+            "created_at": now
+        }
+
     @staticmethod
     def get_by_id(subject_id: int) -> Optional[Dict[str, Any]]:
         conn = get_db()
