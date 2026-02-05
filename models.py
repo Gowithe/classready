@@ -126,7 +126,7 @@ def init_db() -> None:
     conn = get_db()
     c = conn.cursor()
 
-    # ================== Library Subjects ==================
+        # ================== Library Subjects ==================
     c.execute("""
     CREATE TABLE IF NOT EXISTS library_subjects (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -256,8 +256,6 @@ def init_db() -> None:
     """)
     # ensure email verification columns
     ensure_user_email_verify_schema()
-    ensure_user_reset_password_schema()
-    ensure_user_profile_schema()
 
 
     # ---------------- topics ----------------
@@ -452,30 +450,24 @@ class LibrarySubject:
     """วิชาในคลังบทเรียน"""
     
     @staticmethod
-    def create(name: str, description: str = "", is_active: bool = True) -> Dict[str, Any]:
-        """สร้างวิชาในคลังบทเรียน (library_subjects)"""
+    def create(subject_id: int, name: str, unit_number: int = 1, description: str = "",
+               slides_json: str = "", game_json: str = "", practice_json: str = "",
+               is_free: bool = False, estimated_time: int = 60, pdf_file: str = None) -> Dict[str, Any]:
         conn = get_db()
         c = conn.cursor()
         now = datetime.utcnow().isoformat()
-        c.execute(
-            """
-            INSERT INTO library_subjects (name, description, is_active, created_at)
-            VALUES (?, ?, ?, ?)
-            """,
-            (name, description, 1 if is_active else 0, now)
-        )
+        c.execute('''
+            INSERT INTO library_units 
+            (subject_id, name, unit_number, description, slides_json, game_json, practice_json, 
+             is_free, estimated_time, pdf_file, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
+        ''', (subject_id, name, unit_number, description, slides_json, game_json, practice_json,
+              1 if is_free else 0, estimated_time, pdf_file, now, now))
         conn.commit()
-        subject_id = c.lastrowid
+        unit_id = c.lastrowid
         conn.close()
-        subject = LibrarySubject.get_by_id(subject_id)
-        return subject if subject else {
-            "id": subject_id,
-            "name": name,
-            "description": description,
-            "is_active": 1 if is_active else 0,
-            "created_at": now
-        }
-
+        return LibraryUnit.get_by_id(unit_id)
+    
     @staticmethod
     def get_by_id(subject_id: int) -> Optional[Dict[str, Any]]:
         conn = get_db()
@@ -642,7 +634,74 @@ class LibraryUnit:
         c.execute(f"UPDATE library_units SET {sets} WHERE id = ?", values)
         conn.commit()
         conn.close()
+
+    @staticmethod
+    def hard_delete(unit_id: int) -> None:
+        """ลบบทเรียนจากคลังกลางแบบถาวร (unit + ratings + clones + topics ที่ถูก clone ไปแล้ว)"""
+        # 1) หา topic_id ทั้งหมดที่เกิดจากการ clone unit นี้
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT topic_id FROM library_clones WHERE unit_id = ?", (unit_id,))
+        rows = c.fetchall()
+        conn.close()
+
+        topic_ids = []
+        for r in rows or []:
+            try:
+                # sqlite row อาจเป็น dict-like หรือ tuple
+                tid = r["topic_id"] if hasattr(r, "__getitem__") and not isinstance(r, tuple) else r[0]
+            except Exception:
+                tid = r[0] if isinstance(r, tuple) else None
+            if tid:
+                topic_ids.append(int(tid))
+
+        # 2) ลบ topics ที่ clone ไปแล้ว (ใช้ฟังก์ชันเดิมของคุณ)
+        for tid in topic_ids:
+            try:
+                Topic.delete(tid)
+            except Exception:
+                # กันล้มทั้งกระบวนการ
+                pass
+
+        # 3) ลบความสัมพันธ์ในคลังกลาง
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("DELETE FROM library_ratings WHERE unit_id = ?", (unit_id,))
+        c.execute("DELETE FROM library_clones WHERE unit_id = ?", (unit_id,))
+        c.execute("DELETE FROM library_units WHERE id = ?", (unit_id,))
+        conn.commit()
+        conn.close()
     
+
+@staticmethod
+def hard_delete(unit_id: int) -> None:
+    """ลบบทเรียนจากคลังกลางแบบถาวร (ลบ unit + ratings + clones + topics ที่ถูก clone ไปแล้ว)"""
+    conn = get_db()
+    c = conn.cursor()
+
+    # ดึง topic_id ที่ถูก clone ไปจาก unit นี้
+    c.execute("SELECT topic_id FROM library_clones WHERE unit_id = ?", (unit_id,))
+    rows = c.fetchall()
+    topic_ids = [r["topic_id"] if isinstance(r, dict) else r[0] for r in rows] if rows else []
+    conn.close()
+
+    # ลบ topics ที่ clone ไปแล้ว (Topic.delete จะลบข้อมูลย่อย ๆ ให้ครบ)
+    for tid in topic_ids:
+        try:
+            if tid:
+                Topic.delete(int(tid))
+        except Exception:
+            # ไม่ให้ล้มทั้งกระบวนการ
+            pass
+
+    # ลบ unit + ratings + clones ที่เหลือ
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("DELETE FROM library_ratings WHERE unit_id = ?", (unit_id,))
+    c.execute("DELETE FROM library_clones WHERE unit_id = ?", (unit_id,))
+    c.execute("DELETE FROM library_units WHERE id = ?", (unit_id,))
+    conn.commit()
+    conn.close()
     @staticmethod
     def search(query: str, subject_id: int = None, free_only: bool = False) -> List[Dict[str, Any]]:
         """ค้นหาบทเรียน"""
