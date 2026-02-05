@@ -1359,16 +1359,29 @@ body.fullscreen-mode [class*="header"] {
 }
 
 .vocab-ov-btn{
-  border: 2px solid #1e293b;
-  background: #fff;
+  border: 2px solid #0f172a;
+  background: #f1f5f9;
+  color: #0f172a;
   border-radius: 14px;
-  padding: 10px 14px;
+  padding: 12px 16px;
   font-weight: 900;
   cursor: pointer;
-  box-shadow: 3px 3px 0 #1e293b;
-  transition: transform 0.15s, box-shadow 0.15s;
+  box-shadow: 3px 3px 0 #0f172a;
+  transition: transform 0.15s, box-shadow 0.15s, background 0.15s;
 }
-.vocab-ov-btn:hover{ transform: translate(-1px,-1px); box-shadow: 4px 4px 0 #1e293b; }
+.vocab-ov-btn:hover{
+  transform: translate(-1px,-1px);
+  box-shadow: 4px 4px 0 #0f172a;
+  background: #e2e8f0;
+}
+.vocab-ov-btn:active{
+  transform: translate(0,0);
+  box-shadow: 2px 2px 0 #0f172a;
+}
+.vocab-ov-btn:focus-visible{
+  outline: 4px solid rgba(59,130,246,0.35);
+  outline-offset: 2px;
+}
 
 .vocab-overlay-meaning{
   font-size: 1.6rem;
@@ -1566,6 +1579,11 @@ body.fullscreen-mode .slide-footer {
 .reveal-btn:active{ transform: translateY(0); box-shadow:none; }
 
 .meaning.is-hidden{
+  display: none !important;
+}
+
+/* generic utility */
+.is-hidden{
   display: none !important;
 }
 
