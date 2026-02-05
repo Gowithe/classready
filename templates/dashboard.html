@@ -443,8 +443,8 @@
   </div>
   <div class="action-bar">
     <a href="{{ url_for('classrooms') }}" class="btn-action primary">🏫 ห้องเรียน</a>
-    <a href="{{ url_for('my_create_topic') }}" class="btn-action">➕ สร้าง Topic</a>
-    <a href="{{ url_for('ai_slides') }}" class="btn-action">✨ AI Slides</a>
+    <a href="{{ url_for('my_create_topic') }}" class="btn-action">➕ สร้าง Topic ด้วย PDF</a>
+    <a href="{{ url_for('ai_slides') }}" class="btn-action">✨ สร้าง Slides ด้วย AI</a>
     {% if session.role == 'admin' %}
     <a href="{{ url_for('admin_dashboard') }}" class="btn-action">⚙️ Admin</a>
     {% endif %}
