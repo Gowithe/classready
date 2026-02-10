@@ -368,7 +368,7 @@
     <!-- Account Info -->
     <div class="account-card">
       <h3>👤 ข้อมูลบัญชี</h3>
-      <form method="POST" action="{{ url_for('my_account_update') }}">
+      <form method="POST" action="{{ url_for('auth.my_account_update') }}">
         <div class="form-group">
           <label>ชื่อที่แสดง</label>
           <input type="text" name="display_name" value="{{ user.display_name or '' }}" placeholder="ชื่อของคุณ">
@@ -388,7 +388,7 @@
     <!-- Change Password -->
     <div class="account-card">
       <h3>🔐 เปลี่ยนรหัสผ่าน</h3>
-      <form method="POST" action="{{ url_for('my_account_change_password') }}">
+      <form method="POST" action="{{ url_for('auth.my_account_change_password') }}">
         <div class="form-group">
           <label>รหัสผ่านปัจจุบัน</label>
           <input type="password" name="current_password" required placeholder="••••••••">
