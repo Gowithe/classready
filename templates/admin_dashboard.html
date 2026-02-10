@@ -50,7 +50,7 @@
 
               <a class="btn" href="{{ url_for('admin_edit_topic', topic_id=tid) }}">✏ Edit</a>
               <a class="btn" href="{{ url_for('topic_detail', topic_id=tid) }}">📌 Open</a>
-              <a class="btn" href="{{ url_for('game', topic_id=tid) }}">🎮 Game</a>
+              <a class="btn" href="{{ url_for('game.game', topic_id=tid) }}">🎮 Game</a>
 
               <form method="POST" action="{{ url_for('admin_delete_topic', topic_id=tid) }}" style="display:inline;" onsubmit="return confirm('Delete this topic?');">
                 <button class="btn" type="submit" style="background:#ef4444;">🗑 Delete</button>

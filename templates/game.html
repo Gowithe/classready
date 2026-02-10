@@ -270,8 +270,8 @@ input:checked + .slider:before { transform: translateX(20px); }
   <div class="quick-nav">
     <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="nav-btn">← Back</a>
     <a href="{{ url_for('view_slides', topic_id=topic.id) }}" class="nav-btn">📽 Slides</a>
-    <a href="{{ url_for('game_memory', topic_id=topic.id) }}" class="nav-btn">🃏 Memory</a>
-    <a href="{{ url_for('game', topic_id=topic.id) }}" class="nav-btn nav-game">🎮 Mystery Tiles</a>
+    <a href="{{ url_for('game.game_memory', topic_id=topic.id) }}" class="nav-btn">🃏 Memory</a>
+    <a href="{{ url_for('game.game', topic_id=topic.id) }}" class="nav-btn nav-game">🎮 Mystery Tiles</a>
   </div>
 
   <!-- Setup Screen -->

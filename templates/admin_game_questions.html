@@ -9,7 +9,7 @@
   </div>
   <div style="display:flex;gap:10px;flex-wrap:wrap;">
     <a class="btn" href="{{ url_for('admin_dashboard') }}">← Back</a>
-    <a class="btn" href="{{ url_for('game', topic_id=topic.id) }}">Open Game</a>
+    <a class="btn" href="{{ url_for('game.game', topic_id=topic.id) }}">Open Game</a>
   </div>
 </div>
 

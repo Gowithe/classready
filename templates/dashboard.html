@@ -651,7 +651,7 @@
     
     <div class="card-tools">
       <a href="{{ url_for('view_slides', topic_id=topic.id) }}" class="tool-pill pill-slides">📽 Slides</a>
-      <a href="{{ url_for('game', topic_id=topic.id) }}" class="tool-pill pill-game">🎮 Game</a>
+      <a href="{{ url_for('game.game', topic_id=topic.id) }}" class="tool-pill pill-game">🎮 Game</a>
       <a href="{{ url_for('practice', topic_id=topic.id) }}" class="tool-pill pill-practice">📝 Practice</a>
     </div>
 
