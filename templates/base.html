@@ -137,17 +137,17 @@
         <a href="{{ url_for('dashboard') }}">🏠 Dashboard</a>
 
         {% if session.role == 'admin' %}
-          <a href="{{ url_for('admin_dashboard') }}">🛠️ Admin</a>
-          <a href="{{ url_for('admin_library') }}">📚 จัดการคลัง</a>
+          <a href="{{ url_for('admin.admin_dashboard') }}">🛠️ Admin</a>
+          <a href="{{ url_for('admin.admin_library') }}">📚 จัดการคลัง</a>
         {% endif %}
 
-        <a href="{{ url_for('library') }}">📚 คลังบทเรียน</a>
+        <a href="{{ url_for('library.library') }}">📚 คลังบทเรียน</a>
 
-        <a href="{{ url_for('pricing') }}" class="nav-upgrade">💎 Premium</a>
+        <a href="{{ url_for('payment.pricing') }}" class="nav-upgrade">💎 Premium</a>
 
-        <a href="{{ url_for('my_account') }}" class="nav-account">👤 บัญชี</a>
+        <a href="{{ url_for('auth.my_account') }}" class="nav-account">👤 บัญชี</a>
 
-        <a href="{{ url_for('logout') }}" class="nav-pill">
+        <a href="{{ url_for('auth.logout') }}" class="nav-pill">
           🚪 Logout
         </a>
       </nav>
@@ -158,14 +158,14 @@
           <a href="{{ url_for('dashboard') }}">🏠 Dashboard</a>
 
           {% if session.role == 'admin' %}
-            <a href="{{ url_for('admin_dashboard') }}">🛠️ Admin</a>
-            <a href="{{ url_for('admin_library') }}">📚 จัดการคลัง</a>
+            <a href="{{ url_for('admin.admin_dashboard') }}">🛠️ Admin</a>
+            <a href="{{ url_for('admin.admin_library') }}">📚 จัดการคลัง</a>
           {% endif %}
 
-          <a href="{{ url_for('library') }}">📚 คลังบทเรียน</a>
-          <a href="{{ url_for('my_account') }}">👤 บัญชีของฉัน</a>
-          <a href="{{ url_for('pricing') }}" class="primary">💎 อัปเกรด Premium</a>
-          <a href="{{ url_for('logout') }}" class="muted">
+          <a href="{{ url_for('library.library') }}">📚 คลังบทเรียน</a>
+          <a href="{{ url_for('auth.my_account') }}">👤 บัญชีของฉัน</a>
+          <a href="{{ url_for('payment.pricing') }}" class="primary">💎 อัปเกรด Premium</a>
+          <a href="{{ url_for('auth.logout') }}" class="muted">
             🚪 ออกจากระบบ{% if session.email %} ({{ session.email }}){% endif %}
           </a>
         </div>
