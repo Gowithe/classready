@@ -365,7 +365,7 @@
   {% if subjects %}
   <div class="subjects-grid">
     {% for subject in subjects %}
-    <a href="{{ url_for('library_subject', subject_id=subject.id) }}" class="subject-card">
+    <a href="{{ url_for('library.library_subject', subject_id=subject.id) }}" class="subject-card">
       <div class="subject-icon" style="background: {{ subject.color or '#667eea' }}20;">
         {{ subject.icon or '📚' }}
       </div>
