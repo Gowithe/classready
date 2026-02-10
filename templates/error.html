@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 {% extends "base.html" %}
 
 {% block title %}Error {{ error_code }}{% endblock %}
@@ -10,8 +11,27 @@
     {% if session.user_id %}
       <a class="btn" href="{{ url_for('dashboard') }}">Back to Dashboard</a>
     {% else %}
-      <a class="btn" href="{{ url_for('landing') }}">Back to Home</a>
+      <a class="btn" href="{{ url_for('auth.landing') }}">Back to Home</a>
     {% endif %}
   </div>
 </div>
 {% endblock %}
+=======
+{% extends "base.html" %}
+
+{% block title %}Error {{ error_code }}{% endblock %}
+
+{% block content %}
+<div class="card" style="max-width:720px;margin:2rem auto;padding:24px;">
+  <h2 style="margin-bottom:8px;">⚠️ Error {{ error_code }}</h2>
+  <p style="color:#475569;">{{ error_msg }}</p>
+  <div style="margin-top:16px;">
+    {% if session.user_id %}
+      <a class="btn" href="{{ url_for('dashboard') }}">Back to Dashboard</a>
+    {% else %}
+      <a class="btn" href="{{ url_for('auth.landing') }}">Back to Home</a>
+    {% endif %}
+  </div>
+</div>
+{% endblock %}
+>>>>>>> 6877a71 (Refactor: blueprints + fix templates https://github.com/Gowithe/classready)
