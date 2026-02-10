@@ -233,7 +233,7 @@
       {% if 'Fill' in ptype %}
         {% set badge_class = 'type-fill' %}
         {% set badge_icon = '✏️' %}
-        {% set back_url = url_for('practice.public_fill_blanks', topic_id=topic.id) %}
+        {% set back_url = url_for('practice.practice_fill_blanks', topic_id=topic.id) %}
       {% elif 'Unscramble' in ptype %}
         {% set badge_class = 'type-unscramble' %}
         {% set badge_icon = '🔀' %}
