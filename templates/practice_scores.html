@@ -241,7 +241,7 @@
       {% else %}
         {% set badge_class = 'type-mcq' %}
         {% set badge_icon = '📝' %}
-        {% set back_url = url_for('practice', topic_id=topic.id) %}
+        {% set back_url = url_for('practice.practice', topic_id=topic.id) %}
       {% endif %}
       <span class="type-badge {{ badge_class }}">{{ badge_icon }} {{ ptype }}</span>
       <div class="title">{{ topic.name }}</div>

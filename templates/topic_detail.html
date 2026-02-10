@@ -289,7 +289,7 @@
       <button class="dropdown-btn activities {% if not has_practice %}disabled{% endif %}">📝 Activities ▼</button>
       <div class="dropdown-content">
         {% if has_practice %}
-        <a href="{{ url_for('practice', topic_id=topic.id) }}">📝 Multiple Choice (MCQ)</a>
+        <a href="{{ url_for('practice.practice', topic_id=topic.id) }}">📝 Multiple Choice (MCQ)</a>
         <a href="{{ url_for('practice_fill_blanks', topic_id=topic.id) }}">✍️ Fill in the Blanks</a>
         <a href="{{ url_for('practice_unscramble', topic_id=topic.id) }}">🔀 Sentence Unscramble</a>
         {% else %}
