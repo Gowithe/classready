@@ -159,7 +159,7 @@ body { background-color: var(--bg-soft); }
 {% block content %}
 
 <div class="quick-nav">
-  <a class="nav-btn" href="{{ url_for('slide.view_slides', topic_id=topic.id) }}">📽️ Slides</a>
+  <a class="nav-btn" href="{{ url_for('view_slides', topic_id=topic.id) }}">📽️ Slides</a>
   <a class="nav-btn" href="{{ url_for('game.game', topic_id=topic.id) }}">🎮 Bamboozle</a>
   <a class="nav-btn" href="{{ url_for('game.game_memory', topic_id=topic.id) }}">🃏 Memory</a>
   <a class="nav-btn active" href="{{ url_for('practice.practice', topic_id=topic.id) }}">📝 Practice</a>
