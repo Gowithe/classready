@@ -270,7 +270,7 @@
   <p>บทเรียนสำเร็จรูป พร้อม Slides, Games, และแบบฝึกหัด เปิดสอนได้ทันที!</p>
   
   <div class="header-actions">
-    <form class="search-box" action="{{ url_for('library_search') }}" method="GET">
+    <form class="search-box" action="{{ url_for('library.library_search') }}" method="GET">
       <input type="text" name="q" placeholder="ค้นหาบทเรียน...">
       <button type="submit">🔍</button>
     </form>
@@ -327,7 +327,7 @@
 <div class="section">
   <div class="section-header">
     <h2>🎁 บทเรียนฟรี</h2>
-    <a href="{{ url_for('library_search') }}?free_only=1" class="view-all">ดูทั้งหมด →</a>
+    <a href="{{ url_for('library.library_search', free_only=1) }}" class="view-all">...</a>
   </div>
   <div class="units-grid">
     {% for unit in free_units %}
