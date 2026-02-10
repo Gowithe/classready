@@ -235,7 +235,7 @@
 <div class="quick-nav">
   <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="nav-btn">← Back to Topic</a>
   <a href="{{ url_for('practice.practice', topic_id=topic.id) }}" class="nav-btn">📝 MCQ Practice</a>
-  <a href="{{ url_for('practice_fill_blanks', topic_id=topic.id) }}" class="nav-btn">✍️ Fill Blanks</a>
+  <a href="{{ url_for('practice.public_fill_blanks', topic_id=topic.id) }}" class="nav-btn">✍️ Fill Blanks</a>
 </div>
 
 <div class="link-section">
