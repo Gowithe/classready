@@ -157,7 +157,11 @@
     </div>
     
     <div class="forgot-link">
-      <a href="{{ url_for('forgot_password') }}">ลืมรหัสผ่าน?</a>
+<<<<<<< HEAD
+      <a href="{{ url_for('auth.forgot_password') }}">ลืมรหัสผ่าน?</a>
+=======
+      <a href="{{ url_for('auth.forgot_password') }}">ลืมรหัสผ่าน?</a>
+>>>>>>> 6877a71 (Refactor: blueprints + fix templates https://github.com/Gowithe/classready)
     </div>
     
     <button type="submit" class="btn-login">เข้าสู่ระบบ</button>
@@ -167,12 +171,20 @@
   
   <div class="auth-links">
     <p style="margin:0 0 0.5rem;color:#64748b;">ยังไม่มีบัญชี?</p>
+<<<<<<< HEAD
     <a href="{{ url_for('register') }}">สมัครสมาชิก</a>
+=======
+    <a href="{{ url_for('auth.register') }}">สมัครสมาชิก</a>
+>>>>>>> 6877a71 (Refactor: blueprints + fix templates https://github.com/Gowithe/classready)
   </div>
   
   <div class="auth-links" style="margin-top:1rem;padding-top:1rem;border-top:1px solid #e2e8f0;">
     <p style="margin:0 0 0.5rem;color:#64748b;font-size:0.85rem;">ยังไม่ได้ยืนยันอีเมล?</p>
+<<<<<<< HEAD
     <a href="{{ url_for('resend_verification') }}" style="font-size:0.85rem;">ส่งลิงก์ยืนยันอีกครั้ง</a>
+=======
+    <a href="{{ url_for('auth.resend_verification') }}" style="font-size:0.85rem;">ส่งลิงก์ยืนยันอีกครั้ง</a>
+>>>>>>> 6877a71 (Refactor: blueprints + fix templates https://github.com/Gowithe/classready)
   </div>
 </div>
 {% endblock %}
