@@ -13,40 +13,40 @@
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(0,0,0,0.06);
   }
-  
+
   .auth-header {
     text-align: center;
     margin-bottom: 1.5rem;
   }
-  
+
   .auth-header .icon {
     font-size: 3rem;
     margin-bottom: 0.5rem;
   }
-  
+
   .auth-header h2 {
     color: #1e293b;
     font-size: 1.5rem;
     margin: 0 0 0.5rem;
   }
-  
+
   .auth-header p {
     color: #64748b;
     font-size: 0.9rem;
     margin: 0;
   }
-  
+
   .form-group {
     margin-bottom: 1rem;
   }
-  
+
   .form-group label {
     display: block;
     font-weight: 700;
     margin-bottom: 0.4rem;
     color: #334155;
   }
-  
+
   .form-group input {
     width: 100%;
     padding: 0.75rem 1rem;
@@ -55,13 +55,13 @@
     font-size: 1rem;
     transition: all 0.2s;
   }
-  
+
   .form-group input:focus {
     outline: none;
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102,126,234,0.12);
   }
-  
+
   .btn-login {
     width: 100%;
     padding: 0.85rem;
@@ -75,29 +75,29 @@
     transition: all 0.2s;
     margin-top: 0.5rem;
   }
-  
+
   .btn-login:hover {
     opacity: 0.9;
     transform: translateY(-1px);
     box-shadow: 0 8px 20px rgba(102,126,234,0.3);
   }
-  
+
   .auth-links {
     margin-top: 1.5rem;
     text-align: center;
   }
-  
+
   .auth-links a {
     color: #667eea;
     text-decoration: none;
     font-weight: 600;
     font-size: 0.9rem;
   }
-  
+
   .auth-links a:hover {
     text-decoration: underline;
   }
-  
+
   .auth-divider {
     display: flex;
     align-items: center;
@@ -105,7 +105,7 @@
     color: #94a3b8;
     font-size: 0.85rem;
   }
-  
+
   .auth-divider::before,
   .auth-divider::after {
     content: "";
@@ -113,24 +113,24 @@
     height: 1px;
     background: #e2e8f0;
   }
-  
+
   .auth-divider span {
     padding: 0 1rem;
   }
-  
+
   .forgot-link {
     display: block;
     text-align: right;
     margin-top: -0.5rem;
     margin-bottom: 1rem;
   }
-  
+
   .forgot-link a {
     color: #64748b;
     font-size: 0.85rem;
     text-decoration: none;
   }
-  
+
   .forgot-link a:hover {
     color: #667eea;
   }
@@ -144,47 +144,35 @@
     <h2>เข้าสู่ระบบ</h2>
     <p>ยินดีต้อนรับกลับมา!</p>
   </div>
-  
+
   <form method="POST">
     <div class="form-group">
       <label for="email">อีเมล</label>
       <input type="email" id="email" name="email" required placeholder="you@example.com">
     </div>
-    
+
     <div class="form-group">
       <label for="password">รหัสผ่าน</label>
       <input type="password" id="password" name="password" required placeholder="••••••••">
     </div>
-    
+
     <div class="forgot-link">
-<<<<<<< HEAD
       <a href="{{ url_for('auth.forgot_password') }}">ลืมรหัสผ่าน?</a>
-=======
-      <a href="{{ url_for('auth.forgot_password') }}">ลืมรหัสผ่าน?</a>
->>>>>>> 6877a71 (Refactor: blueprints + fix templates https://github.com/Gowithe/classready)
     </div>
-    
+
     <button type="submit" class="btn-login">เข้าสู่ระบบ</button>
   </form>
-  
+
   <div class="auth-divider"><span>หรือ</span></div>
-  
+
   <div class="auth-links">
     <p style="margin:0 0 0.5rem;color:#64748b;">ยังไม่มีบัญชี?</p>
-<<<<<<< HEAD
     <a href="{{ url_for('auth.register') }}">สมัครสมาชิก</a>
-=======
-    <a href="{{ url_for('auth.register') }}">สมัครสมาชิก</a>
->>>>>>> 6877a71 (Refactor: blueprints + fix templates https://github.com/Gowithe/classready)
   </div>
-  
+
   <div class="auth-links" style="margin-top:1rem;padding-top:1rem;border-top:1px solid #e2e8f0;">
     <p style="margin:0 0 0.5rem;color:#64748b;font-size:0.85rem;">ยังไม่ได้ยืนยันอีเมล?</p>
-<<<<<<< HEAD
     <a href="{{ url_for('auth.resend_verification') }}" style="font-size:0.85rem;">ส่งลิงก์ยืนยันอีกครั้ง</a>
-======
-    <a href="{{ url_for('auth.resend_verification') }}" style="font-size:0.85rem;">ส่งลิงก์ยืนยันอีกครั้ง</a>
->>>>>>> 6877a71 (Refactor: blueprints + fix templates https://github.com/Gowithe/classready)
   </div>
 </div>
 {% endblock %}
