@@ -14,15 +14,15 @@
     </div>
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
       <a class="btn" href="{{ url_for('admin.admin_dashboard') }}">🛠 Admin</a>
-      <a class="btn" href="{{ url_for('admin_payments') }}">💳 Payments</a>
+      <a class="btn" href="{{ url_for('admin.admin_payments') }}">💳 Payments</a>
     </div>
   </div>
 
   <div class="card" style="margin-top:14px;padding:12px;">
-    <form method="GET" action="{{ url_for('admin_users') }}" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
+    <form method="GET" action="{{ url_for('admin.admin_users') }}" style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
       <input class="input" type="text" name="q" value="{{ q or '' }}" placeholder="ค้นหาอีเมล..." style="flex:1;min-width:220px;">
       <button class="btn" type="submit">ค้นหา</button>
-      <a class="btn" href="{{ url_for('admin_users') }}" style="background:#64748b;">ล้าง</a>
+      <a class="btn" href="{{ url_for('admin.admin_users') }}" style="background:#64748b;">ล้าง</a>
     </form>
   </div>
 
