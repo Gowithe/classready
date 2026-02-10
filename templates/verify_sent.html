@@ -18,8 +18,8 @@
   </div>
 
   <div style="display:flex;gap:10px;flex-wrap:wrap;margin-top:14px;">
-    <a class="btn" href="{{ url_for('login') }}">ไปหน้า Login</a>
-    <a class="btn" href="{{ url_for('register') }}" style="background:#0ea5e9;">สมัครใหม่</a>
+    <a class="btn" href="{{ url_for('auth.login') }}">ไปหน้า Login</a>
+    <a class="btn" href="{{ url_for('auth.register') }}" style="background:#0ea5e9;">สมัครใหม่</a>
   </div>
 </div>
 {% endblock %}

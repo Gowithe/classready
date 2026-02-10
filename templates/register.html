@@ -178,7 +178,7 @@
     หลังสมัครสำเร็จ ระบบจะส่งลิงก์ยืนยันไปที่อีเมลของคุณ
   </div>
 
-  <form method="post" action="{{ url_for('register') }}">
+  <form method="post" action="{{ url_for('auth.register') }}">
     <div class="form-group">
       <label for="email">อีเมล</label>
       <input name="email" type="email" id="email" required placeholder="you@example.com">
@@ -199,14 +199,14 @@
 
   <div class="resend-section">
     <p>สมัครแล้วแต่ไม่ได้รับอีเมลยืนยัน?</p>
-    <a href="{{ url_for('resend_verification') }}">📩 ส่งลิงก์ยืนยันอีกครั้ง</a>
+    <a href="{{ url_for('auth.resend_verification') }}">📩 ส่งลิงก์ยืนยันอีกครั้ง</a>
   </div>
 
   <div class="auth-divider"><span>หรือ</span></div>
 
   <div class="auth-links">
     <p style="margin:0 0 0.5rem;color:#64748b;">มีบัญชีอยู่แล้ว?</p>
-    <a href="{{ url_for('login') }}">เข้าสู่ระบบ</a>
+    <a href="{{ url_for('auth.login') }}">เข้าสู่ระบบ</a>
   </div>
 </div>
 {% endblock %}
