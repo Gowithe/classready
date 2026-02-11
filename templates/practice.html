@@ -178,13 +178,13 @@ body { background-color: var(--bg-soft); }
     <div class="tool-group">
       <div class="tool-label">Downloads & Reports</div>
       <div style="display:flex; gap:10px; flex-wrap:wrap;">
-        <a class="btn btn-outline btn-sm" href="{{ url_for('practice_pdf', topic_id=topic.id) }}">
+        <a class="btn btn-outline btn-sm" href="{{ url_for('practice.practice_pdf', topic_id=topic.id) }}">
           📄 Questions PDF
         </a>
-        <a class="btn btn-outline btn-sm" href="{{ url_for('practice_pdf', topic_id=topic.id) }}?answers=1">
+        <a class="btn btn-outline btn-sm" href="{{ url_for('practice.practice_pdf', topic_id=topic.id) }}?answers=1">
           ✅ Answer Key PDF
         </a>
-        <a class="btn btn-primary btn-sm" href="{{ url_for('practice_scores', topic_id=topic.id) }}">
+        <a class="btn btn-primary btn-sm" href="{{ url_for('practice.practice_scores', topic_id=topic.id) }}">
           📊 Student Scores
         </a>
       </div>
