@@ -237,7 +237,7 @@
 <div class="quick-nav">
   <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="nav-btn">← Back to Topic</a>
   <a href="{{ url_for('practice.practice', topic_id=topic.id) }}" class="nav-btn">📝 MCQ Practice</a>
-  <a href="{{ url_for('practice_unscramble', topic_id=topic.id) }}" class="nav-btn">🔀 Unscramble</a>
+  <a href="{{ url_for('practice.practice_unscramble', topic_id=topic.id) }}" class="nav-btn">🔀 Unscramble</a>
 </div>
 
 <div class="link-section">
@@ -246,7 +246,7 @@
   <input type="text" class="link-url" id="studentUrl" value="{{ student_url }}" readonly>
   <div class="link-actions">
     <button class="btn-small btn-copy" onclick="copyLink()">📋 Copy</button>
-    <a href="{{ url_for('practice_fill_blanks_scores', topic_id=topic.id) }}" class="btn-small btn-scores">📊 ดูคะแนน</a>
+    <a href="{{ url_for('practice.practice_fill_blanks_scores', topic_id=topic.id) }}" class="btn-small btn-scores">📊 ดูคะแนน</a>
   </div>
   {% else %}
   <span style="color:#64748b;">ยังไม่มีลิงก์</span>
