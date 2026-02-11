@@ -305,7 +305,7 @@
 <div class="breadcrumb">
   <a href="{{ url_for('library.library') }}">📚 คลังบทเรียน</a>
   <span>›</span>
-  <a href="{{ url_for('library_subject', subject_id=unit.subject_id) }}">{{ unit.subject_name }}</a>
+  <a href="{{ url_for('library.library_subject', subject_id=unit.subject_id) }}">{{ unit.subject_name }}</a>
   <span>›</span>
   <span>{{ unit.name }}</span>
 </div>
