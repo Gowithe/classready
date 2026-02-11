@@ -232,7 +232,7 @@
 
 {% block content %}
 <div class="breadcrumb">
-  <a href="{{ url_for('library') }}">📚 คลังบทเรียน</a>
+  <a href="{{ url_for('library.library') }}">📚 คลังบทเรียน</a>
   <span>›</span>
   <span>{{ subject.name }}</span>
 </div>
@@ -255,7 +255,7 @@
     <h3>👑 อัปเกรดเป็น Premium</h3>
     <p>ปลดล็อคบทเรียนทั้งหมด!</p>
   </div>
-  <a href="{{ url_for('premium_page') }}" class="btn-premium">ดูแพ็คเกจ →</a>
+  <a href="{{ url_for('library.premium_page') }}" class="btn-premium">ดูแพ็คเกจ →</a>
 </div>
 {% endif %}
 
