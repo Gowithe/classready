@@ -237,7 +237,7 @@
       {% elif 'Unscramble' in ptype %}
         {% set badge_class = 'type-unscramble' %}
         {% set badge_icon = '🔀' %}
-        {% set back_url = url_for('practice_unscramble', topic_id=topic.id) %}
+        {% set back_url = url_for('practice.practice_unscramble', topic_id=topic.id) %}
       {% else %}
         {% set badge_class = 'type-mcq' %}
         {% set badge_icon = '📝' %}
@@ -250,7 +250,7 @@
     <div class="btn-group">
       <a class="btn" href="{{ back_url }}">← กลับ</a>
       {% if 'Fill' in ptype %}
-      <a class="btn btn-success" href="{{ url_for('practice.public_fill_blanks_scores', topic_id=topic.id) }}?export=excel">📥 Excel</a>
+      <a class="btn btn-success" href="{{ url_for('practice.practice_fill_blanks_scores', topic_id=topic.id) }}?export=excel">📥 Excel</a>
       {% elif 'Unscramble' in ptype %}
       <a class="btn btn-success" href="{{ url_for('practice_unscramble_scores', topic_id=topic.id) }}?export=excel">📥 Excel</a>
       {% else %}
@@ -420,4 +420,3 @@ function sortTable(colIndex){
 updateStats();
 </script>
 {% endblock %}
-
