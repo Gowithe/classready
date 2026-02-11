@@ -302,13 +302,13 @@
     </div>
 
     <div class="unit-actions">
-      <a href="{{ url_for('library_unit_detail', unit_id=unit.id) }}" class="btn-view">ดูบทเรียน →</a>
+      <a href="{{ url_for('library.library_unit_detail', unit_id=unit.id) }}" class="btn-view">ดูบทเรียน →</a>
 
       {% if unit.id in user_clones %}
-        <a href="{{ url_for('topic_detail', topic_id=user_clones[unit.id].topic_id) }}" class="btn-open">📂 เปิด</a>
+        <a href="{{ url_for('topic.topic_detail', topic_id=user_clones[unit.id].topic_id) }}" class="btn-open">📂 เปิด</a>
 
         <form method="POST"
-              action="{{ url_for('library_unclone_unit', unit_id=unit.id) }}"
+              action="{{ url_for('library.library_unclone_unit', unit_id=unit.id) }}"
               onsubmit="return confirm('ต้องการลบบทเรียนนี้ออกจากคลังของฉันใช่ไหม? (จะลบงาน/สไลด์/แบบฝึกที่ clone ไว้)');">
           <button type="submit" class="btn-remove">🗑️ ลบออก</button>
         </form>
