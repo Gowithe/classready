@@ -217,8 +217,8 @@
         </div>
 
         <div class="subject-actions">
-          <a class="btn btn-ghost" href="{{ url_for('admin_library_subject_edit', subject_id=sid) }}">✏️ แก้ไขวิชา</a>
-          <a class="btn btn-ghost" href="{{ url_for('admin_library_unit_create', subject_id=sid) }}">➕ เพิ่มบทเรียน</a>
+          <a class="btn btn-ghost" href="{{ url_for('admin.admin_library_subject_edit', subject_id=sid) }}">✏️ แก้ไขวิชา</a>
+          <a class="btn btn-ghost" href="{{ url_for('admin.admin_library_unit_create', subject_id=sid) }}">➕ เพิ่มบทเรียน</a>
         </div>
       </div>
 
@@ -262,10 +262,10 @@
                 </div>
 
                 <div class="unit-actions">
-                  <a class="btn btn-ghost" href="{{ url_for('admin_library_unit_edit', unit_id=uid) }}">🧩 แก้ไข</a>
+                  <a class="btn btn-ghost" href="{{ url_for('admin.admin_library_unit_edit', unit_id=uid) }}">🧩 แก้ไข</a>
 
                   <form method="POST"
-                        action="{{ url_for('admin_library_unit_delete', unit_id=uid) }}"
+                        action="{{ url_for('admin.admin_library_unit_delete', unit_id=uid) }}"
                         onsubmit="return confirm('ยืนยันลบบทเรียนนี้จากคลังกลางแบบถาวร? (จะลบทุกคนที่ clone ไปด้วย)');">
                     <button type="submit" class="btn btn-danger">🗑️ ลบ</button>
                   </form>
