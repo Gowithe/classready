@@ -438,7 +438,7 @@
 <!-- Welcome Banner -->
 <div class="welcome-banner">
   <div class="welcome-text">
-    <h1>👋 สวัสดี, {{ session.username or 'Teacher' }}!</h1>
+    <h1>👋 สวัสดี, {{ session.get('display_name') or session.get('email', 'Teacher').split('@')[0] }}!</h1>
     <p>ยินดีต้อนรับสู่ Teacher Platform</p>
   </div>
   <div class="action-bar">
