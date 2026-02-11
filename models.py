@@ -1805,65 +1805,78 @@ class UsageLimits:
     FREE_AI_GENERATE_PER_MONTH = 3
     
     @staticmethod
-    def get_or_create(user_id: int) -> Dict[str, Any]:
+    def get_or_create(user_id: int, conn=None) -> Dict[str, Any]:
         """ดึงหรือสร้าง usage record"""
-        conn = get_db()
-        c = conn.cursor()
-        c.execute("SELECT * FROM user_usage WHERE user_id = ?", (user_id,))
-        row = c.fetchone()
-        
-        if not row:
-            now = datetime.utcnow().isoformat()
-            first_of_month = datetime.utcnow().replace(day=1).isoformat()[:10]
-            c.execute("""
-                INSERT INTO user_usage (user_id, ai_generate_count, ai_generate_reset_date, created_at, updated_at)
-                VALUES (?, 0, ?, ?, ?)
-            """, (user_id, first_of_month, now, now))
-            conn.commit()
+        _own_conn = conn is None
+        if _own_conn:
+            conn = get_db()
+        try:
+            c = conn.cursor()
             c.execute("SELECT * FROM user_usage WHERE user_id = ?", (user_id,))
             row = c.fetchone()
-        
-        conn.close()
-        return dict(row) if row else {}
+            
+            if not row:
+                now = datetime.utcnow().isoformat()
+                first_of_month = datetime.utcnow().replace(day=1).isoformat()[:10]
+                try:
+                    c.execute("""
+                        INSERT INTO user_usage (user_id, ai_generate_count, ai_generate_reset_date, created_at, updated_at)
+                        VALUES (?, 0, ?, ?, ?)
+                    """, (user_id, first_of_month, now, now))
+                    conn.commit()
+                except Exception:
+                    # FOREIGN KEY constraint or duplicate — ignore and re-select
+                    try:
+                        conn.rollback()
+                    except Exception:
+                        pass
+                c.execute("SELECT * FROM user_usage WHERE user_id = ?", (user_id,))
+                row = c.fetchone()
+            
+            return dict(row) if row else {}
+        finally:
+            if _own_conn:
+                conn.close()
     
     @staticmethod
     def get_user_stats(user_id: int) -> Dict[str, Any]:
         """ดึงสถิติการใช้งานของ user"""
         conn = get_db()
-        c = conn.cursor()
-        
-        # นับ Topics
-        c.execute("SELECT COUNT(*) FROM topics WHERE owner_id = ?", (user_id,))
-        topic_count = c.fetchone()[0]
-        
-        # นับ Classrooms
-        c.execute("SELECT COUNT(*) FROM classrooms WHERE owner_id = ?", (user_id,))
-        classroom_count = c.fetchone()[0]
-        
-        # ดึง usage record
-        usage = UsageLimits.get_or_create(user_id)
-        
-        # Reset AI count ถ้าเดือนใหม่
-        today = datetime.utcnow().strftime("%Y-%m")
-        reset_month = (usage.get("ai_generate_reset_date") or "")[:7]
-        
-        if today != reset_month:
-            # เดือนใหม่ - reset count
-            c.execute("""
-                UPDATE user_usage 
-                SET ai_generate_count = 0, ai_generate_reset_date = ?, updated_at = ?
-                WHERE user_id = ?
-            """, (datetime.utcnow().replace(day=1).isoformat()[:10], datetime.utcnow().isoformat(), user_id))
-            conn.commit()
-            usage["ai_generate_count"] = 0
-        
-        conn.close()
-        
-        return {
-            "topic_count": topic_count,
-            "classroom_count": classroom_count,
-            "ai_generate_count": usage.get("ai_generate_count", 0),
-        }
+        try:
+            c = conn.cursor()
+            
+            # นับ Topics
+            c.execute("SELECT COUNT(*) FROM topics WHERE owner_id = ?", (user_id,))
+            topic_count = c.fetchone()[0]
+            
+            # นับ Classrooms
+            c.execute("SELECT COUNT(*) FROM classrooms WHERE owner_id = ?", (user_id,))
+            classroom_count = c.fetchone()[0]
+            
+            # ดึง usage record (pass same connection!)
+            usage = UsageLimits.get_or_create(user_id, conn=conn)
+            
+            # Reset AI count ถ้าเดือนใหม่
+            today = datetime.utcnow().strftime("%Y-%m")
+            reset_month = (usage.get("ai_generate_reset_date") or "")[:7]
+            
+            if today != reset_month:
+                # เดือนใหม่ - reset count
+                c.execute("""
+                    UPDATE user_usage 
+                    SET ai_generate_count = 0, ai_generate_reset_date = ?, updated_at = ?
+                    WHERE user_id = ?
+                """, (datetime.utcnow().replace(day=1).isoformat()[:10], datetime.utcnow().isoformat(), user_id))
+                conn.commit()
+                usage["ai_generate_count"] = 0
+            
+            return {
+                "topic_count": topic_count,
+                "classroom_count": classroom_count,
+                "ai_generate_count": usage.get("ai_generate_count", 0),
+            }
+        finally:
+            conn.close()
     
     @staticmethod
     def can_create_topic(user_id: int, is_premium: bool) -> Tuple[bool, str]:
@@ -1894,10 +1907,12 @@ class UsageLimits:
             return True, ""
         
         conn = get_db()
-        c = conn.cursor()
-        c.execute("SELECT COUNT(*) FROM classroom_students WHERE classroom_id = ?", (classroom_id,))
-        student_count = c.fetchone()[0]
-        conn.close()
+        try:
+            c = conn.cursor()
+            c.execute("SELECT COUNT(*) FROM classroom_students WHERE classroom_id = ?", (classroom_id,))
+            student_count = c.fetchone()[0]
+        finally:
+            conn.close()
         
         if student_count >= UsageLimits.FREE_STUDENTS_PER_CLASSROOM:
             return False, f"บัญชีฟรีเพิ่มนักเรียนได้ {UsageLimits.FREE_STUDENTS_PER_CLASSROOM} คน/ห้อง"
@@ -1918,15 +1933,17 @@ class UsageLimits:
     def increment_ai_generate(user_id: int) -> None:
         """เพิ่มจำนวนครั้งที่ใช้ AI Generate"""
         conn = get_db()
-        c = conn.cursor()
-        UsageLimits.get_or_create(user_id)  # ensure record exists
-        c.execute("""
-            UPDATE user_usage 
-            SET ai_generate_count = ai_generate_count + 1, updated_at = ?
-            WHERE user_id = ?
-        """, (datetime.utcnow().isoformat(), user_id))
-        conn.commit()
-        conn.close()
+        try:
+            c = conn.cursor()
+            UsageLimits.get_or_create(user_id, conn=conn)  # ensure record exists (same conn!)
+            c.execute("""
+                UPDATE user_usage 
+                SET ai_generate_count = ai_generate_count + 1, updated_at = ?
+                WHERE user_id = ?
+            """, (datetime.utcnow().isoformat(), user_id))
+            conn.commit()
+        finally:
+            conn.close()
     
     @staticmethod
     def can_export_scores(is_premium: bool) -> Tuple[bool, str]:
