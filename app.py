@@ -11,6 +11,8 @@ import secrets
 import base64
 import textwrap
 import tempfile
+import threading
+import uuid
 from io import BytesIO
 from datetime import datetime
 
@@ -90,6 +92,46 @@ def rate_limit(limit_string):
             return limiter.limit(limit_string)(f)
         return f
     return decorator
+
+
+# ==============================================================================
+# Background Task Manager (avoids Cloudflare 524 timeout for AI generation)
+# ==============================================================================
+_tasks = {}  # task_id -> {status, result, error, created_at}
+_tasks_lock = threading.Lock()
+
+
+def _create_task():
+    task_id = uuid.uuid4().hex[:12]
+    with _tasks_lock:
+        _tasks[task_id] = {
+            "status": "pending",
+            "result": None,
+            "error": None,
+            "created_at": datetime.utcnow(),
+        }
+    return task_id
+
+
+def _update_task(task_id, **kwargs):
+    with _tasks_lock:
+        if task_id in _tasks:
+            _tasks[task_id].update(kwargs)
+
+
+def _get_task(task_id):
+    with _tasks_lock:
+        return _tasks.get(task_id, {}).copy()
+
+
+def _cleanup_old_tasks():
+    """Remove tasks older than 30 minutes."""
+    cutoff = datetime.utcnow()
+    with _tasks_lock:
+        old = [k for k, v in _tasks.items()
+               if (cutoff - v["created_at"]).total_seconds() > 1800]
+        for k in old:
+            del _tasks[k]
 
 UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
@@ -869,7 +911,7 @@ def _generate_slides_pdf(title, slides):
 
 
 # ==============================================================================
-# AI Slides & PDF Generate
+# AI Slides & PDF Generate (Background Task — avoids Cloudflare 524 timeout)
 # ==============================================================================
 @app.route("/ai-slides", methods=["GET", "POST"])
 @login_required
@@ -879,42 +921,81 @@ def ai_slides():
     can_ai, ai_msg = UsageLimits.can_ai_generate(session["user_id"], is_premium)
 
     if request.method == "POST":
+        # AJAX POST — return JSON immediately, run AI in background
         if not can_create_topic:
-            flash(f"\u274c {topic_msg}", "error")
-            return redirect(url_for("payment.pricing"))
-
+            return jsonify({"ok": False, "error": topic_msg, "upgrade_required": True}), 403
         if not can_ai:
-            flash(f"\u274c {ai_msg}", "error")
-            return redirect(url_for("payment.pricing"))
+            return jsonify({"ok": False, "error": ai_msg, "upgrade_required": True}), 403
 
         title = (request.form.get("title") or "").strip()
         if not title:
-            flash("Topic title required.", "error")
-            return render_template("ai_slides_form.html", can_ai=can_ai, ai_msg=ai_msg)
+            return jsonify({"ok": False, "error": "Topic title required."}), 400
 
-        bundle = generate_lesson_bundle(
-            title=title,
-            level=request.form.get("level", "Secondary"),
-            language=request.form.get("language", "EN"),
-            style=request.form.get("style", "Minimal"),
-            text_model="gpt-4o-mini",
-        )
-        slides = bundle.get("slides", []) or []
-        topic = Topic.create(
-            session["user_id"],
-            title,
-            "AI generated",
-            json.dumps({"slides": slides}, ensure_ascii=False),
-            "ai",
-            None,
-        )
-        _save_game_and_practice(topic["id"], bundle.get("game") or {}, bundle.get("practice") or [])
-        UsageLimits.increment_ai_generate(session["user_id"])
+        level = request.form.get("level", "Secondary")
+        language = request.form.get("language", "EN")
+        style = request.form.get("style", "Minimal")
+        user_id = session["user_id"]
 
-        flash("\U0001f389 \u0e2a\u0e23\u0e49\u0e32\u0e07\u0e1a\u0e17\u0e40\u0e23\u0e35\u0e22\u0e19\u0e14\u0e49\u0e27\u0e22 AI \u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08!", "success")
-        return redirect(url_for("topic_detail", topic_id=topic["id"]))
+        _cleanup_old_tasks()
+        task_id = _create_task()
+
+        def run_ai_generate():
+            try:
+                print(f"🟢 THREAD STARTED for task {task_id}")
+                _update_task(task_id, status="generating")
+                print(f"🟢 Calling generate_lesson_bundle(title={title}, lang={language})...")
+                bundle = generate_lesson_bundle(
+                    title=title, level=level, language=language,
+                    style=style, text_model="gpt-4o-mini",
+                )
+                print(f"🟢 AI generation complete! slides={len(bundle.get('slides', []))}")
+                slides = bundle.get("slides", []) or []
+
+                with app.app_context():
+                    print(f"🟢 Saving topic to DB...")
+                    topic = Topic.create(
+                        user_id, title, "AI generated",
+                        json.dumps({"slides": slides}, ensure_ascii=False),
+                        "ai", None,
+                    )
+                    print(f"🟢 Topic created: id={topic['id']}")
+                    _save_game_and_practice(
+                        topic["id"],
+                        bundle.get("game") or {},
+                        bundle.get("practice") or [],
+                    )
+                    UsageLimits.increment_ai_generate(user_id)
+                    print(f"🟢 All saved! Marking task done.")
+
+                _update_task(task_id, status="done", result={
+                    "topic_id": topic["id"],
+                    "redirect": f"/topic/{topic['id']}",
+                })
+            except Exception as e:
+                import traceback
+                print(f"🔴 THREAD ERROR: {e}")
+                traceback.print_exc()
+                _update_task(task_id, status="error", error=str(e))
+
+        threading.Thread(target=run_ai_generate, daemon=True).start()
+        return jsonify({"ok": True, "task_id": task_id})
 
     return render_template("ai_slides_form.html", can_ai=can_ai, ai_msg=ai_msg)
+
+
+@app.route("/api/ai-task/<task_id>/status")
+@login_required
+def ai_task_status(task_id):
+    """Poll endpoint — frontend checks every 3s until done/error."""
+    task = _get_task(task_id)
+    if not task:
+        return jsonify({"ok": False, "error": "Task not found"}), 404
+    return jsonify({
+        "ok": True,
+        "status": task["status"],
+        "result": task.get("result"),
+        "error": task.get("error"),
+    })
 
 
 def _extract_text_from_pdf(pdf_path: str) -> str:
@@ -1006,34 +1087,37 @@ def api_generate_from_pdf(topic_id):
     except Exception as e:
         return _json_error(str(e), 400)
 
-    try:
-        bundle = generate_lesson_bundle(
-            f"{topic['name']}\n\n[PDF]\n{text[:8000]}",
-            "Secondary",
-            "EN",
-            "Minimal",
-            "gpt-4o-mini",
-        )
-    except Exception as e:
-        return _json_error(str(e), 500)
+    user_id = session["user_id"]
+    topic_name = topic["name"]
 
-    if mode == "slides":
-        _save_slides_only(topic_id, bundle.get("slides") or [])
-    elif mode == "game":
-        _save_game_only(topic_id, bundle.get("game") or {})
-    elif mode == "practice":
-        _save_practice_only(topic_id, bundle.get("practice") or [])
-    else:
-        _save_all(topic_id, bundle.get("slides") or [], bundle.get("game") or {}, bundle.get("practice") or [])
+    _cleanup_old_tasks()
+    task_id = _create_task()
 
-    UsageLimits.increment_ai_generate(session["user_id"])
+    def run_pdf_generate():
+        try:
+            _update_task(task_id, status="generating")
+            bundle = generate_lesson_bundle(
+                f"{topic_name}\n\n[PDF]\n{text[:8000]}",
+                "Secondary", "EN", "Minimal", "gpt-4o-mini",
+            )
+            with app.app_context():
+                if mode == "slides":
+                    _save_slides_only(topic_id, bundle.get("slides") or [])
+                elif mode == "game":
+                    _save_game_only(topic_id, bundle.get("game") or {})
+                elif mode == "practice":
+                    _save_practice_only(topic_id, bundle.get("practice") or [])
+                else:
+                    _save_all(topic_id, bundle.get("slides") or [],
+                              bundle.get("game") or {}, bundle.get("practice") or [])
+                UsageLimits.increment_ai_generate(user_id)
 
-    stats = UsageLimits.get_user_stats(session["user_id"])
-    return jsonify({
-        "ok": True,
-        "ai_usage": stats.get("ai_generate_count", 0),
-        "ai_limit": UsageLimits.FREE_AI_GENERATE_PER_MONTH if not is_premium else -1,
-    })
+            _update_task(task_id, status="done", result={"ok": True})
+        except Exception as e:
+            _update_task(task_id, status="error", error=str(e))
+
+    threading.Thread(target=run_pdf_generate, daemon=True).start()
+    return jsonify({"ok": True, "task_id": task_id})
 
 
 # ==============================================================================
