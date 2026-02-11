@@ -565,7 +565,7 @@ async function startGame() {
   // Fetch Questions
   let all = [];
   try {
-    const response = await fetch('{{ url_for("api_game_sets", topic_id=topic.id) }}');
+    const response = await fetch('{{ url_for("game.api_game_sets", topic_id=topic.id) }}');
     const data = await response.json();
     all = data[String(gameState.gameSet)] || [];
     if (all.length === 0) {
