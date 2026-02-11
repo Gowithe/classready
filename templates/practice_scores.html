@@ -252,10 +252,10 @@
       {% if 'Fill' in ptype %}
       <a class="btn btn-success" href="{{ url_for('practice.practice_fill_blanks_scores', topic_id=topic.id) }}?export=excel">📥 Excel</a>
       {% elif 'Unscramble' in ptype %}
-      <a class="btn btn-success" href="{{ url_for('practice_unscramble_scores', topic_id=topic.id) }}?export=excel">📥 Excel</a>
+      <a class="btn btn-success" href="{{ url_for('practice.practice_unscramble_scores', topic_id=topic.id) }}?export=excel">📥 Excel</a>
       {% else %}
-      <a class="btn btn-success" href="{{ url_for('practice_scores_excel', topic_id=topic.id) }}">📥 Excel</a>
-      <a class="btn" href="{{ url_for('practice_scores_csv', topic_id=topic.id) }}">📄 CSV</a>
+      <a class="btn btn-success" href="{{ url_for('practice.practice_scores_excel', topic_id=topic.id) }}">📥 Excel</a>
+      <a class="btn" href="{{ url_for('practice.practice_scores_csv', topic_id=topic.id) }}">📄 CSV</a>
       {% endif %}
     </div>
   </div>
