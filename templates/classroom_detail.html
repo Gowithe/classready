@@ -248,7 +248,7 @@
               <div style="font-size:.85rem;color:#64748b;">ส่ง {{ st.submitted|default(0) }}/{{ students|length }}</div>
               <div class="progress-bar"><div class="progress-fill" style="width:{{ ((st.submitted|default(0)) / students|length * 100) if students|length else 0 }}%"></div></div>
             </div>
-            <a href="{{ url_for('assignment_detail', assignment_id=a.id) }}" class="btn btn-secondary" style="padding:.5rem .8rem;">📊 ดูผล</a>
+            <a href="{{ url_for('classroom.assignment_detail', assignment_id=a.id) }}" class="btn btn-secondary" style="padding:.5rem .8rem;">📊 ดูผล</a>
           </div>
         </div>
         {% endfor %}
