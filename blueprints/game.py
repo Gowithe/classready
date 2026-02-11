@@ -67,18 +67,27 @@ def _topic_save_sentence_builder_custom(topic_id, items):
 
 
 def _normalize_practice_questions(rows):
-    """Normalize practice question rows (same as in app.py)."""
+    """Normalize practice question rows — parse JSON question field into prompt + choices."""
     out = []
     for r in rows:
         q = dict(r)
-        if q.get("choices"):
-            try:
-                q["choices"] = json.loads(q["choices"]) if isinstance(q["choices"], str) else q["choices"]
-            except Exception:
-                q["choices"] = []
-        else:
-            q["choices"] = []
-        out.append(q)
+        prompt, choices = "", []
+        raw = q.get("question") or ""
+        try:
+            obj = json.loads(raw)
+            if isinstance(obj, dict):
+                prompt = (obj.get("prompt") or "").strip()
+                choices = [str(x) for x in (obj.get("choices") or [])]
+            else:
+                prompt = str(obj)
+        except Exception:
+            prompt = str(raw)
+        out.append({
+            "id": q.get("id"),
+            "prompt": prompt,
+            "choices": choices,
+            "correct_answer": q.get("correct_answer") or "",
+        })
     return out
 
 
