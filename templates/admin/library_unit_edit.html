@@ -1,5 +1,5 @@
 {% extends "base.html" %}
-{% block title %}{% if unit %}à¹à¸à¹‰à¹„à¸‚à¸šà¸—à¹€à¸£à¸µà¸¢à¸™{% else %}à¹€à¸žà¸´à¹ˆà¸¡à¸šà¸—à¹€à¸£à¸µà¸¢à¸™{% endif %} - Admin{% endblock %}
+{% block title %}{% if unit %}แก้ไขบทเรียน{% else %}เพิ่มบทเรียน{% endif %} - Admin{% endblock %}
 
 {% block extra_css %}
 <style>
@@ -97,18 +97,18 @@
 {% block content %}
 <div class="page-header">
   <div>
-    <h2>{% if unit %}ðŸ§© à¹à¸à¹‰à¹„à¸‚à¸šà¸—à¹€à¸£à¸µà¸¢à¸™à¹ƒà¸™à¸„à¸¥à¸±à¸‡{% else %}âž• à¹€à¸žà¸´à¹ˆà¸¡à¸šà¸—à¹€à¸£à¸µà¸¢à¸™à¹ƒà¸™à¸„à¸¥à¸±à¸‡{% endif %}</h2>
-    <p class="small">à¸§à¸´à¸Šà¸²: <b>{{ subject.name }}</b> {% if unit %} â€¢ Unit ID: <b>{{ unit.id }}</b>{% endif %}</p>
+    <h2>{% if unit %}&#x1F9E9; แก้ไขบทเรียนในคลัง{% else %}&#x2795; เพิ่มบทเรียนในคลัง{% endif %}</h2>
+    <p class="small">วิชา: <b>{{ subject.name }}</b> {% if unit %} &#x2022; Unit ID: <b>{{ unit.id }}</b>{% endif %}</p>
   </div>
   <div class="header-actions">
-    <a class="btn btn-ghost" href="{{ url_for('admin.admin_library') }}">â† à¸à¸¥à¸±à¸šà¸«à¸™à¹‰à¸²à¸„à¸¥à¸±à¸‡</a>
+    <a class="btn btn-ghost" href="{{ url_for('admin.admin_library') }}">&#x2190; กลับหน้าคลัง</a>
 
     {% if unit %}
       <form method="POST"
             action="{{ url_for('admin.admin_library_unit_delete', unit_id=unit.id) }}"
-            onsubmit="return confirm('à¸¢à¸·à¸™à¸¢à¸±à¸™à¸¥à¸šà¸šà¸—à¹€à¸£à¸µà¸¢à¸™à¸™à¸µà¹‰à¸ˆà¸²à¸à¸„à¸¥à¸±à¸‡ à¹„á€œá€œá€œá€œá€œá€œá€œá€œá€œ á€œ á€œ á€œ á€œ á€œ á€œ á€œ á€œ á€œ á€œ á€œ á€œ á€œ á€œ á€œ á€œ á€œ á€™ ( à¹„á€™á€™á€™á€™á€™á€™á€™á€™á€™ )');"
+            onsubmit="return confirm('ยืนยันลบบทเรียนนี้จากคลังกลางแบบถาวร? (จะลบทุกคนที่ clone ไปด้วย)');"
             style="display:inline-block;">
-        <button type="submit" class="btn btn-danger">ðŸ—‘ï¸ à¸¥à¸šà¸ˆà¸²à¸à¸„à¸¥à¸±à¸‡à¸à¸¥à¸²à¸‡</button>
+        <button type="submit" class="btn btn-danger">&#x1F5D1;&#xFE0F; ลบจากคลังกลาง</button>
       </form>
     {% endif %}
   </div>
@@ -117,45 +117,45 @@
 <div class="grid">
   <div>
     <div class="card">
-      <h3 style="margin:0 0 .9rem;">à¸‚à¹‰à¸­à¸¡à¸¹à¸¥à¸šà¸—à¹€à¸£à¸µà¸¢à¸™</h3>
+      <h3 style="margin:0 0 .9rem;">ข้อมูลบทเรียน</h3>
 
       {% if unit %}
       <div class="stats" style="margin-bottom:.85rem;">
-        <span class="pill">ðŸ“„ à¸ªà¹„à¸¥à¸”à¹Œ: {{ slides_count }}</span>
-        <span class="pill">ðŸŽ® à¹€à¸à¸¡: {{ game_count }}</span>
-        <span class="pill">ðŸ“ à¹à¸šà¸šà¸à¸¶à¸: {{ practice_count }}</span>
-        <span class="pill">ðŸ“¥ Clone: {{ unit.clone_count or 0 }}</span>
-        <span class="pill">â­ à¹€à¸£à¸•: {{ "%.1f"|format(unit.avg_rating or 0) }}</span>
+        <span class="pill">&#x1F4C4; สไลด์: {{ slides_count }}</span>
+        <span class="pill">&#x1F3AE; เกม: {{ game_count }}</span>
+        <span class="pill">&#x1F4DD; แบบฝึก: {{ practice_count }}</span>
+        <span class="pill">&#x1F4E5; Clone: {{ unit.clone_count or 0 }}</span>
+        <span class="pill">&#x2B50; เรต: {{ "%.1f"|format(unit.avg_rating or 0) }}</span>
       </div>
       {% endif %}
 
       <form method="POST" enctype="multipart/form-data">
         <div class="row">
           <div>
-            <label>à¸Šà¸·à¹ˆà¸­à¸šà¸—à¹€à¸£à¸µà¸¢à¸™</label>
+            <label>ชื่อบทเรียน</label>
             <input type="text" name="name" value="{{ unit.name if unit else '' }}" required>
           </div>
           <div>
-            <label>à¸¥à¸³à¸”à¸±à¸šà¸šà¸—à¹€à¸£à¸µà¸¢à¸™</label>
+            <label>ลำดับบทเรียน</label>
             <input type="number" name="unit_number" min="1" value="{{ unit.unit_number if unit else 1 }}">
           </div>
         </div>
 
         <div style="margin-top:1rem;">
-          <label>à¸„à¸³à¸­à¸˜à¸´à¸šà¸²à¸¢ (à¸ªà¸±à¹‰à¸™ à¹†)</label>
+          <label>คำอธิบาย (สั้นๆ)</label>
           <textarea name="description">{{ unit.description if unit else '' }}</textarea>
         </div>
 
         <div class="row" style="margin-top:1rem;">
           <div>
-            <label>à¹€à¸§à¸¥à¸²à¸—à¸µà¹ˆà¹ƒà¸Šà¹‰à¹‚à¸”à¸¢à¸›à¸£à¸°à¸¡à¸²à¸“ (à¸™à¸²à¸—à¸µ)</label>
+            <label>เวลาที่ใช้โดยประมาณ (นาที)</label>
             <input type="number" name="estimated_time" min="1" value="{{ unit.estimated_time if unit else 60 }}">
           </div>
           <div>
-            <label>à¹„à¸Ÿà¸¥à¹Œ PDF (à¸–à¹‰à¸²à¸¡à¸µ)</label>
+            <label>ไฟล์ PDF (ถ้ามี)</label>
             <input type="file" name="pdf_file" accept="application/pdf">
             {% if unit and unit.pdf_file %}
-              <div class="small" style="margin-top:.35rem;">à¹„à¸Ÿà¸¥à¹Œà¹€à¸”à¸´à¸¡: {{ unit.pdf_file }}</div>
+              <div class="small" style="margin-top:.35rem;">ไฟล์เดิม: {{ unit.pdf_file }}</div>
             {% endif %}
           </div>
         </div>
@@ -163,20 +163,20 @@
         <div style="margin-top:1rem; display:flex; gap:1rem; flex-wrap:wrap;">
           <div class="switch">
             <input type="checkbox" id="is_free" name="is_free" value="1" {% if unit and unit.is_free %}checked{% endif %}>
-            <label for="is_free" style="margin:0; font-weight:900;">à¸šà¸—à¹€à¸£à¸µà¸¢à¸™à¸Ÿà¸£à¸µ</label>
+            <label for="is_free" style="margin:0; font-weight:900;">บทเรียนฟรี</label>
           </div>
         </div>
 
         <div style="margin-top:1.1rem;">
-          <button class="btn btn-primary" type="submit">ðŸ’¾ à¸šà¸±à¸™à¸—à¸¶à¸</button>
+          <button class="btn btn-primary" type="submit">&#x1F4BE; บันทึก</button>
         </div>
       </form>
     </div>
 
     {% if unit %}
     <div class="card jsonarea">
-      <h3 style="margin:0 0 .25rem;">à¹à¸à¹‰à¹„à¸‚ JSON à¹€à¸™à¸·à¹‰à¸­à¸«à¸² (à¸–à¹‰à¸²à¸•à¹‰à¸­à¸‡à¸à¸²à¸£)</h3>
-      <div class="small" style="margin-bottom:.85rem;">à¹à¸à¹‰à¹„à¸”à¹‰à¹‚à¸”à¸¢à¸•à¸£à¸‡ (à¸£à¸°à¸šà¸šà¸ˆà¸°à¹ƒà¸Šà¹‰à¸„à¹ˆà¸²à¸—à¸µà¹ˆà¸šà¸±à¸™à¸—à¸¶à¸à¹„à¸§à¹‰)</div>
+      <h3 style="margin:0 0 .25rem;">แก้ไข JSON เนื้อหา (ถ้าต้องการ)</h3>
+      <div class="small" style="margin-bottom:.85rem;">แก้ได้โดยตรง (ระบบจะใช้ค่าที่บันทึกไว้)</div>
 
       <form method="POST">
         <label>Slides JSON</label>
@@ -193,7 +193,7 @@
         <textarea name="practice_json">{{ unit.practice_json or '[]' }}</textarea>
 
         <div style="margin-top:1rem;">
-          <button class="btn btn-primary" type="submit">ðŸ’¾ à¸šà¸±à¸™à¸—à¸¶à¸ JSON</button>
+          <button class="btn btn-primary" type="submit">&#x1F4BE; บันทึก JSON</button>
         </div>
       </form>
     </div>
@@ -206,13 +206,13 @@
       <h3 style="margin:0 0 .75rem;">Generate ด้วย AI</h3>
       <div class="small" style="margin-bottom:.8rem;">สร้าง Slides / Game / Practice จากหัวข้อบทเรียน</div>
 
-      <button class="btn btn-primary" onclick="adminGenerate('all')" id="btnGenAll">🤖 Generate ทั้งหมด</button>
+      <button class="btn btn-primary" onclick="adminGenerate('all')" id="btnGenAll">&#x1F916; Generate ทั้งหมด</button>
       <div style="height:.75rem;"></div>
-      <button class="btn btn-ghost" onclick="adminGenerate('slides')" id="btnGenSlides">📄 Generate Slides</button>
+      <button class="btn btn-ghost" onclick="adminGenerate('slides')" id="btnGenSlides">&#x1F4C4; Generate Slides</button>
       <div style="height:.6rem;"></div>
-      <button class="btn btn-ghost" onclick="adminGenerate('game')" id="btnGenGame">🎮 Generate Game</button>
+      <button class="btn btn-ghost" onclick="adminGenerate('game')" id="btnGenGame">&#x1F3AE; Generate Game</button>
       <div style="height:.6rem;"></div>
-      <button class="btn btn-ghost" onclick="adminGenerate('practice')" id="btnGenPractice">📝 Generate Practice</button>
+      <button class="btn btn-ghost" onclick="adminGenerate('practice')" id="btnGenPractice">&#x1F4DD; Generate Practice</button>
 
       <div id="genStatus" style="margin-top:1rem; display:none; padding:.75rem; border-radius:8px; font-size:.9rem;"></div>
     </div>
@@ -233,11 +233,11 @@ async function adminGenerate(genType) {
   const btns = ['btnGenAll','btnGenSlides','btnGenGame','btnGenPractice'];
   btns.forEach(id => { const b = document.getElementById(id); if(b) b.disabled = true; });
 
-  const status = document.getElementById('genStatus');
-  status.style.display = 'block';
-  status.style.background = '#eff6ff';
-  status.style.color = '#1e40af';
-  status.textContent = '⏳ กำลังสร้างเนื้อหา... กรุณารอสักครู่';
+  const st = document.getElementById('genStatus');
+  st.style.display = 'block';
+  st.style.background = '#eff6ff';
+  st.style.color = '#1e40af';
+  st.textContent = '\u23F3 \u0E01\u0E33\u0E25\u0E31\u0E07\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E40\u0E19\u0E37\u0E49\u0E2D\u0E2B\u0E32... \u0E01\u0E23\u0E38\u0E13\u0E32\u0E23\u0E2D\u0E2A\u0E31\u0E01\u0E04\u0E23\u0E39\u0E48';
 
   try {
     const res = await fetch('/admin/library/unit/{{ unit.id }}/generate/' + genType, {
@@ -252,7 +252,7 @@ async function adminGenerate(genType) {
     }
 
     if (data.task_id) {
-      status.textContent = '⏳ AI กำลังสร้างเนื้อหา...';
+      st.textContent = '\u23F3 AI \u0E01\u0E33\u0E25\u0E31\u0E07\u0E2A\u0E23\u0E49\u0E32\u0E07\u0E40\u0E19\u0E37\u0E49\u0E2D\u0E2B\u0E32...';
       const result = await pollAdminTask(data.task_id);
       if (!result.ok) {
         showGenError(result.error || 'Generate failed');
@@ -260,9 +260,9 @@ async function adminGenerate(genType) {
       }
     }
 
-    status.style.background = '#f0fdf4';
-    status.style.color = '#166534';
-    status.textContent = '✅ Generate สำเร็จ!';
+    st.style.background = '#f0fdf4';
+    st.style.color = '#166534';
+    st.textContent = '\u2705 Generate \u0E2A\u0E33\u0E40\u0E23\u0E47\u0E08!';
     setTimeout(() => location.reload(), 1500);
 
   } catch(err) {
@@ -278,20 +278,20 @@ async function pollAdminTask(taskId) {
       const data = await res.json();
       const st = document.getElementById('genStatus');
       if (data.status === 'generating' && i > 5) {
-        st.textContent = '⏳ AI กำลังสร้าง... (อาจใช้เวลา 1-2 นาที)';
+        st.textContent = '\u23F3 AI \u0E01\u0E33\u0E25\u0E31\u0E07\u0E2A\u0E23\u0E49\u0E32\u0E07... (\u0E2D\u0E32\u0E08\u0E43\u0E0A\u0E49\u0E40\u0E27\u0E25\u0E32 1-2 \u0E19\u0E32\u0E17\u0E35)';
       }
       if (data.status === 'done') return { ok: true };
       if (data.status === 'error') return { ok: false, error: data.error };
     } catch(e) { console.error('Poll error:', e); }
   }
-  return { ok: false, error: 'ใช้เวลานานเกินไป' };
+  return { ok: false, error: '\u0E43\u0E0A\u0E49\u0E40\u0E27\u0E25\u0E32\u0E19\u0E32\u0E19\u0E40\u0E01\u0E34\u0E19\u0E44\u0E1B' };
 }
 
 function showGenError(msg) {
   const st = document.getElementById('genStatus');
   st.style.background = '#fef2f2';
   st.style.color = '#991b1b';
-  st.textContent = '❌ ' + msg;
+  st.textContent = '\u274C ' + msg;
   const btns = ['btnGenAll','btnGenSlides','btnGenGame','btnGenPractice'];
   btns.forEach(id => { const b = document.getElementById(id); if(b) b.disabled = false; });
 }
