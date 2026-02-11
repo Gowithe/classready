@@ -278,7 +278,7 @@
     {% if is_premium %}
     <span class="premium-badge active">👑 Premium Active</span>
     {% else %}
-    <a href="{{ url_for('library.premium_page') }}" class="premium-badge">👑 อัปเกรด Premium</a>
+    <a href="{{ url_for('library.library.premium_page') }}" class="premium-badge">👑 อัปเกรด Premium</a>
     {% endif %}
   </div>
 </div>
@@ -312,7 +312,7 @@
         <div class="rating">
           ⭐ {{ "%.1f"|format(unit.avg_rating or 0) }}
         </div>
-        <a href="{{ url_for('library_unit_detail', unit_id=unit.id) }}" class="btn-view">
+        <a href="{{ url_for('library.library_unit_detail', unit_id=unit.id) }}" class="btn-view">
           ดูบทเรียน →
         </a>
       </div>
@@ -348,7 +348,7 @@
       </div>
       <div class="unit-footer">
         <div class="rating">⭐ {{ "%.1f"|format(unit.avg_rating or 0) }}</div>
-        <a href="{{ url_for('library_unit_detail', unit_id=unit.id) }}" class="btn-view">ดูบทเรียน →</a>
+        <a href="{{ url_for('library.library_unit_detail', unit_id=unit.id) }}" class="btn-view">ดูบทเรียน →</a>
       </div>
     </div>
     {% endfor %}
