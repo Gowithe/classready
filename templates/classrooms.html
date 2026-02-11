@@ -307,7 +307,7 @@
           </div>
         </div>
         <div class="classroom-actions">
-          <a href="{{ url_for('classroom_detail', classroom_id=cls.id) }}" class="btn btn-primary">📂 เปิด</a>
+          <a href="{{ url_for('classroom.classroom_detail', classroom_id=cls.id) }}" class="btn btn-primary">📂 เปิด</a>
           
           <button class="btn btn-secondary" 
             data-id="{{ cls.id }}"
@@ -418,7 +418,7 @@ function openCreateModal() {
   isEdit = false;
   document.getElementById('modalTitle').textContent = 'สร้างห้องเรียนใหม่';
   document.getElementById('submitBtn').textContent = '➕ สร้าง';
-  form.action = "{{ url_for('classroom_create') }}";
+  form.action = "{{ url_for('classroom.classroom_create') }}";
   form.reset();
   document.getElementById('classroomId').value = '';
   modal.classList.add('show');
