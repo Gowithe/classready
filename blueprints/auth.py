@@ -109,6 +109,7 @@ def login():
             session["user_id"] = user["id"]
             session["email"] = user["email"]
             session["role"] = user["role"]
+            session["display_name"] = user.get("display_name") or ""
             return redirect(url_for("dashboard"))
         flash("Invalid email or password.", "error")
     return render_template("login.html")
@@ -265,6 +266,7 @@ def my_account():
 def my_account_update():
     display_name = (request.form.get("display_name") or "").strip()[:100]
     User.update_profile(session["user_id"], display_name)
+    session["display_name"] = display_name
     flash("\u0e2d\u0e31\u0e1b\u0e40\u0e14\u0e15\u0e02\u0e49\u0e2d\u0e21\u0e39\u0e25\u0e40\u0e23\u0e35\u0e22\u0e1a\u0e23\u0e49\u0e2d\u0e22", "success")
     return redirect(url_for("auth.my_account"))
 
