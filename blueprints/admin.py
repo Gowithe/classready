@@ -8,6 +8,7 @@ import os
 import json
 import secrets
 import traceback
+import threading
 from datetime import datetime
 
 from flask import (
@@ -296,66 +297,70 @@ def admin_library_unit_generate(unit_id, gen_type):
         return jsonify({"ok": False, "error": "Invalid type"}), 400
 
     topic_name = unit["name"]
-    try:
-        # Lazy import – ai_generator lives in project root
-        from ai_generator import generate_lesson_bundle
 
-        bundle = generate_lesson_bundle(topic_name)
-        if not bundle:
-            return jsonify({"ok": False, "error": "AI generation failed"}), 500
+    # Use shared background task system from app.py
+    from app import _create_task, _update_task, _cleanup_old_tasks
 
-        updates = {}
-        result = {"ok": True}
+    _cleanup_old_tasks()
+    task_id = _create_task()
 
-        if gen_type in ["all", "slides"]:
-            slides = bundle.get("slides") or []
-            slides_json = json.dumps({"slides": slides}, ensure_ascii=False)
-            updates["slides_json"] = slides_json
-            result["slides_count"] = len(slides)
-            result["slides_json"] = slides_json
+    def run_admin_generate():
+        try:
+            _update_task(task_id, status="generating")
+            from ai_generator import generate_lesson_bundle
+            from flask import current_app
 
-        if gen_type in ["all", "game"]:
-            game_raw = bundle.get("game") or {}
-            game_data = {}
-            total_game = 0
-            for set_no in [1, 2, 3]:
-                set_key = str(set_no)
-                questions = game_raw.get(set_key) or game_raw.get(f"set{set_no}") or []
-                if questions:
-                    game_data[set_key] = []
-                    for idx, q in enumerate(questions):
-                        game_data[set_key].append({
-                            "tile_no": idx + 1,
-                            "question": q.get("question", ""),
-                            "answer": q.get("answer", ""),
-                            "points": q.get("points", 10),
-                        })
-                        total_game += 1
-            game_json = json.dumps(game_data, ensure_ascii=False)
-            updates["game_json"] = game_json
-            result["game_count"] = total_game
-            result["game_json"] = game_json
+            bundle = generate_lesson_bundle(topic_name)
+            if not bundle:
+                _update_task(task_id, status="error", error="AI generation failed")
+                return
 
-        if gen_type in ["all", "practice"]:
-            practice_raw = bundle.get("practice") or []
-            practice_data = []
-            for q in practice_raw:
-                practice_data.append({
-                    "question": q.get("question", ""),
-                    "choices": q.get("choices", []),
-                    "correct_index": q.get("correct_index", 0),
-                })
-            practice_json = json.dumps(practice_data, ensure_ascii=False)
-            updates["practice_json"] = practice_json
-            result["practice_count"] = len(practice_data)
-            result["practice_json"] = practice_json
+            updates = {}
 
-        if updates:
-            LibraryUnit.update(unit_id, **updates)
-        return jsonify(result)
+            if gen_type in ["all", "slides"]:
+                slides = bundle.get("slides") or []
+                slides_json = json.dumps({"slides": slides}, ensure_ascii=False)
+                updates["slides_json"] = slides_json
 
-    except Exception as e:
-        return jsonify({"ok": False, "error": str(e)}), 500
+            if gen_type in ["all", "game"]:
+                game_raw = bundle.get("game") or {}
+                game_data = {}
+                for set_no in [1, 2, 3]:
+                    set_key = str(set_no)
+                    questions = game_raw.get(set_key) or game_raw.get(f"set{set_no}") or []
+                    if questions:
+                        game_data[set_key] = []
+                        for idx, q in enumerate(questions):
+                            game_data[set_key].append({
+                                "tile_no": idx + 1,
+                                "question": q.get("question", ""),
+                                "answer": q.get("answer", ""),
+                                "points": q.get("points", 10),
+                            })
+                game_json = json.dumps(game_data, ensure_ascii=False)
+                updates["game_json"] = game_json
+
+            if gen_type in ["all", "practice"]:
+                practice_raw = bundle.get("practice") or []
+                practice_data = []
+                for q in practice_raw:
+                    practice_data.append({
+                        "question": q.get("question", ""),
+                        "choices": q.get("choices", []),
+                        "correct_index": q.get("correct_index", 0),
+                    })
+                practice_json = json.dumps(practice_data, ensure_ascii=False)
+                updates["practice_json"] = practice_json
+
+            if updates:
+                LibraryUnit.update(unit_id, **updates)
+
+            _update_task(task_id, status="done", result={"ok": True})
+        except Exception as e:
+            _update_task(task_id, status="error", error=str(e))
+
+    threading.Thread(target=run_admin_generate, daemon=True).start()
+    return jsonify({"ok": True, "task_id": task_id})
 
 
 # ---------------------------------------------------------------------------
