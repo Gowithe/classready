@@ -127,7 +127,7 @@
         </div>
       </div>
 
-      <form class="quick-input" action="{{ url_for('classroom_add_student', classroom_id=classroom.id) }}" method="POST">
+      <form class="quick-input" action="{{ url_for('classroom.classroom_add_student', classroom_id=classroom.id) }}" method="POST">
         <input type="text" name="student_no" placeholder="เลขที่" style="width:70px;">
         <input type="text" name="student_name" placeholder="ชื่อ-สกุล" required>
         <input type="text" name="nickname" placeholder="ชื่อเล่น" style="width:100px;">
@@ -292,7 +292,7 @@
       <h3>📥 Import รายชื่อ</h3>
       <button class="modal-close" onclick="closeImportModal()">✕</button>
     </div>
-    <form action="{{ url_for('classroom_import_students', classroom_id=classroom.id) }}" method="POST">
+    <form action="{{ url_for('classroom.classroom_import_students', classroom_id=classroom.id) }}" method="POST">
       <div class="modal-body">
         <div class="form-group">
           <label>รายชื่อ (บรรทัดละคน)</label>
@@ -315,7 +315,7 @@
       <h3>📝 สั่งงานใหม่</h3>
       <button class="modal-close" onclick="closeAssignModal()">✕</button>
     </div>
-    <form action="{{ url_for('classroom_assign', classroom_id=classroom.id) }}" method="POST">
+    <form action="{{ url_for('classroom.classroom_assign', classroom_id=classroom.id) }}" method="POST">
       <div class="modal-body">
         <div class="form-group">
           <label>เลือก Topic *</label>
@@ -353,7 +353,7 @@ const studentForm=document.getElementById('studentForm');
 
 function openAddStudentModal(){
   document.getElementById('studentModalTitle').textContent='เพิ่มนักเรียน';
-  studentForm.action="{{ url_for('classroom_add_student', classroom_id=classroom.id) }}";
+  studentForm.action="{{ url_for('classroom.classroom_add_student', classroom_id=classroom.id) }}";
   studentForm.reset();
   document.getElementById('studentId').value = "";
   studentModal.classList.add('show');
