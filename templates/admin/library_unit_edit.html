@@ -101,12 +101,12 @@
     <p class="small">à¸§à¸´à¸Šà¸²: <b>{{ subject.name }}</b> {% if unit %} â€¢ Unit ID: <b>{{ unit.id }}</b>{% endif %}</p>
   </div>
   <div class="header-actions">
-    <a class="btn btn-ghost" href="{{ url_for('admin_library') }}">â† à¸à¸¥à¸±à¸šà¸«à¸™à¹‰à¸²à¸„à¸¥à¸±à¸‡</a>
+    <a class="btn btn-ghost" href="{{ url_for('admin.admin_library') }}">â† à¸à¸¥à¸±à¸šà¸«à¸™à¹‰à¸²à¸„à¸¥à¸±à¸‡</a>
 
     {% if unit %}
       <form method="POST"
-            action="{{ url_for('admin_library_unit_delete', unit_id=unit.id) }}"
-            onsubmit="return confirm('à¸¢à¸·à¸™à¸¢à¸±à¸™à¸¥à¸šà¸šà¸—à¹€à¸£à¸µà¸¢à¸™à¸™à¸µà¹‰à¸ˆà¸²à¸à¸„à¸¥à¸±à¸‡à¸à¸¥à¸²à¸‡à¹à¸šà¸šà¸–à¸²à¸§à¸£? (à¸ˆà¸°à¸¥à¸šà¸—à¸¸à¸à¸„à¸™à¸—à¸µà¹ˆ clone à¹„à¸›à¸”à¹‰à¸§à¸¢)');"
+            action="{{ url_for('admin.admin_library_unit_delete', unit_id=unit.id) }}"
+            onsubmit="return confirm('à¸¢à¸·à¸™à¸¢à¸±à¸™à¸¥à¸šà¸šà¸—à¹€à¸£à¸µà¸¢à¸™à¸™à¸µà¹‰à¸ˆà¸²à¸à¸„à¸¥à¸±à¸‡ à¹„á€œá€œá€œá€œá€œá€œá€œá€œá€œ á€œ á€œ á€œ á€œ á€œ á€œ á€œ á€œ á€œ á€œ á€œ á€œ á€œ á€œ á€œ á€œ á€œ á€™ ( à¹„á€™á€™á€™á€™á€™á€™á€™á€™á€™ )');"
             style="display:inline-block;">
         <button type="submit" class="btn btn-danger">ðŸ—‘ï¸ à¸¥à¸šà¸ˆà¸²à¸à¸„à¸¥à¸±à¸‡à¸à¸¥à¸²à¸‡</button>
       </form>
