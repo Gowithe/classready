@@ -101,11 +101,11 @@
     <p class="small">วิชา: <b>{{ subject.name }}</b> {% if unit %} • Unit ID: <b>{{ unit.id }}</b>{% endif %}</p>
   </div>
   <div class="header-actions">
-    <a class="btn btn-ghost" href="{{ url_for('admin_library') }}">← กลับหน้าคลัง</a>
+    <a class="btn btn-ghost" href="{{ url_for('admin.admin_library') }}">← กลับหน้าคลัง</a>
 
     {% if unit %}
       <form method="POST"
-            action="{{ url_for('admin_library_unit_delete', unit_id=unit.id) }}"
+            action="{{ url_for('admin.admin_library_unit_delete', unit_id=unit.id) }}"
             onsubmit="return confirm('ยืนยันลบบทเรียนนี้จากคลังกลางแบบถาวร? (จะลบทุกคนที่ clone ไปด้วย)');"
             style="display:inline-block;">
         <button type="submit" class="btn btn-danger">🗑️ ลบจากคลังกลาง</button>
@@ -206,25 +206,25 @@
       <h3 style="margin:0 0 .75rem;">Generate ด้วย AI</h3>
       <div class="small" style="margin-bottom:.8rem;">สร้าง Slides / Game / Practice จากหัวข้อบทเรียน</div>
 
-      <form method="POST" action="{{ url_for('admin_library_unit_generate', unit_id=unit.id, gen_type='all') }}">
+      <form method="POST" action="{{ url_for('admin.admin_library_unit_generate', unit_id=unit.id, gen_type='all') }}">
         <button class="btn btn-primary" type="submit">🤖 Generate ทั้งหมด</button>
       </form>
 
       <div style="height:.75rem;"></div>
 
-      <form method="POST" action="{{ url_for('admin_library_unit_generate', unit_id=unit.id, gen_type='slides') }}">
+      <form method="POST" action="{{ url_for('admin.admin_library_unit_generate', unit_id=unit.id, gen_type='slides') }}">
         <button class="btn btn-ghost" type="submit">📄 Generate Slides</button>
       </form>
 
       <div style="height:.6rem;"></div>
 
-      <form method="POST" action="{{ url_for('admin_library_unit_generate', unit_id=unit.id, gen_type='game') }}">
+      <form method="POST" action="{{ url_for('admin.admin_library_unit_generate', unit_id=unit.id, gen_type='game') }}">
         <button class="btn btn-ghost" type="submit">🎮 Generate Game</button>
       </form>
 
       <div style="height:.6rem;"></div>
 
-      <form method="POST" action="{{ url_for('admin_library_unit_generate', unit_id=unit.id, gen_type='practice') }}">
+      <form method="POST" action="{{ url_for('admin.admin_library_unit_generate', unit_id=unit.id, gen_type='practice') }}">
         <button class="btn btn-ghost" type="submit">📝 Generate Practice</button>
       </form>
     </div>
