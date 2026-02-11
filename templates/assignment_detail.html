@@ -184,9 +184,9 @@
         </div>
       </div>
       <div style="display:flex;gap:10px;">
-        <a href="{{ url_for('classroom_detail', classroom_id=classroom.id) }}" class="btn btn-ghost">← กลับ</a>
+        <a href="{{ url_for('classroom.classroom_detail', classroom_id=classroom.id) }}" class="btn btn-ghost">← กลับ</a>
         {% if practice_link %}
-        <a href="{{ url_for('practice_scores', topic_id=topic.id) }}" class="btn btn-white">📊 คะแนนทั้งหมด</a>
+        <a href="{{ url_for('practice.practice_scores', topic_id=topic.id) }}" class="btn btn-white">📊 คะแนนทั้งหมด</a>
         {% endif %}
       </div>
     </div>
