@@ -458,6 +458,24 @@
     return await res.json();
   }
 
+  async function pollTaskStatus(taskId) {
+    const maxAttempts = 120; // poll for up to 6 minutes
+    for (let i = 0; i < maxAttempts; i++) {
+      await new Promise(r => setTimeout(r, 3000));
+      try {
+        const res = await fetch('/api/ai-task/' + taskId + '/status');
+        const data = await res.json();
+        if (data.status === 'generating') {
+          if (i > 5) modalMessage.textContent = 'AI กำลังสร้างเนื้อหา... (อาจใช้เวลา 1-2 นาที)';
+          if (i > 30) modalMessage.textContent = 'เกือบเสร็จแล้ว... กรุณารอสักครู่';
+        }
+        if (data.status === 'done') return { ok: true };
+        if (data.status === 'error') return { ok: false, error: data.error };
+      } catch(e) { console.error('Poll error:', e); }
+    }
+    return { ok: false, error: 'ใช้เวลานานเกินไป กรุณาลองใหม่' };
+  }
+
   async function callGenerate(mode){
     if(!hasPdf){
       alert('ยังไม่มี PDF — กรุณาอัปโหลด PDF ก่อน');
@@ -496,6 +514,18 @@
         return;
       }
 
+      // Background task — poll until complete
+      if (data.task_id) {
+        modalMessage.textContent = 'AI กำลังสร้างเนื้อหา...';
+        const result = await pollTaskStatus(data.task_id);
+        if (!result.ok) {
+          hideModal();
+          alert(result.error || 'Generate failed');
+          setStatus('❌ ' + (result.error || 'Generate failed'));
+          return;
+        }
+      }
+
       setStatus('✅ Generated successfully!');
       hideModal();
 
@@ -530,4 +560,3 @@
   if(btnPractice) btnPractice.addEventListener('click', () => callGenerate('practice'));
 </script>
 {% endblock %}
-
