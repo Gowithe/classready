@@ -303,7 +303,7 @@
 {% block content %}
 
 <div class="breadcrumb">
-  <a href="{{ url_for('library') }}">📚 คลังบทเรียน</a>
+  <a href="{{ url_for('library.library') }}">📚 คลังบทเรียน</a>
   <span>›</span>
   <a href="{{ url_for('library_subject', subject_id=unit.subject_id) }}">{{ unit.subject_name }}</a>
   <span>›</span>
@@ -332,7 +332,7 @@
         {% endif %}
       {% else %}
       <button class="btn-clone locked" disabled>🔒 Premium Only</button>
-      <a href="{{ url_for('premium_page') }}" class="btn-premium">👑 อัปเกรด Premium</a>
+      <a href="{{ url_for('library.premium_page') }}" class="btn-premium">👑 อัปเกรด Premium</a>
       {% endif %}
     </div>
   </div>
@@ -373,7 +373,7 @@
             <div class="slide-locked">
               <div class="slide-locked-icon">🔒</div>
               <p>อัปเกรด Premium เพื่อดูเนื้อหาทั้งหมด</p>
-              <a href="{{ url_for('premium_page') }}" class="btn-premium" style="margin-top: 1rem;">
+              <a href="{{ url_for('library.premium_page') }}" class="btn-premium" style="margin-top: 1rem;">
                 👑 อัปเกรด Premium
               </a>
             </div>
