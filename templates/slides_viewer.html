@@ -2965,10 +2965,10 @@ document.addEventListener('fullscreenchange', () => {
 // Keyboard navigation
 document.addEventListener('keydown', (e) => {
   if (typeof vocabFocusActive !== 'undefined' && vocabFocusActive) return;
-  if (e.key === 'ArrowRight' || e.key === ' ') {
+  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown' || e.key === 'ArrowDown') {
     e.preventDefault();
     nextSlide();
-  } else if (e.key === 'ArrowLeft') {
+  } else if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'ArrowUp') {
     e.preventDefault();
     prevSlide();
   } else if (e.key === 'Escape') {
