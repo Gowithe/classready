@@ -521,6 +521,92 @@ def api_save_slides(topic_id):
     )
     return jsonify({"ok": True})
 
+# ==============================================================================
+# ADD THESE 3 API ENDPOINTS to app.py
+# Place them after the existing api_save_slides() route (around line 522)
+# ==============================================================================
+
+# --- Save Game Questions (Mystery Tiles) ---
+@app.route("/api/topic/<int:topic_id>/game-questions", methods=["POST"])
+@login_required
+def api_save_game_questions(topic_id):
+    topic = _get_topic_or_404(topic_id)
+    data = request.get_json(silent=True) or {}
+    game = data.get("game") or {}
+    if not game:
+        return jsonify({"ok": False, "error": "No game data"}), 400
+    try:
+        _save_game_only(topic_id, game)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# --- Save Practice Questions (Millionaire MCQ) ---
+@app.route("/api/topic/<int:topic_id>/practice-questions", methods=["POST"])
+@login_required
+def api_save_practice_questions(topic_id):
+    topic = _get_topic_or_404(topic_id)
+    data = request.get_json(silent=True) or {}
+    practice = data.get("practice") or []
+    if not practice:
+        return jsonify({"ok": False, "error": "No practice data"}), 400
+    try:
+        _save_practice_only(topic_id, practice)
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
+
+
+# --- Save Vocabulary (Memory Match) ---
+@app.route("/api/topic/<int:topic_id>/vocabulary", methods=["POST"])
+@login_required
+def api_save_vocabulary(topic_id):
+    topic = _get_topic_or_404(topic_id)
+    data = request.get_json(silent=True) or {}
+    vocabulary = data.get("vocabulary") or []
+    if not isinstance(vocabulary, list):
+        return jsonify({"ok": False, "error": "Invalid vocabulary data"}), 400
+    try:
+        # Parse existing slides JSON
+        slides_raw = topic.get("slides_json") or "{}"
+        slides_obj = json.loads(slides_raw) if slides_raw else {}
+        slides = slides_obj.get("slides", slides_obj) if isinstance(slides_obj, dict) else slides_obj
+        if not isinstance(slides, list):
+            slides = []
+
+        # Find existing vocabulary slide or create one
+        vocab_slide_idx = None
+        for i, slide in enumerate(slides):
+            if isinstance(slide, dict) and slide.get("type") == "vocabulary":
+                vocab_slide_idx = i
+                break
+
+        # Build vocabulary list for slide
+        vocab_items = []
+        for v in vocabulary:
+            word = (v.get("word") or "").strip()
+            meaning = (v.get("meaning") or "").strip()
+            if word and meaning:
+                vocab_items.append({"word": word, "meaning": meaning})
+
+        if vocab_slide_idx is not None:
+            # Update existing vocabulary slide
+            slides[vocab_slide_idx]["vocabulary"] = vocab_items
+        else:
+            # Create new vocabulary slide at the beginning
+            slides.insert(0, {
+                "type": "vocabulary",
+                "title": "Vocabulary",
+                "vocabulary": vocab_items
+            })
+
+        # Save back
+        new_json = json.dumps({"slides": slides}, ensure_ascii=False)
+        Topic.update(topic_id, topic["name"], topic.get("description") or "", new_json, topic.get("pdf_file"))
+        return jsonify({"ok": True})
+    except Exception as e:
+        return jsonify({"ok": False, "error": str(e)}), 500
 
 # ==============================================================================
 # Download Slides as PDF
