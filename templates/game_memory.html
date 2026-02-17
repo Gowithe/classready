@@ -409,6 +409,32 @@
   justify-content: center;
   margin-top: 1rem;
 }
+
+/* ========= Editor Panel ========= */
+.editor-overlay{position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:9000;display:none;opacity:0;transition:opacity .25s;}
+.editor-overlay.open{display:block;opacity:1;}
+.editor-panel{position:fixed;top:0;right:-540px;width:min(520px,92vw);height:100vh;background:#fff;z-index:9001;box-shadow:-4px 0 30px rgba(0,0,0,.18);transition:right .3s ease;display:flex;flex-direction:column;}
+.editor-panel.open{right:0;}
+.editor-head{display:flex;justify-content:space-between;align-items:center;padding:14px 18px;background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;flex-shrink:0;}
+.editor-head h3{margin:0;font-size:1.1rem;}
+.editor-head button{background:rgba(255,255,255,.2);border:none;color:#fff;width:32px;height:32px;border-radius:8px;font-size:18px;cursor:pointer;}
+.editor-body{flex:1;overflow-y:auto;padding:14px;}
+.editor-row{display:grid;grid-template-columns:1fr 1fr 36px;gap:8px;align-items:center;margin-bottom:8px;padding:8px 10px;background:#f8fafc;border-radius:10px;border:1px solid #e2e8f0;}
+.editor-row input{padding:7px 10px;border:1px solid #cbd5e1;border-radius:8px;font-size:.85rem;width:100%;}
+.editor-row input:focus{outline:none;border-color:#667eea;box-shadow:0 0 0 2px rgba(102,126,234,.15);}
+.editor-row .del-btn{background:#fee2e2;border:1px solid #fca5a5;color:#dc2626;border-radius:8px;cursor:pointer;font-size:14px;padding:4px;width:30px;height:30px;display:flex;align-items:center;justify-content:center;}
+.editor-row .del-btn:hover{background:#fecaca;}
+.editor-foot{padding:12px 18px;border-top:1px solid #e2e8f0;display:flex;gap:10px;flex-shrink:0;background:#f8fafc;}
+.editor-foot button{flex:1;padding:10px;border-radius:10px;font-weight:700;font-size:.9rem;cursor:pointer;border:none;transition:all .15s;}
+.editor-foot .btn-add{background:#ecfdf5;color:#059669;border:1px solid #a7f3d0;}
+.editor-foot .btn-add:hover{background:#d1fae5;}
+.editor-foot .btn-save{background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;box-shadow:0 2px 8px rgba(102,126,234,.3);}
+.editor-foot .btn-save:hover{transform:translateY(-1px);}
+.editor-foot .btn-save:disabled{opacity:.6;cursor:not-allowed;transform:none;}
+.editor-msg{padding:8px 12px;border-radius:8px;font-size:.85rem;font-weight:600;text-align:center;margin-bottom:8px;}
+.editor-msg.ok{background:#dcfce7;color:#166534;}
+.editor-msg.err{background:#fee2e2;color:#991b1b;}
+.editor-header-row{display:grid;grid-template-columns:1fr 1fr 36px;gap:8px;padding:4px 10px;margin-bottom:4px;font-size:.75rem;font-weight:700;color:#94a3b8;text-transform:uppercase;}
 </style>
 {% endblock %}
 
@@ -418,6 +444,7 @@
   <a href="{{ url_for('topic_detail', topic_id=topic.id) }}" class="nav-btn">← Back to Topic</a>
   <a href="{{ url_for('game.game', topic_id=topic.id) }}" class="nav-btn">🎯 Mystery Tiles</a>
   <a href="{{ url_for('game.game_millionaire', topic_id=topic.id) }}" class="nav-btn">🏆 Millionaire</a>
+  <button class="nav-btn" onclick="toggleEditor()" style="margin-left:auto; background:#fef3c7; border-color:#f59e0b; color:#92400e;">✏️ Edit Vocabulary</button>
 </div>
 
 <!-- Setup Screen -->
@@ -888,5 +915,84 @@ function escapeHtml(text) {
   div.textContent = text;
   return div.innerHTML;
 }
+
+// ========================================
+// Editor Panel — Vocabulary
+// ========================================
+let editorVocab = [];
+
+function toggleEditor(){
+  const p=document.querySelector('.editor-panel');
+  const o=document.querySelector('.editor-overlay');
+  const isOpen=p.classList.contains('open');
+  if(isOpen){p.classList.remove('open');o.classList.remove('open');}
+  else{p.classList.add('open');o.classList.add('open');loadEditorVocab();}
+}
+
+function loadEditorVocab(){
+  editorVocab=(gameData.vocabulary||[]).map(v=>({word:v.word||'',meaning:v.meaning||''}));
+  renderEditorRows();
+}
+
+function renderEditorRows(){
+  const body=document.getElementById('editorBody');
+  let html='<div class="editor-header-row"><span>Word (EN)</span><span>Meaning (TH)</span><span></span></div>';
+  if(editorVocab.length===0) html+='<p style="text-align:center;color:#94a3b8;padding:2rem;">ยังไม่มีคำศัพท์ — กด + เพิ่มคำศัพท์</p>';
+  editorVocab.forEach((v,i)=>{
+    html+=`<div class="editor-row">
+      <input value="${esc(v.word)}" placeholder="Word" oninput="editorVocab[${i}].word=this.value">
+      <input value="${esc(v.meaning)}" placeholder="Meaning" oninput="editorVocab[${i}].meaning=this.value">
+      <button class="del-btn" onclick="editorDel(${i})">✕</button>
+    </div>`;
+  });
+  body.innerHTML=html;
+}
+
+function editorDel(i){editorVocab.splice(i,1);renderEditorRows();}
+function editorAdd(){
+  editorVocab.push({word:'',meaning:''});renderEditorRows();
+  const body=document.getElementById('editorBody');body.scrollTop=body.scrollHeight;
+}
+
+async function editorSave(){
+  const btn=document.getElementById('editorSaveBtn');
+  btn.disabled=true;btn.textContent='💾 Saving...';
+  try{
+    const vocab=editorVocab.filter(v=>v.word.trim()&&v.meaning.trim()).map(v=>({word:v.word.trim(),meaning:v.meaning.trim()}));
+    const r=await fetch('/api/topic/{{ topic.id }}/vocabulary',{
+      method:'POST',headers:{'Content-Type':'application/json'},
+      body:JSON.stringify({vocabulary:vocab})
+    });
+    const d=await r.json();
+    if(d.ok){
+      showEditorMsg('✅ บันทึกเรียบร้อย! รีเฟรชหน้าเพื่อใช้งาน','ok');
+      gameData.vocabulary=vocab;
+    } else showEditorMsg('❌ '+d.error,'err');
+  }catch(e){showEditorMsg('❌ เกิดข้อผิดพลาด','err');}
+  btn.disabled=false;btn.textContent='💾 Save';
+}
+
+function showEditorMsg(txt,type){
+  const el=document.getElementById('editorMsg');
+  el.textContent=txt;el.className='editor-msg '+type;el.style.display='block';
+  setTimeout(()=>{el.style.display='none';},4000);
+}
+function esc(s){return String(s||'').replace(/&/g,'&amp;').replace(/"/g,'&quot;').replace(/</g,'&lt;');}
 </script>
+
+<!-- Editor Panel -->
+<div class="editor-overlay" onclick="toggleEditor()"></div>
+<div class="editor-panel">
+  <div class="editor-head">
+    <h3>✏️ Edit Vocabulary</h3>
+    <button onclick="toggleEditor()">✕</button>
+  </div>
+  <div id="editorMsg" class="editor-msg" style="display:none;margin:10px 14px 0;"></div>
+  <div class="editor-body" id="editorBody"></div>
+  <div class="editor-foot">
+    <button class="btn-add" onclick="editorAdd()">+ เพิ่มคำศัพท์</button>
+    <button class="btn-save" id="editorSaveBtn" onclick="editorSave()">💾 Save</button>
+  </div>
+</div>
+
 {% endblock %}
