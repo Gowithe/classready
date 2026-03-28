@@ -562,15 +562,13 @@ def admin_cleanup_spam():
         conn = get_db()
         c = conn.cursor()
 
-        # Define spam user filter
-        spam_filter = """
-            SELECT id FROM users
-            WHERE is_verified = 0 AND role != 'admin'
-              AND created_at < datetime('now', '-1 day')
-        """
-
         # Count first
-        c.execute(f"SELECT COUNT(*) FROM ({spam_filter})")
+        c.execute("""
+            SELECT COUNT(*) FROM users
+            WHERE is_verified = 0
+              AND role != 'admin'
+              AND created_at < datetime('now', '-1 day')
+        """)
         count = c.fetchone()[0]
 
         if count == 0:
@@ -578,42 +576,19 @@ def admin_cleanup_spam():
             flash("\u0e44\u0e21\u0e48\u0e21\u0e35\u0e1a\u0e31\u0e0d\u0e0a\u0e35 spam \u0e17\u0e35\u0e48\u0e15\u0e49\u0e2d\u0e07\u0e25\u0e1a", "info")
             return redirect(url_for("admin.admin_users"))
 
-        # Get spam topic IDs (owned by spam users)
-        spam_topics = f"SELECT id FROM topics WHERE owner_id IN ({spam_filter})"
-        # Get spam classroom IDs
-        spam_classrooms = f"SELECT id FROM classrooms WHERE owner_id IN ({spam_filter})"
+        # Get spam user IDs
+        c.execute("""
+            SELECT id FROM users
+            WHERE is_verified = 0 AND role != 'admin'
+              AND created_at < datetime('now', '-1 day')
+        """)
+        spam_ids = [r[0] for r in c.fetchall()]
 
-        # Delete in correct FK order (children first)
-        # 1) practice_submissions → practice_links
-        c.execute(f"DELETE FROM practice_submissions WHERE link_id IN (SELECT id FROM practice_links WHERE topic_id IN ({spam_topics}) OR created_by IN ({spam_filter}))")
-        # 2) assignments → classrooms/topics
-        c.execute(f"DELETE FROM assignments WHERE classroom_id IN ({spam_classrooms}) OR created_by IN ({spam_filter})")
-        # 3) classroom_students → classrooms
-        c.execute(f"DELETE FROM classroom_students WHERE classroom_id IN ({spam_classrooms})")
-        # 4) classrooms
-        c.execute(f"DELETE FROM classrooms WHERE owner_id IN ({spam_filter})")
-        # 5) practice_links → topics
-        c.execute(f"DELETE FROM practice_links WHERE topic_id IN ({spam_topics}) OR created_by IN ({spam_filter})")
-        # 6) game_sessions → topics/users
-        c.execute(f"DELETE FROM game_sessions WHERE created_by IN ({spam_filter})")
-        # 7) game_questions → topics
-        c.execute(f"DELETE FROM game_questions WHERE topic_id IN ({spam_topics})")
-        # 8) practice_questions → topics
-        c.execute(f"DELETE FROM practice_questions WHERE topic_id IN ({spam_topics})")
-        # 9) attempt_history → users
-        c.execute(f"DELETE FROM attempt_history WHERE user_id IN ({spam_filter})")
-        # 10) library_clones → users
-        c.execute(f"DELETE FROM library_clones WHERE user_id IN ({spam_filter})")
-        # 11) library_ratings → users
-        c.execute(f"DELETE FROM library_ratings WHERE user_id IN ({spam_filter})")
-        # 12) user_subscriptions → users
-        c.execute(f"DELETE FROM user_subscriptions WHERE user_id IN ({spam_filter})")
-        # 13) user_usage → users
-        c.execute(f"DELETE FROM user_usage WHERE user_id IN ({spam_filter})")
-        # 14) topics → users
-        c.execute(f"DELETE FROM topics WHERE owner_id IN ({spam_filter})")
-        # 15) Finally delete the spam users
-        c.execute(f"DELETE FROM users WHERE id IN ({spam_filter})")
+        # Disable FK checks, bulk delete, re-enable
+        c.execute("PRAGMA foreign_keys = OFF")
+        for uid in spam_ids:
+            _delete_user_cascade(c, uid)
+        c.execute("PRAGMA foreign_keys = ON")
 
         conn.commit()
         conn.close()
@@ -621,5 +596,83 @@ def admin_cleanup_spam():
         flash(f"\u2705 \u0e25\u0e1a\u0e1a\u0e31\u0e0d\u0e0a\u0e35 spam {count} \u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e40\u0e23\u0e35\u0e22\u0e1a\u0e23\u0e49\u0e2d\u0e22", "success")
     except Exception as e:
         flash(f"\u274c \u0e40\u0e01\u0e34\u0e14\u0e02\u0e49\u0e2d\u0e1c\u0e34\u0e14\u0e1e\u0e25\u0e32\u0e14: {e}", "error")
+
+    return redirect(url_for("admin.admin_users"))
+
+
+@admin_bp.route("/admin/users/<int:user_id>/delete", methods=["POST"])
+@admin_required
+def admin_delete_user(user_id):
+    """Delete a single user and all related data."""
+    try:
+        conn = get_db()
+        c = conn.cursor()
+
+        # Safety: never delete admin
+        c.execute("SELECT role FROM users WHERE id = ?", (user_id,))
+        row = c.fetchone()
+        if not row:
+            flash("\u0e44\u0e21\u0e48\u0e1e\u0e1a user", "error")
+            conn.close()
+            return redirect(url_for("admin.admin_users"))
+        if row[0] == "admin":
+            flash("\u0e44\u0e21\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e25\u0e1a admin \u0e44\u0e14\u0e49", "error")
+            conn.close()
+            return redirect(url_for("admin.admin_users"))
+
+        c.execute("PRAGMA foreign_keys = OFF")
+        _delete_user_cascade(c, user_id)
+        c.execute("PRAGMA foreign_keys = ON")
+
+        conn.commit()
+        conn.close()
+        flash(f"\u2705 \u0e25\u0e1a user #{user_id} \u0e40\u0e23\u0e35\u0e22\u0e1a\u0e23\u0e49\u0e2d\u0e22", "success")
+    except Exception as e:
+        flash(f"\u274c \u0e40\u0e01\u0e34\u0e14\u0e02\u0e49\u0e2d\u0e1c\u0e34\u0e14\u0e1e\u0e25\u0e32\u0e14: {e}", "error")
+
+    return redirect(url_for("admin.admin_users"))
+
+
+def _delete_user_cascade(cursor, user_id):
+    """Delete all data related to a user across all tables."""
+    c = cursor
+    uid = user_id
+
+    # Get user's topic IDs
+    c.execute("SELECT id FROM topics WHERE owner_id = ?", (uid,))
+    topic_ids = [r[0] for r in c.fetchall()]
+
+    # Get user's classroom IDs
+    c.execute("SELECT id FROM classrooms WHERE owner_id = ?", (uid,))
+    classroom_ids = [r[0] for r in c.fetchall()]
+
+    # Get user's practice_link IDs
+    c.execute("SELECT id FROM practice_links WHERE created_by = ?", (uid,))
+    link_ids = [r[0] for r in c.fetchall()]
+
+    # Delete from children tables
+    for tid in topic_ids:
+        c.execute("DELETE FROM game_questions WHERE topic_id = ?", (tid,))
+        c.execute("DELETE FROM practice_questions WHERE topic_id = ?", (tid,))
+        c.execute("DELETE FROM practice_links WHERE topic_id = ?", (tid,))
+        c.execute("DELETE FROM game_sessions WHERE topic_id = ?", (tid,))
+
+    for lid in link_ids:
+        c.execute("DELETE FROM practice_submissions WHERE link_id = ?", (lid,))
+
+    for cid in classroom_ids:
+        c.execute("DELETE FROM assignments WHERE classroom_id = ?", (cid,))
+        c.execute("DELETE FROM classroom_students WHERE classroom_id = ?", (cid,))
+
+    c.execute("DELETE FROM assignments WHERE created_by = ?", (uid,))
+    c.execute("DELETE FROM classrooms WHERE owner_id = ?", (uid,))
+    c.execute("DELETE FROM game_sessions WHERE created_by = ?", (uid,))
+    c.execute("DELETE FROM attempt_history WHERE user_id = ?", (uid,))
+    c.execute("DELETE FROM library_clones WHERE user_id = ?", (uid,))
+    c.execute("DELETE FROM library_ratings WHERE user_id = ?", (uid,))
+    c.execute("DELETE FROM user_subscriptions WHERE user_id = ?", (uid,))
+    c.execute("DELETE FROM user_usage WHERE user_id = ?", (uid,))
+    c.execute("DELETE FROM topics WHERE owner_id = ?", (uid,))
+    c.execute("DELETE FROM users WHERE id = ?", (uid,))
 
     return redirect(url_for("admin.admin_users"))
