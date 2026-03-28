@@ -1755,19 +1755,22 @@ class Assignment:
             return {"submitted": [], "not_submitted": students, "total": len(students)}
 
         submissions = PracticeSubmission.get_by_link(practice_link_id)
-        submitted_names = set((sub.get("student_name") or "").strip().lower() for sub in submissions)
-        submitted_nos = set((sub.get("student_no") or "").strip() for sub in submissions)
+        submitted_names = set(n for n in ((sub.get("student_name") or "").strip().lower() for sub in submissions) if n)
+        submitted_nos = set(n for n in ((sub.get("student_no") or "").strip() for sub in submissions) if n)
 
         submitted = []
         not_submitted = []
 
         for student in students:
-            name_match = (student.get("student_name") or "").strip().lower() in submitted_names
-            no_match = (student.get("student_no") or "").strip() in submitted_nos
+            s_name = (student.get("student_name") or "").strip().lower()
+            s_no = (student.get("student_no") or "").strip()
+            name_match = s_name and s_name in submitted_names
+            no_match = s_no and s_no in submitted_nos
             if name_match or no_match:
                 for sub in submissions:
-                    if ((sub.get("student_name") or "").strip().lower() == (student.get("student_name") or "").strip().lower() or
-                        (sub.get("student_no") or "").strip() == (student.get("student_no") or "").strip()):
+                    sub_name = (sub.get("student_name") or "").strip().lower()
+                    sub_no = (sub.get("student_no") or "").strip()
+                    if (s_name and sub_name == s_name) or (s_no and sub_no and sub_no == s_no):
                         student["submission"] = sub
                         break
                 submitted.append(student)
