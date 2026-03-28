@@ -156,13 +156,19 @@
   .resend-section a:hover {
     text-decoration: underline;
   }
+
+  .captcha-wrap {
+    display: flex;
+    justify-content: center;
+    margin: 1rem 0 0.5rem;
+  }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="auth-container">
   <div class="auth-header">
-    <div class="icon">📝</div>
+    <div class="icon">&#x1F4DD;</div>
     <h2>สมัครสมาชิก</h2>
     <p>สร้างบัญชีสำหรับครู (Teacher Platform)</p>
   </div>
@@ -174,7 +180,7 @@
   {% endif %}
 
   <div class="info-box">
-    <strong>📧 การยืนยันอีเมล</strong>
+    <strong>&#x1F4E7; การยืนยันอีเมล</strong>
     หลังสมัครสำเร็จ ระบบจะส่งลิงก์ยืนยันไปที่อีเมลของคุณ
   </div>
 
@@ -191,15 +197,21 @@
 
     <div class="form-group">
       <label for="confirm_password">ยืนยันรหัสผ่าน</label>
-      <input name="confirm_password" type="password" id="confirm_password" required placeholder="••••••••">
+      <input name="confirm_password" type="password" id="confirm_password" required placeholder="&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;&#x2022;">
     </div>
+
+    {% if turnstile_site_key %}
+    <div class="captcha-wrap">
+      <div class="cf-turnstile" data-sitekey="{{ turnstile_site_key }}" data-theme="light" data-language="th"></div>
+    </div>
+    {% endif %}
 
     <button type="submit" class="btn-register">สมัครสมาชิก</button>
   </form>
 
   <div class="resend-section">
     <p>สมัครแล้วแต่ไม่ได้รับอีเมลยืนยัน?</p>
-    <a href="{{ url_for('auth.resend_verification') }}">📩 ส่งลิงก์ยืนยันอีกครั้ง</a>
+    <a href="{{ url_for('auth.resend_verification') }}">&#x1F4E9; ส่งลิงก์ยืนยันอีกครั้ง</a>
   </div>
 
   <div class="auth-divider"><span>หรือ</span></div>
@@ -209,4 +221,8 @@
     <a href="{{ url_for('auth.login') }}">เข้าสู่ระบบ</a>
   </div>
 </div>
+
+{% if turnstile_site_key %}
+<script src="https://challenges.cloudflare.com/turnstile/v0/api.js" async defer></script>
+{% endif %}
 {% endblock %}
