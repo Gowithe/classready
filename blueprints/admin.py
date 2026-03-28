@@ -562,13 +562,15 @@ def admin_cleanup_spam():
         conn = get_db()
         c = conn.cursor()
 
-        # Count first
-        c.execute("""
-            SELECT COUNT(*) FROM users
-            WHERE is_verified = 0
-              AND role != 'admin'
+        # Define spam user filter
+        spam_filter = """
+            SELECT id FROM users
+            WHERE is_verified = 0 AND role != 'admin'
               AND created_at < datetime('now', '-1 day')
-        """)
+        """
+
+        # Count first
+        c.execute(f"SELECT COUNT(*) FROM ({spam_filter})")
         count = c.fetchone()[0]
 
         if count == 0:
@@ -576,22 +578,43 @@ def admin_cleanup_spam():
             flash("\u0e44\u0e21\u0e48\u0e21\u0e35\u0e1a\u0e31\u0e0d\u0e0a\u0e35 spam \u0e17\u0e35\u0e48\u0e15\u0e49\u0e2d\u0e07\u0e25\u0e1a", "info")
             return redirect(url_for("admin.admin_users"))
 
-        # Delete related data first (foreign keys)
-        c.execute("""
-            DELETE FROM topics WHERE owner_id IN (
-                SELECT id FROM users
-                WHERE is_verified = 0 AND role != 'admin'
-                  AND created_at < datetime('now', '-1 day')
-            )
-        """)
+        # Get spam topic IDs (owned by spam users)
+        spam_topics = f"SELECT id FROM topics WHERE owner_id IN ({spam_filter})"
+        # Get spam classroom IDs
+        spam_classrooms = f"SELECT id FROM classrooms WHERE owner_id IN ({spam_filter})"
 
-        # Delete the spam users
-        c.execute("""
-            DELETE FROM users
-            WHERE is_verified = 0
-              AND role != 'admin'
-              AND created_at < datetime('now', '-1 day')
-        """)
+        # Delete in correct FK order (children first)
+        # 1) practice_submissions → practice_links
+        c.execute(f"DELETE FROM practice_submissions WHERE link_id IN (SELECT id FROM practice_links WHERE topic_id IN ({spam_topics}) OR created_by IN ({spam_filter}))")
+        # 2) assignments → classrooms/topics
+        c.execute(f"DELETE FROM assignments WHERE classroom_id IN ({spam_classrooms}) OR created_by IN ({spam_filter})")
+        # 3) classroom_students → classrooms
+        c.execute(f"DELETE FROM classroom_students WHERE classroom_id IN ({spam_classrooms})")
+        # 4) classrooms
+        c.execute(f"DELETE FROM classrooms WHERE owner_id IN ({spam_filter})")
+        # 5) practice_links → topics
+        c.execute(f"DELETE FROM practice_links WHERE topic_id IN ({spam_topics}) OR created_by IN ({spam_filter})")
+        # 6) game_sessions → topics/users
+        c.execute(f"DELETE FROM game_sessions WHERE created_by IN ({spam_filter})")
+        # 7) game_questions → topics
+        c.execute(f"DELETE FROM game_questions WHERE topic_id IN ({spam_topics})")
+        # 8) practice_questions → topics
+        c.execute(f"DELETE FROM practice_questions WHERE topic_id IN ({spam_topics})")
+        # 9) attempt_history → users
+        c.execute(f"DELETE FROM attempt_history WHERE user_id IN ({spam_filter})")
+        # 10) library_clones → users
+        c.execute(f"DELETE FROM library_clones WHERE user_id IN ({spam_filter})")
+        # 11) library_ratings → users
+        c.execute(f"DELETE FROM library_ratings WHERE user_id IN ({spam_filter})")
+        # 12) user_subscriptions → users
+        c.execute(f"DELETE FROM user_subscriptions WHERE user_id IN ({spam_filter})")
+        # 13) user_usage → users
+        c.execute(f"DELETE FROM user_usage WHERE user_id IN ({spam_filter})")
+        # 14) topics → users
+        c.execute(f"DELETE FROM topics WHERE owner_id IN ({spam_filter})")
+        # 15) Finally delete the spam users
+        c.execute(f"DELETE FROM users WHERE id IN ({spam_filter})")
+
         conn.commit()
         conn.close()
 
