@@ -253,7 +253,15 @@ def assignment_detail(assignment_id):
     topic = Topic.get_by_id(a["topic_id"])
     status = Assignment.get_submissions_status(assignment_id)
     practice_link = PracticeLink.get_by_id(a.get("practice_link_id")) if a.get("practice_link_id") else None
-    student_url = (request.url_root.rstrip("/") + url_for("practice.public_practice", token=practice_link["token"])) if practice_link else None
+    student_url = None
+    if practice_link:
+        ptype = practice_link.get("practice_type", "mcq")
+        if ptype == "fill":
+            student_url = request.url_root.rstrip("/") + url_for("practice.public_fill_blanks", token=practice_link["token"])
+        elif ptype == "unscramble":
+            student_url = request.url_root.rstrip("/") + url_for("practice.public_unscramble", token=practice_link["token"])
+        else:
+            student_url = request.url_root.rstrip("/") + url_for("practice.public_practice", token=practice_link["token"])
     avg = 0
     submissions = status.get("submissions") or []
     if submissions:
