@@ -275,7 +275,7 @@
     {% if current_plan_id == 1 %}
     <button class="btn-plan premium" disabled>สมาชิกอยู่แล้ว &#x2714;</button>
     {% else %}
-    <button class="btn-plan premium" onclick="subscribe(1)">{{ 'เปลี่ยนแพ็คเกจ &#x2192;' if is_premium else 'สมัครเลย &#x2192;' }}</button>
+    <button class="btn-plan premium" onclick="subscribe(1)">{{ 'เปลี่ยนแพ็คเกจ →' if is_premium else 'สมัครเลย →' }}</button>
     {% endif %}
   </div>
   
@@ -301,7 +301,7 @@
     {% if current_plan_id == 2 %}
     <button class="btn-plan premium" disabled>สมาชิกอยู่แล้ว &#x2714;</button>
     {% else %}
-    <button class="btn-plan premium" onclick="subscribe(2)">{{ 'เปลี่ยนแพ็คเกจ &#x2192;' if is_premium else 'สมัครเลย &#x2192;' }}</button>
+    <button class="btn-plan premium" onclick="subscribe(2)">{{ 'เปลี่ยนแพ็คเกจ →' if is_premium else 'สมัครเลย →' }}</button>
     {% endif %}
   </div>
 </div>
