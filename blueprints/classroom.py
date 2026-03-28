@@ -43,7 +43,7 @@ def classroom_create():
 
     if not can_create:
         flash(f"\u274c {msg} - \u0e2d\u0e31\u0e1b\u0e40\u0e01\u0e23\u0e14\u0e40\u0e1b\u0e47\u0e19 Premium!", "error")
-        return redirect(url_for("main.pricing"))
+        return redirect(url_for("payment.pricing"))
 
     name = (request.form.get("name") or "").strip()
     if not name:
