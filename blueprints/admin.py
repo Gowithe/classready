@@ -549,3 +549,54 @@ def admin_adjust_user_expiry(user_id: int):
         flash(f"\u0e1b\u0e23\u0e31\u0e1a\u0e27\u0e31\u0e19\u0e2b\u0e21\u0e14\u0e2d\u0e32\u0e22\u0e38\u0e44\u0e21\u0e48\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08: {e}", "error")
 
     return redirect(url_for("admin.admin_users", q=request.args.get("q") or ""))
+
+
+# ==============================================================================
+# Cleanup Spam / Unverified Accounts
+# ==============================================================================
+@admin_bp.route("/admin/users/cleanup-spam", methods=["POST"])
+@admin_required
+def admin_cleanup_spam():
+    """Delete unverified accounts older than 1 day (bot registrations)."""
+    try:
+        conn = get_db()
+        c = conn.cursor()
+
+        # Count first
+        c.execute("""
+            SELECT COUNT(*) FROM users
+            WHERE is_verified = 0
+              AND role != 'admin'
+              AND created_at < datetime('now', '-1 day')
+        """)
+        count = c.fetchone()[0]
+
+        if count == 0:
+            conn.close()
+            flash("\u0e44\u0e21\u0e48\u0e21\u0e35\u0e1a\u0e31\u0e0d\u0e0a\u0e35 spam \u0e17\u0e35\u0e48\u0e15\u0e49\u0e2d\u0e07\u0e25\u0e1a", "info")
+            return redirect(url_for("admin.admin_users"))
+
+        # Delete related data first (foreign keys)
+        c.execute("""
+            DELETE FROM topics WHERE owner_id IN (
+                SELECT id FROM users
+                WHERE is_verified = 0 AND role != 'admin'
+                  AND created_at < datetime('now', '-1 day')
+            )
+        """)
+
+        # Delete the spam users
+        c.execute("""
+            DELETE FROM users
+            WHERE is_verified = 0
+              AND role != 'admin'
+              AND created_at < datetime('now', '-1 day')
+        """)
+        conn.commit()
+        conn.close()
+
+        flash(f"\u2705 \u0e25\u0e1a\u0e1a\u0e31\u0e0d\u0e0a\u0e35 spam {count} \u0e1a\u0e31\u0e0d\u0e0a\u0e35\u0e40\u0e23\u0e35\u0e22\u0e1a\u0e23\u0e49\u0e2d\u0e22", "success")
+    except Exception as e:
+        flash(f"\u274c \u0e40\u0e01\u0e34\u0e14\u0e02\u0e49\u0e2d\u0e1c\u0e34\u0e14\u0e1e\u0e25\u0e32\u0e14: {e}", "error")
+
+    return redirect(url_for("admin.admin_users"))
