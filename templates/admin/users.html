@@ -97,6 +97,12 @@
                 <input class="input" type="number" name="days" placeholder="กำหนดวัน" style="width:92px;padding:8px 10px;">
                 <button class="btn" type="submit">ปรับ</button>
               </form>
+              {% if u.role != 'admin' %}
+              <form method="POST" action="{{ url_for('admin.admin_delete_user', user_id=u.id) }}" style="margin:0;"
+                    onsubmit="return confirm('ลบ user #{{ u.id }} ({{ u.email }}) และข้อมูลทั้งหมด?')">
+                <button class="btn" type="submit" style="background:#ef4444;color:#fff;font-size:12px;padding:6px 10px;">🗑</button>
+              </form>
+              {% endif %}
             </div>
           </td>
         </tr>
@@ -161,6 +167,12 @@
             <input class="input" type="number" name="days" placeholder="วัน" style="width:90px;padding:8px 10px;">
             <button class="btn" type="submit">ปรับ</button>
           </form>
+          {% if u.role != 'admin' %}
+          <form method="POST" action="{{ url_for('admin.admin_delete_user', user_id=u.id) }}" style="margin:0;"
+                onsubmit="return confirm('ลบ user #{{ u.id }} ({{ u.email }}) และข้อมูลทั้งหมด?')">
+            <button class="btn" type="submit" style="background:#ef4444;color:#fff;">🗑 ลบ</button>
+          </form>
+          {% endif %}
         </div>
       </div>
     {% endfor %}
