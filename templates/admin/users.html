@@ -14,7 +14,7 @@
     <div style="display:flex;gap:10px;flex-wrap:wrap;align-items:center;">
       <a class="btn" href="{{ url_for('admin_dashboard') }}">🛠 Admin</a>
       <a class="btn" href="{{ url_for('admin_payments') }}">💳 Payments</a>
-      <form method="POST" action="{{ url_for('admin_cleanup_spam') }}" style="margin:0;"
+      <form method="POST" action="{{ url_for('admin.admin_cleanup_spam') }}" style="margin:0;"
             onsubmit="return confirm('ลบบัญชีที่ยังไม่ verify (เก่ากว่า 1 วัน) ทั้งหมด?')">
         <button class="btn" type="submit" style="background:#ef4444;color:#fff;">🗑 ลบ Spam</button>
       </form>
