@@ -3,9 +3,11 @@
 # Auth Blueprint: login, register, verify, reset password, my-account
 # ==============================================================================
 
+import os
 import traceback
 from datetime import datetime
 
+import requests as http_requests
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
 from werkzeug.security import check_password_hash
 
@@ -17,6 +19,30 @@ from blueprints.helpers import (
 )
 
 auth_bp = Blueprint("auth", __name__)
+
+# --- Cloudflare Turnstile CAPTCHA ---
+TURNSTILE_SITE_KEY = os.environ.get("TURNSTILE_SITE_KEY", "").strip()
+TURNSTILE_SECRET_KEY = os.environ.get("TURNSTILE_SECRET_KEY", "").strip()
+
+
+def _verify_turnstile(token: str) -> bool:
+    """Verify Cloudflare Turnstile token. Returns True if valid or if Turnstile is not configured."""
+    if not TURNSTILE_SECRET_KEY:
+        # Turnstile not configured — skip verification (dev mode)
+        return True
+    if not token:
+        return False
+    try:
+        resp = http_requests.post(
+            "https://challenges.cloudflare.com/turnstile/v0/siteverify",
+            data={"secret": TURNSTILE_SECRET_KEY, "response": token},
+            timeout=10,
+        )
+        result = resp.json()
+        return result.get("success", False)
+    except Exception as e:
+        print(f"[TURNSTILE ERROR] {e}")
+        return False
 
 
 # ==============================================================================
@@ -33,25 +59,31 @@ def landing():
 @auth_bp.route("/register", methods=["GET", "POST"])
 def register():
     if request.method == "POST":
+        # --- Turnstile CAPTCHA verification ---
+        turnstile_token = request.form.get("cf-turnstile-response", "")
+        if TURNSTILE_SECRET_KEY and not _verify_turnstile(turnstile_token):
+            flash("\u0e01\u0e23\u0e38\u0e13\u0e32\u0e22\u0e37\u0e19\u0e22\u0e31\u0e19\u0e27\u0e48\u0e32\u0e04\u0e38\u0e13\u0e44\u0e21\u0e48\u0e43\u0e0a\u0e48\u0e1a\u0e2d\u0e17 (CAPTCHA failed)", "error")
+            return render_template("register.html", turnstile_site_key=TURNSTILE_SITE_KEY)
+
         email = (request.form.get("email") or "").strip().lower()
         password = (request.form.get("password") or "").strip()
         confirm = (request.form.get("confirm_password") or "").strip()
 
         if not email or not password:
             flash("Email and password required.", "error")
-            return render_template("register.html")
+            return render_template("register.html", turnstile_site_key=TURNSTILE_SITE_KEY)
         if password != confirm:
             flash("Passwords do not match.", "error")
-            return render_template("register.html")
+            return render_template("register.html", turnstile_site_key=TURNSTILE_SITE_KEY)
         if User.get_by_email(email):
             flash("Email already registered.", "error")
-            return render_template("register.html")
+            return render_template("register.html", turnstile_site_key=TURNSTILE_SITE_KEY)
 
         user = User.create(email, password, "teacher")
         token = (user or {}).get("verify_token")
         if not token:
             flash("Could not create verification token. Please try again.", "error")
-            return render_template("register.html")
+            return render_template("register.html", turnstile_site_key=TURNSTILE_SITE_KEY)
 
         verify_path = url_for("auth.verify_email", token=token)
         verify_link = _build_external_url(verify_path) if APP_BASE_URL else url_for("auth.verify_email", token=token, _external=True)
@@ -61,11 +93,11 @@ def register():
         except Exception:
             traceback.print_exc()
             flash("\u0e2a\u0e48\u0e07\u0e2d\u0e35\u0e40\u0e21\u0e25\u0e44\u0e21\u0e48\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08 \u0e01\u0e23\u0e38\u0e13\u0e32\u0e25\u0e2d\u0e07\u0e43\u0e2b\u0e21\u0e48\u0e20\u0e32\u0e22\u0e2b\u0e25\u0e31\u0e07", "error")
-            return render_template("register.html")
+            return render_template("register.html", turnstile_site_key=TURNSTILE_SITE_KEY)
 
         return render_template("verify_sent.html", email=email)
 
-    return render_template("register.html")
+    return render_template("register.html", turnstile_site_key=TURNSTILE_SITE_KEY)
 
 
 # ==============================================================================
