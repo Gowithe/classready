@@ -202,26 +202,26 @@
 
 {% block content %}
 <div class="pricing-hero">
-  <h1>💎 เลือกแพ็คเกจที่เหมาะกับคุณ</h1>
+  <h1>&#x1F48E; เลือกแพ็คเกจที่เหมาะกับคุณ</h1>
   <p>เริ่มต้นฟรี อัปเกรดเมื่อพร้อม</p>
 </div>
 
 {% if session.user_id and not is_premium %}
 <div class="usage-card">
-  <h3>📊 การใช้งานปัจจุบันของคุณ</h3>
+  <h3>&#x1F4CA; การใช้งานปัจจุบันของคุณ</h3>
   <div class="usage-grid">
     <div class="usage-item {% if stats.topic_count >= free_limits.topics %}danger{% elif stats.topic_count >= free_limits.topics - 1 %}warning{% endif %}">
-      <div class="icon">📚</div>
+      <div class="icon">&#x1F4DA;</div>
       <div class="value">{{ stats.topic_count }}/{{ free_limits.topics }}</div>
       <div class="label">Topics</div>
     </div>
     <div class="usage-item {% if stats.classroom_count >= free_limits.classrooms %}danger{% elif stats.classroom_count >= free_limits.classrooms - 1 %}warning{% endif %}">
-      <div class="icon">🏫</div>
+      <div class="icon">&#x1F3EB;</div>
       <div class="value">{{ stats.classroom_count }}/{{ free_limits.classrooms }}</div>
       <div class="label">ห้องเรียน</div>
     </div>
     <div class="usage-item {% if stats.ai_generate_count >= free_limits.ai_generate %}danger{% elif stats.ai_generate_count >= free_limits.ai_generate - 1 %}warning{% endif %}">
-      <div class="icon">🤖</div>
+      <div class="icon">&#x1F916;</div>
       <div class="value">{{ stats.ai_generate_count }}/{{ free_limits.ai_generate }}</div>
       <div class="label">AI (เดือนนี้)</div>
     </div>
@@ -233,108 +233,108 @@
   {% set current_plan_id = (current_sub.plan_id if current_sub and current_sub.plan_id is defined else (current_sub.get('plan_id') if current_sub else None)) %}
   <!-- Free -->
   <div class="pricing-card">
-    <div class="plan-name">🆓 Free</div>
+    <div class="plan-name">&#x1F193; Free</div>
     <div class="plan-desc">เริ่มต้นใช้งานฟรี</div>
     <div class="plan-price">
-      <span class="price-currency">฿</span>
+      <span class="price-currency">&#xE3F;</span>
       <span class="price-amount">0</span>
       <span class="price-period">/ ตลอดชีพ</span>
     </div>
     <ul class="plan-features">
-      <li><span class="check">✓</span> สร้าง Topic ได้ <strong>5</strong> รายการ</li>
-      <li><span class="check">✓</span> สร้างห้องเรียนได้ <strong>2</strong> ห้อง</li>
-      <li><span class="check">✓</span> นักเรียน <strong>50</strong> คน/ห้อง</li>
-      <li><span class="check">✓</span> AI Generate <strong>3</strong> ครั้ง/เดือน</li>
-      <li><span class="check">✓</span> Slides, Games, Activities ทั้งหมด</li>
-      <li><span class="check">✓</span> Library บทเรียนฟรี</li>
-      <li><span class="cross">✗</span> <span style="color:#94a3b8;">Export Excel/PDF</span></li>
-      <li><span class="cross">✗</span> <span style="color:#94a3b8;">Library Premium</span></li>
+      <li><span class="check">&#x2714;</span> สร้าง Topic ได้ <strong>5</strong> รายการ</li>
+      <li><span class="check">&#x2714;</span> สร้างห้องเรียนได้ <strong>2</strong> ห้อง</li>
+      <li><span class="check">&#x2714;</span> นักเรียน <strong>50</strong> คน/ห้อง</li>
+      <li><span class="check">&#x2714;</span> AI Generate <strong>3</strong> ครั้ง/เดือน</li>
+      <li><span class="check">&#x2714;</span> Slides, Games, Activities ทั้งหมด</li>
+      <li><span class="check">&#x2714;</span> Library บทเรียนฟรี</li>
+      <li><span class="cross">&#x2717;</span> <span style="color:#94a3b8;">Export Excel/PDF</span></li>
+      <li><span class="cross">&#x2717;</span> <span style="color:#94a3b8;">Library Premium</span></li>
     </ul>
     <button class="btn-plan free" disabled>แพ็คเกจปัจจุบัน</button>
   </div>
   
   <!-- Monthly -->
   <div class="pricing-card popular">
-    <div class="popular-badge">⭐ แนะนำ</div>
-    <div class="plan-name">👑 Premium รายเดือน</div>
+    <div class="popular-badge">&#x2B50; แนะนำ</div>
+    <div class="plan-name">&#x1F451; Premium รายเดือน</div>
     <div class="plan-desc">เหมาะสำหรับทดลองใช้</div>
     <div class="plan-price">
-      <span class="price-currency">฿</span>
-      <span class="price-amount">199</span>
+      <span class="price-currency">&#xE3F;</span>
+      <span class="price-amount">59</span>
       <span class="price-period">/ เดือน</span>
     </div>
     <ul class="plan-features">
-      <li><span class="check">✓</span> สร้าง Topic <span class="unlimited">ไม่จำกัด</span></li>
-      <li><span class="check">✓</span> สร้างห้องเรียน <span class="unlimited">ไม่จำกัด</span></li>
-      <li><span class="check">✓</span> นักเรียน <span class="unlimited">ไม่จำกัด</span></li>
-      <li><span class="check">✓</span> AI Generate <span class="unlimited">ไม่จำกัด</span></li>
-      <li><span class="check">✓</span> Library <strong>ทุกบทเรียน</strong></li>
-      <li><span class="check">✓</span> Export Excel/PDF</li>
-      <li><span class="check">✓</span> Priority Support</li>
+      <li><span class="check">&#x2714;</span> สร้าง Topic <span class="unlimited">ไม่จำกัด</span></li>
+      <li><span class="check">&#x2714;</span> สร้างห้องเรียน <span class="unlimited">ไม่จำกัด</span></li>
+      <li><span class="check">&#x2714;</span> นักเรียน <span class="unlimited">ไม่จำกัด</span></li>
+      <li><span class="check">&#x2714;</span> AI Generate <span class="unlimited">ไม่จำกัด</span></li>
+      <li><span class="check">&#x2714;</span> Library <strong>ทุกบทเรียน</strong></li>
+      <li><span class="check">&#x2714;</span> Export Excel/PDF</li>
+      <li><span class="check">&#x2714;</span> Priority Support</li>
     </ul>
     {% if current_plan_id == 1 %}
-    <button class="btn-plan premium" disabled>สมาชิกอยู่แล้ว ✓</button>
+    <button class="btn-plan premium" disabled>สมาชิกอยู่แล้ว &#x2714;</button>
     {% else %}
-    <button class="btn-plan premium" onclick="subscribe(1)">{{ 'เปลี่ยนแพ็คเกจ →' if is_premium else 'สมัครเลย →' }}</button>
+    <button class="btn-plan premium" onclick="subscribe(1)">{{ 'เปลี่ยนแพ็คเกจ &#x2192;' if is_premium else 'สมัครเลย &#x2192;' }}</button>
     {% endif %}
   </div>
   
   <!-- Yearly -->
   <div class="pricing-card">
-    <div class="plan-name">💎 Premium รายปี</div>
+    <div class="plan-name">&#x1F48E; Premium รายปี</div>
     <div class="plan-desc">ประหยัดสุดคุ้ม!</div>
     <div class="plan-price">
-      <span class="price-currency">฿</span>
-      <span class="price-amount">1,490</span>
+      <span class="price-currency">&#xE3F;</span>
+      <span class="price-amount">599</span>
       <span class="price-period">/ ปี</span>
-      <div class="price-save">ประหยัด 40%</div>
+      <div class="price-save">ประหยัด 15%</div>
     </div>
     <ul class="plan-features">
-      <li><span class="check">✓</span> สร้าง Topic <span class="unlimited">ไม่จำกัด</span></li>
-      <li><span class="check">✓</span> สร้างห้องเรียน <span class="unlimited">ไม่จำกัด</span></li>
-      <li><span class="check">✓</span> นักเรียน <span class="unlimited">ไม่จำกัด</span></li>
-      <li><span class="check">✓</span> AI Generate <span class="unlimited">ไม่จำกัด</span></li>
-      <li><span class="check">✓</span> Library <strong>ทุกบทเรียน</strong></li>
-      <li><span class="check">✓</span> Export Excel/PDF</li>
-      <li><span class="check">✓</span> Priority Support</li>
+      <li><span class="check">&#x2714;</span> สร้าง Topic <span class="unlimited">ไม่จำกัด</span></li>
+      <li><span class="check">&#x2714;</span> สร้างห้องเรียน <span class="unlimited">ไม่จำกัด</span></li>
+      <li><span class="check">&#x2714;</span> นักเรียน <span class="unlimited">ไม่จำกัด</span></li>
+      <li><span class="check">&#x2714;</span> AI Generate <span class="unlimited">ไม่จำกัด</span></li>
+      <li><span class="check">&#x2714;</span> Library <strong>ทุกบทเรียน</strong></li>
+      <li><span class="check">&#x2714;</span> Export Excel/PDF</li>
+      <li><span class="check">&#x2714;</span> Priority Support</li>
     </ul>
     {% if current_plan_id == 2 %}
-    <button class="btn-plan premium" disabled>สมาชิกอยู่แล้ว ✓</button>
+    <button class="btn-plan premium" disabled>สมาชิกอยู่แล้ว &#x2714;</button>
     {% else %}
-    <button class="btn-plan premium" onclick="subscribe(2)">{{ 'เปลี่ยนแพ็คเกจ →' if is_premium else 'สมัครเลย →' }}</button>
+    <button class="btn-plan premium" onclick="subscribe(2)">{{ 'เปลี่ยนแพ็คเกจ &#x2192;' if is_premium else 'สมัครเลย &#x2192;' }}</button>
     {% endif %}
   </div>
 </div>
 
 <div class="comparison-section">
-  <h2>📋 เปรียบเทียบฟีเจอร์</h2>
+  <h2>&#x1F4CB; เปรียบเทียบฟีเจอร์</h2>
   <table class="comparison-table">
     <thead>
-      <tr><th>ฟีเจอร์</th><th>🆓 Free</th><th>👑 Premium</th></tr>
+      <tr><th>ฟีเจอร์</th><th>&#x1F193; Free</th><th>&#x1F451; Premium</th></tr>
     </thead>
     <tbody>
-      <tr><td>📚 Topics</td><td>5</td><td><span class="unlimited">ไม่จำกัด</span></td></tr>
-      <tr><td>🏫 ห้องเรียน</td><td>2</td><td><span class="unlimited">ไม่จำกัด</span></td></tr>
-      <tr><td>👨‍🎓 นักเรียน/ห้อง</td><td>50</td><td><span class="unlimited">ไม่จำกัด</span></td></tr>
-      <tr><td>🤖 AI Generate</td><td>3/เดือน</td><td><span class="unlimited">ไม่จำกัด</span></td></tr>
-      <tr><td>📚 Library</td><td>ฟรีเท่านั้น</td><td>✅ ทั้งหมด</td></tr>
-      <tr><td>📊 Export</td><td>❌</td><td>✅</td></tr>
+      <tr><td>&#x1F4DA; Topics</td><td>5</td><td><span class="unlimited">ไม่จำกัด</span></td></tr>
+      <tr><td>&#x1F3EB; ห้องเรียน</td><td>2</td><td><span class="unlimited">ไม่จำกัด</span></td></tr>
+      <tr><td>&#x1F468;&#x200D;&#x1F393; นักเรียน/ห้อง</td><td>50</td><td><span class="unlimited">ไม่จำกัด</span></td></tr>
+      <tr><td>&#x1F916; AI Generate</td><td>3/เดือน</td><td><span class="unlimited">ไม่จำกัด</span></td></tr>
+      <tr><td>&#x1F4DA; Library</td><td>ฟรีเท่านั้น</td><td>&#x2705; ทั้งหมด</td></tr>
+      <tr><td>&#x1F4CA; Export</td><td>&#x274C;</td><td>&#x2705;</td></tr>
     </tbody>
   </table>
 </div>
 
 <div class="faq-section">
-  <h2>❓ คำถามที่พบบ่อย</h2>
+  <h2>&#x2753; คำถามที่พบบ่อย</h2>
   <div class="faq-item" onclick="this.classList.toggle('open')">
-    <div class="faq-question"><span>ฟรีตลอดไปจริงไหม?</span><span>▼</span></div>
+    <div class="faq-question"><span>ฟรีตลอดไปจริงไหม?</span><span>&#x25BC;</span></div>
     <div class="faq-answer">ใช่ครับ! แพ็คเกจ Free ใช้ได้ตลอดชีพ ไม่มีหมดอายุ</div>
   </div>
   <div class="faq-item" onclick="this.classList.toggle('open')">
-    <div class="faq-question"><span>ยกเลิก Premium ได้ไหม?</span><span>▼</span></div>
+    <div class="faq-question"><span>ยกเลิก Premium ได้ไหม?</span><span>&#x25BC;</span></div>
     <div class="faq-answer">ได้ครับ! ยกเลิกได้ทุกเมื่อ ข้อมูลไม่หาย</div>
   </div>
   <div class="faq-item" onclick="this.classList.toggle('open')">
-    <div class="faq-question"><span>AI หมด 3 ครั้ง ทำยังไง?</span><span>▼</span></div>
+    <div class="faq-question"><span>AI หมด 3 ครั้ง ทำยังไง?</span><span>&#x25BC;</span></div>
     <div class="faq-answer">รอเดือนหน้าจะรีเซ็ต หรืออัปเกรดเป็น Premium</div>
   </div>
 </div>
@@ -355,11 +355,9 @@ async function subscribe(planId) {
   return;
   {% endif %}
 
-  // ยืนยันก่อนสร้างรายการชำระเงิน
-  if (!confirm('ยืนยันสมัคร Premium?\\n\\nระบบจะพาไปหน้าชำระเงิน (PromptPay)')) return;
+  if (!confirm('ยืนยันสมัคร Premium?\n\nระบบจะพาไปหน้าชำระเงิน (PromptPay)')) return;
 
   try {
-    // เรียกสร้างรายการชำระเงิน -> ได้ลิงก์ redirect กลับมา
     const res = await fetch('/payment/create/' + planId, {
       method: 'POST',
       headers: { 'Content-Type': 'application/json' }
@@ -368,17 +366,15 @@ async function subscribe(planId) {
     const data = await res.json().catch(() => ({}));
 
     if (!res.ok || !data.ok) {
-      // fallback เผื่อยังไม่ได้ติดตั้งระบบชำระเงินจริง
       const msg = data.error || ('สร้างรายการชำระเงินไม่สำเร็จ (HTTP ' + res.status + ')');
-      showToast('❌ ' + msg, 'error');
+      showToast('&#x274C; ' + msg, 'error');
       return;
     }
 
-    // ✅ เด้งไปหน้าชำระเงิน
     window.location.href = data.redirect;
 
   } catch (e) {
-    showToast('❌ Error: ' + e.message, 'error');
+    showToast('&#x274C; Error: ' + e.message, 'error');
   }
 }
 </script>
