@@ -54,6 +54,7 @@
   .badge-mcq { background: #dbeafe; color: #2563eb; }
   .badge-fill { background: #fef3c7; color: #92400e; }
   .badge-unscramble { background: #dcfce7; color: #166534; }
+  .badge-homework { background: #f3e8ff; color: #7c3aed; }
 
   .asgn-right { display: flex; align-items: center; gap: 12px; }
 
@@ -144,7 +145,9 @@
       </div>
     </div>
     <div class="asgn-right">
-      {% if a.link_token %}
+      {% if a.practice_type == 'homework' %}
+        <a href="{{ url_for('student.student_homework', assignment_id=a.id) }}" class="btn-do">&#x1F4CB; ส่งงาน</a>
+      {% elif a.link_token %}
         {% if a.practice_type == 'fill' %}
         <a href="{{ url_for('practice.public_fill_blanks', token=a.link_token) }}" class="btn-do">&#x270F;&#xFE0F; ทำแบบฝึกหัด</a>
         {% elif a.practice_type == 'unscramble' %}
@@ -174,11 +177,26 @@
       </div>
     </div>
     <div class="asgn-right">
+      {% if a.practice_type == 'homework' %}
+        {% if a.hw_score is not none %}
+        <div class="score-display done">
+          <div class="sc-val">{{ a.hw_score }}/{{ a.hw_max_score }}</div>
+          <div class="sc-pct">&#x2B50; ตรวจแล้ว</div>
+        </div>
+        {% else %}
+        <div class="score-display" style="background:#fef3c7;">
+          <div class="sc-val" style="color:#92400e;">&#x23F3;</div>
+          <div class="sc-pct" style="color:#92400e;">รอตรวจ</div>
+        </div>
+        {% endif %}
+        <a href="{{ url_for('student.student_homework', assignment_id=a.id) }}" class="btn-done">&#x1F4CB; ดูงาน</a>
+      {% else %}
       <div class="score-display done">
         <div class="sc-val">{{ a.submission.score }}/{{ a.submission.total }}</div>
         <div class="sc-pct">{{ "%.0f"|format(a.submission.percentage) }}%</div>
       </div>
       <span class="btn-done">&#x2705; ส่งแล้ว</span>
+      {% endif %}
     </div>
   </div>
   {% endfor %}
