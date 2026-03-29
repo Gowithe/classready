@@ -105,6 +105,22 @@
         <span>👨‍🎓 {{ students|length }} นักเรียน</span>
         <span>📋 {{ assignments|length }} งาน</span>
       </div>
+      {% if classroom.join_code %}
+      <div style="margin-top:10px;display:flex;align-items:center;gap:10px;flex-wrap:wrap;">
+        <div style="background:linear-gradient(135deg,#667eea,#764ba2);color:#fff;padding:8px 16px;border-radius:10px;font-weight:800;font-size:1.1rem;letter-spacing:0.15em;">
+          🔑 รหัสห้อง: {{ classroom.join_code }}
+        </div>
+        <button onclick="copyJoinCode()" style="background:#f1f5f9;border:1px solid #e2e8f0;padding:6px 12px;border-radius:8px;cursor:pointer;font-size:0.85rem;font-weight:600;">📋 Copy</button>
+        <span style="color:#64748b;font-size:0.8rem;">นักเรียนใช้รหัสนี้เข้า <a href="/student" target="_blank" style="color:#667eea;">/student</a></span>
+      </div>
+      <script>
+      function copyJoinCode(){
+        navigator.clipboard.writeText('{{ classroom.join_code }}').then(()=>{
+          const b=event.target;b.textContent='✅ Copied!';setTimeout(()=>b.textContent='📋 Copy',2000);
+        });
+      }
+      </script>
+      {% endif %}
     </div>
     <div class="header-actions">
       <a href="{{ url_for('classroom.classrooms') }}" class="btn btn-ghost">← กลับ</a>
