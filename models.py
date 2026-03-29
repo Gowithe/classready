@@ -420,6 +420,35 @@ def init_db() -> None:
 
     # ---------------- indexes (performance) ----------------
     # แก้ไขการย่อหน้า (Indentation) ให้ถูกต้อง
+
+    # Migration: add exercise_type to assignments if missing
+    try:
+        c.execute("ALTER TABLE assignments ADD COLUMN exercise_type TEXT DEFAULT 'mcq'")
+    except Exception:
+        pass
+
+    # ---------------- homework_submissions ----------------
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS homework_submissions (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      assignment_id INTEGER NOT NULL,
+      student_id INTEGER NOT NULL,
+      text_content TEXT DEFAULT '',
+      image_file TEXT DEFAULT '',
+      link_url TEXT DEFAULT '',
+      score INTEGER DEFAULT NULL,
+      max_score INTEGER DEFAULT 10,
+      teacher_comment TEXT DEFAULT '',
+      graded_at TEXT DEFAULT NULL,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL,
+      FOREIGN KEY(assignment_id) REFERENCES assignments(id),
+      FOREIGN KEY(student_id) REFERENCES classroom_students(id)
+    )
+    """)
+    c.execute("CREATE INDEX IF NOT EXISTS idx_hw_sub_assignment ON homework_submissions(assignment_id)")
+    c.execute("CREATE INDEX IF NOT EXISTS idx_hw_sub_student ON homework_submissions(student_id)")
+
     c.execute("CREATE INDEX IF NOT EXISTS idx_topics_owner_id ON topics(owner_id)")
     c.execute("CREATE INDEX IF NOT EXISTS idx_game_questions_topic_set ON game_questions(topic_id, set_no, tile_no)")
     c.execute("CREATE INDEX IF NOT EXISTS idx_practice_questions_topic ON practice_questions(topic_id)")
@@ -1774,6 +1803,22 @@ class Assignment:
         conn.close()
 
     @staticmethod
+    def create_homework(classroom_id: int, title: str, description: str, due_date: str,
+                        created_by: int, max_score: int = 10) -> Dict[str, Any]:
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        c.execute("""
+            INSERT INTO assignments (classroom_id, topic_id, practice_link_id, title, description,
+                                     due_date, is_active, created_by, created_at, exercise_type)
+            VALUES (?, 0, NULL, ?, ?, ?, 1, ?, ?, 'homework')
+        """, (classroom_id, title, description, due_date, created_by, now))
+        conn.commit()
+        assignment_id = c.lastrowid
+        conn.close()
+        return Assignment.get_by_id(assignment_id)
+
+    @staticmethod
     def get_submissions_status(assignment_id: int) -> Dict[str, Any]:
         assignment = Assignment.get_by_id(assignment_id)
         if not assignment:
@@ -1815,6 +1860,100 @@ class Assignment:
             "total": len(students),
             "submissions": submissions
         }
+
+
+# ==============================================================================
+# Homework Submissions (student uploads: text, image, link)
+# ==============================================================================
+class HomeworkSubmission:
+    @staticmethod
+    def create(assignment_id: int, student_id: int, text_content: str = "",
+               image_file: str = "", link_url: str = "") -> Dict[str, Any]:
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        c.execute("""
+            INSERT INTO homework_submissions
+            (assignment_id, student_id, text_content, image_file, link_url, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?)
+        """, (assignment_id, student_id, text_content, image_file, link_url, now, now))
+        conn.commit()
+        sub_id = c.lastrowid
+        conn.close()
+        return HomeworkSubmission.get_by_id(sub_id)
+
+    @staticmethod
+    def get_by_id(sub_id: int) -> Optional[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM homework_submissions WHERE id = ?", (sub_id,))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    @staticmethod
+    def get_by_assignment(assignment_id: int) -> List[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("""
+            SELECT hs.*, cs.student_name, cs.student_no
+            FROM homework_submissions hs
+            JOIN classroom_students cs ON hs.student_id = cs.id
+            WHERE hs.assignment_id = ?
+            ORDER BY hs.created_at DESC
+        """, (assignment_id,))
+        rows = c.fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+
+    @staticmethod
+    def get_by_student_and_assignment(student_id: int, assignment_id: int) -> Optional[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("""
+            SELECT * FROM homework_submissions
+            WHERE student_id = ? AND assignment_id = ?
+            ORDER BY id DESC LIMIT 1
+        """, (student_id, assignment_id))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    @staticmethod
+    def update(sub_id: int, text_content: str = None, image_file: str = None,
+               link_url: str = None) -> None:
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        sub = HomeworkSubmission.get_by_id(sub_id)
+        if not sub:
+            conn.close()
+            return
+        c.execute("""
+            UPDATE homework_submissions
+            SET text_content = ?, image_file = ?, link_url = ?, updated_at = ?
+            WHERE id = ?
+        """, (
+            text_content if text_content is not None else sub["text_content"],
+            image_file if image_file is not None else sub["image_file"],
+            link_url if link_url is not None else sub["link_url"],
+            now, sub_id
+        ))
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def grade(sub_id: int, score: int, max_score: int = 10, comment: str = "") -> None:
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        c.execute("""
+            UPDATE homework_submissions
+            SET score = ?, max_score = ?, teacher_comment = ?, graded_at = ?, updated_at = ?
+            WHERE id = ?
+        """, (score, max_score, comment, now, now, sub_id))
+        conn.commit()
+        conn.close()
 
 
 # ==============================================================================
