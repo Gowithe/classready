@@ -1770,7 +1770,7 @@ class Assignment:
         c.execute("""
             SELECT a.*, t.name as topic_name
             FROM assignments a
-            JOIN topics t ON a.topic_id = t.id
+            LEFT JOIN topics t ON a.topic_id = t.id
             WHERE a.classroom_id = ?
             ORDER BY a.created_at DESC
         """, (classroom_id,))
@@ -1785,7 +1785,7 @@ class Assignment:
         c.execute("""
             SELECT a.*, t.name as topic_name, c.name as classroom_name
             FROM assignments a
-            JOIN topics t ON a.topic_id = t.id
+            LEFT JOIN topics t ON a.topic_id = t.id
             JOIN classrooms c ON a.classroom_id = c.id
             WHERE a.created_by = ?
             ORDER BY a.created_at DESC
@@ -1808,11 +1808,13 @@ class Assignment:
         conn = get_db()
         c = conn.cursor()
         now = datetime.utcnow().isoformat()
+        c.execute("PRAGMA foreign_keys = OFF")
         c.execute("""
             INSERT INTO assignments (classroom_id, topic_id, practice_link_id, title, description,
                                      due_date, is_active, created_by, created_at, exercise_type)
             VALUES (?, 0, NULL, ?, ?, ?, 1, ?, ?, 'homework')
         """, (classroom_id, title, description, due_date, created_by, now))
+        c.execute("PRAGMA foreign_keys = ON")
         conn.commit()
         assignment_id = c.lastrowid
         conn.close()
