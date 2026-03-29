@@ -10,7 +10,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 
 from models import (
     Classroom, ClassroomStudent, Assignment, Topic, PracticeLink,
-    PracticeQuestion, PracticeSubmission, UsageLimits,
+    PracticeQuestion, PracticeSubmission, UsageLimits, HomeworkSubmission,
 )
 from blueprints.helpers import login_required, is_premium_user, _get_topic_or_404
 
@@ -225,18 +225,35 @@ def classroom_assign(classroom_id):
     cls = Classroom.get_by_id(classroom_id)
     if not cls or cls["owner_id"] != session["user_id"]:
         abort(404)
-    topic_id = int(request.form.get("topic_id") or 0)
-    if not topic_id:
-        flash("\u0e01\u0e23\u0e38\u0e13\u0e32\u0e40\u0e25\u0e37\u0e2d\u0e01 Topic", "error")
-        return redirect(url_for("classroom.classroom_detail", classroom_id=classroom_id))
-    topic = Topic.get_by_id(topic_id)
-    if not topic:
-        abort(404)
+
     exercise_type = request.form.get("exercise_type", "mcq")
-    link = PracticeLink.create(topic_id, session["user_id"], secrets.token_urlsafe(12), exercise_type)
-    title = (request.form.get("title") or "").strip() or topic["name"]
+    title = (request.form.get("title") or "").strip()
     due_date = request.form.get("due_date") or None
-    Assignment.create(classroom_id, topic_id, link["id"], title, request.form.get("description") or "", due_date, session["user_id"])
+
+    if exercise_type == "homework":
+        # Homework: no topic/practice_link needed
+        if not title:
+            title = "\u0e01\u0e32\u0e23\u0e1a\u0e49\u0e32\u0e19"
+        max_score = int(request.form.get("max_score") or 10)
+        Assignment.create_homework(
+            classroom_id, title,
+            request.form.get("description") or "",
+            due_date, session["user_id"], max_score
+        )
+    else:
+        # MCQ / Fill / Unscramble: need topic
+        topic_id = int(request.form.get("topic_id") or 0)
+        if not topic_id:
+            flash("\u0e01\u0e23\u0e38\u0e13\u0e32\u0e40\u0e25\u0e37\u0e2d\u0e01 Topic", "error")
+            return redirect(url_for("classroom.classroom_detail", classroom_id=classroom_id))
+        topic = Topic.get_by_id(topic_id)
+        if not topic:
+            abort(404)
+        link = PracticeLink.create(topic_id, session["user_id"], secrets.token_urlsafe(12), exercise_type)
+        if not title:
+            title = topic["name"]
+        Assignment.create(classroom_id, topic_id, link["id"], title, request.form.get("description") or "", due_date, session["user_id"])
+
     flash("\u0e2a\u0e31\u0e48\u0e07\u0e07\u0e32\u0e19\u0e40\u0e23\u0e35\u0e22\u0e1a\u0e23\u0e49\u0e2d\u0e22", "success")
     return redirect(url_for("classroom.classroom_detail", classroom_id=classroom_id))
 
@@ -250,7 +267,28 @@ def assignment_detail(assignment_id):
     cls = Classroom.get_by_id(a["classroom_id"])
     if not cls or cls["owner_id"] != session["user_id"]:
         abort(404)
-    topic = Topic.get_by_id(a["topic_id"])
+    topic = Topic.get_by_id(a["topic_id"]) if a.get("topic_id") else None
+    exercise_type = a.get("exercise_type") or "mcq"
+
+    # Homework type
+    if exercise_type == "homework":
+        students = ClassroomStudent.get_by_classroom(a["classroom_id"])
+        hw_submissions = HomeworkSubmission.get_by_assignment(assignment_id)
+        hw_student_ids = set(s["student_id"] for s in hw_submissions)
+        submitted = [s for s in students if s["id"] in hw_student_ids]
+        not_submitted = [s for s in students if s["id"] not in hw_student_ids]
+        return render_template(
+            "assignment_detail.html",
+            assignment=a, classroom=cls, topic=topic,
+            submitted=submitted, not_submitted=not_submitted,
+            total_students=len(students),
+            submitted_count=len(submitted),
+            not_submitted_count=len(not_submitted),
+            avg_score=0, practice_link=None, student_url=None,
+            exercise_type="homework", hw_submissions=hw_submissions,
+        )
+
+    # MCQ/Fill/Unscramble type
     status = Assignment.get_submissions_status(assignment_id)
     practice_link = PracticeLink.get_by_id(a.get("practice_link_id")) if a.get("practice_link_id") else None
     student_url = None
@@ -274,7 +312,25 @@ def assignment_detail(assignment_id):
         submitted_count=len(status["submitted"]),
         not_submitted_count=len(status["not_submitted"]),
         avg_score=avg, practice_link=practice_link, student_url=student_url,
+        exercise_type=exercise_type, hw_submissions=[],
     )
+
+
+@classroom_bp.route("/assignment/<int:assignment_id>/grade/<int:sub_id>", methods=["POST"])
+@login_required
+def homework_grade(assignment_id, sub_id):
+    a = Assignment.get_by_id(assignment_id)
+    if not a:
+        abort(404)
+    cls = Classroom.get_by_id(a["classroom_id"])
+    if not cls or cls["owner_id"] != session["user_id"]:
+        abort(404)
+    score = int(request.form.get("score") or 0)
+    max_score = int(request.form.get("max_score") or 10)
+    comment = (request.form.get("comment") or "").strip()
+    HomeworkSubmission.grade(sub_id, score, max_score, comment)
+    flash("\u0e43\u0e2b\u0e49\u0e04\u0e30\u0e41\u0e19\u0e19\u0e40\u0e23\u0e35\u0e22\u0e1a\u0e23\u0e49\u0e2d\u0e22", "success")
+    return redirect(url_for("classroom.assignment_detail", assignment_id=assignment_id))
 
 
 # ==============================================================================
