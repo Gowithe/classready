@@ -1,0 +1,141 @@
+{% extends "base.html" %}
+{% block title %}เข้าสู่ระบบนักเรียน{% endblock %}
+
+{% block extra_css %}
+<style>
+  .student-container {
+    max-width: 460px;
+    margin: 2rem auto;
+    background: white;
+    padding: 2rem;
+    border-radius: 20px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.1);
+    border: 1px solid rgba(0,0,0,0.06);
+  }
+  .student-header {
+    text-align: center;
+    margin-bottom: 1.5rem;
+  }
+  .student-header .icon { font-size: 3.5rem; margin-bottom: 0.5rem; }
+  .student-header h2 { color: #1e293b; font-size: 1.5rem; margin: 0 0 0.5rem; }
+  .student-header p { color: #64748b; font-size: 0.9rem; margin: 0; }
+
+  .form-group { margin-bottom: 1.25rem; }
+  .form-group label {
+    display: block; font-weight: 700; margin-bottom: 0.4rem; color: #334155;
+  }
+  .form-group input, .form-group select {
+    width: 100%; padding: 0.85rem 1rem;
+    border: 2px solid #e2e8f0; border-radius: 12px;
+    font-size: 1.05rem; transition: all 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus {
+    outline: none; border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.12);
+  }
+  .join-code-input {
+    text-align: center; font-size: 1.8rem !important; font-weight: 900;
+    letter-spacing: 0.3em; text-transform: uppercase;
+  }
+
+  .btn-student {
+    width: 100%; padding: 0.9rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: #fff; border: none; border-radius: 12px;
+    font-size: 1.1rem; font-weight: 700; cursor: pointer;
+    transition: all 0.2s; margin-top: 0.5rem;
+  }
+  .btn-student:hover { transform: translateY(-2px); box-shadow: 0 8px 20px rgba(102,126,234,0.3); }
+
+  .classroom-info {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white; border-radius: 14px; padding: 1.25rem;
+    text-align: center; margin-bottom: 1.25rem;
+  }
+  .classroom-info h3 { margin: 0 0 4px; font-size: 1.2rem; }
+  .classroom-info p { margin: 0; opacity: 0.85; font-size: 0.9rem; }
+
+  .student-list {
+    max-height: 350px; overflow-y: auto;
+    border: 2px solid #e2e8f0; border-radius: 12px;
+    margin-bottom: 1rem;
+  }
+  .student-option {
+    display: flex; align-items: center; gap: 12px;
+    padding: 12px 16px; cursor: pointer;
+    border-bottom: 1px solid #f1f5f9;
+    transition: background 0.15s;
+  }
+  .student-option:last-child { border-bottom: none; }
+  .student-option:hover { background: #f0f4ff; }
+  .student-option input[type="radio"] { width: 18px; height: 18px; accent-color: #667eea; }
+  .student-option .name { font-weight: 700; color: #1e293b; }
+  .student-option .no { color: #94a3b8; font-size: 0.85rem; }
+
+  .back-link { display: block; text-align: center; margin-top: 1rem; color: #667eea; text-decoration: none; font-weight: 600; }
+  .back-link:hover { text-decoration: underline; }
+
+  .teacher-link { text-align: center; margin-top: 1.5rem; padding-top: 1rem; border-top: 1px solid #e2e8f0; }
+  .teacher-link a { color: #94a3b8; text-decoration: none; font-size: 0.85rem; }
+  .teacher-link a:hover { color: #667eea; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="student-container">
+  <div class="student-header">
+    <div class="icon">&#x1F393;</div>
+    <h2>เข้าสู่ระบบนักเรียน</h2>
+    <p>ใส่รหัสห้องเรียนที่ครูให้มา</p>
+  </div>
+
+  {% if step == "code" %}
+  <!-- Step 1: Enter join code -->
+  <form method="POST">
+    <input type="hidden" name="step" value="code">
+    <div class="form-group">
+      <label>&#x1F511; รหัสห้องเรียน</label>
+      <input type="text" name="join_code" class="join-code-input" maxlength="8"
+             placeholder="ABC123" autofocus autocomplete="off"
+             oninput="this.value=this.value.toUpperCase()">
+    </div>
+    <button type="submit" class="btn-student">&#x27A1;&#xFE0F; ถัดไป</button>
+  </form>
+
+  {% elif step == "select" %}
+  <!-- Step 2: Select student -->
+  <div class="classroom-info">
+    <h3>{{ classroom.name }}</h3>
+    <p>{{ classroom.grade_level }}{% if classroom.academic_year %} &#x2022; {{ classroom.academic_year }}{% endif %}</p>
+  </div>
+
+  <form method="POST">
+    <input type="hidden" name="step" value="select">
+    <input type="hidden" name="join_code" value="{{ join_code }}">
+
+    <div class="form-group">
+      <label>&#x1F464; เลือกชื่อของคุณ</label>
+      <div class="student-list">
+        {% for s in students %}
+        <label class="student-option">
+          <input type="radio" name="student_id" value="{{ s.id }}" required>
+          <div>
+            <div class="name">{{ s.student_name }}</div>
+            {% if s.student_no %}<div class="no">เลขที่ {{ s.student_no }}</div>{% endif %}
+          </div>
+        </label>
+        {% endfor %}
+      </div>
+    </div>
+
+    <button type="submit" class="btn-student">&#x1F680; เข้าสู่ระบบ</button>
+  </form>
+
+  <a href="{{ url_for('student.student_login') }}" class="back-link">&#x2190; เปลี่ยนรหัสห้อง</a>
+  {% endif %}
+
+  <div class="teacher-link">
+    <a href="{{ url_for('auth.login') }}">&#x1F468;&#x200D;&#x1F3EB; สำหรับครู (Teacher Login)</a>
+  </div>
+</div>
+{% endblock %}

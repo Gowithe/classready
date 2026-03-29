@@ -1,0 +1,196 @@
+{% extends "base.html" %}
+{% block title %}{{ student.student_name }} - Dashboard{% endblock %}
+
+{% block extra_css %}
+<style>
+  .sd-top {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white; border-radius: 20px; padding: 1.5rem 2rem; margin-bottom: 1.5rem;
+    display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 1rem;
+  }
+  .sd-top h2 { margin: 0; font-size: 1.4rem; }
+  .sd-top .sub { opacity: 0.85; font-size: 0.9rem; margin-top: 4px; }
+  .sd-top .btn-logout {
+    background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.3);
+    color: white; padding: 8px 16px; border-radius: 10px; text-decoration: none;
+    font-weight: 700; font-size: 0.85rem; transition: all 0.15s;
+  }
+  .sd-top .btn-logout:hover { background: rgba(255,255,255,0.25); }
+
+  .stats-row {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+    gap: 1rem; margin-bottom: 1.5rem;
+  }
+  .stat-card {
+    background: white; border-radius: 14px; padding: 1.25rem;
+    text-align: center; box-shadow: 0 2px 8px rgba(0,0,0,0.06);
+    border: 1px solid rgba(0,0,0,0.05);
+  }
+  .stat-card .icon { font-size: 1.5rem; margin-bottom: 6px; }
+  .stat-card .val { font-size: 1.8rem; font-weight: 900; color: #667eea; }
+  .stat-card .lbl { font-size: 0.8rem; color: #64748b; margin-top: 4px; }
+
+  .section-title {
+    font-size: 1.15rem; font-weight: 800; color: #1e293b;
+    margin: 1.5rem 0 1rem; display: flex; align-items: center; gap: 8px;
+  }
+
+  .assignment-list { display: flex; flex-direction: column; gap: 12px; }
+
+  .asgn-card {
+    background: white; border-radius: 14px; padding: 16px 20px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.06); border: 1px solid rgba(0,0,0,0.05);
+    display: flex; justify-content: space-between; align-items: center;
+    flex-wrap: wrap; gap: 12px; transition: transform 0.15s;
+  }
+  .asgn-card:hover { transform: translateY(-2px); box-shadow: 0 6px 16px rgba(0,0,0,0.1); }
+
+  .asgn-info h4 { margin: 0 0 4px; font-size: 1rem; color: #1e293b; }
+  .asgn-meta { display: flex; gap: 12px; font-size: 0.8rem; color: #94a3b8; flex-wrap: wrap; }
+  .asgn-meta .badge {
+    display: inline-block; padding: 2px 8px; border-radius: 6px;
+    font-weight: 700; font-size: 0.7rem;
+  }
+  .badge-mcq { background: #dbeafe; color: #2563eb; }
+  .badge-fill { background: #fef3c7; color: #92400e; }
+  .badge-unscramble { background: #dcfce7; color: #166534; }
+
+  .asgn-right { display: flex; align-items: center; gap: 12px; }
+
+  .score-display {
+    text-align: center; padding: 8px 14px; border-radius: 10px;
+    min-width: 80px;
+  }
+  .score-display.done { background: #dcfce7; }
+  .score-display.done .sc-val { color: #166534; font-weight: 900; font-size: 1.1rem; }
+  .score-display.done .sc-pct { color: #22c55e; font-size: 0.75rem; font-weight: 700; }
+
+  .btn-do {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 20px; border-radius: 10px; font-weight: 700;
+    text-decoration: none; font-size: 0.9rem; transition: all 0.15s;
+    background: linear-gradient(135deg, #667eea, #764ba2); color: white;
+  }
+  .btn-do:hover { transform: translateY(-1px); box-shadow: 0 4px 12px rgba(102,126,234,0.3); }
+
+  .btn-done {
+    display: inline-flex; align-items: center; gap: 6px;
+    padding: 10px 20px; border-radius: 10px; font-weight: 700;
+    text-decoration: none; font-size: 0.9rem;
+    background: #f1f5f9; color: #64748b;
+  }
+
+  .empty-state {
+    text-align: center; padding: 3rem 1rem; color: #94a3b8;
+  }
+  .empty-state .icon { font-size: 3rem; margin-bottom: 0.5rem; }
+
+  .due-badge { color: #ef4444; font-weight: 700; }
+
+  @media (max-width: 600px) {
+    .sd-top { padding: 1.25rem; }
+    .sd-top h2 { font-size: 1.2rem; }
+    .stat-card .val { font-size: 1.4rem; }
+    .asgn-card { flex-direction: column; align-items: flex-start; }
+    .asgn-right { width: 100%; justify-content: space-between; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<!-- Header -->
+<div class="sd-top">
+  <div>
+    <h2>&#x1F44B; สวัสดี {{ student.student_name }}</h2>
+    <div class="sub">{{ classroom.name }} {% if classroom.grade_level %}&#x2022; {{ classroom.grade_level }}{% endif %}</div>
+  </div>
+  <a href="{{ url_for('student.student_logout') }}" class="btn-logout">&#x1F6AA; ออกจากระบบ</a>
+</div>
+
+<!-- Stats -->
+<div class="stats-row">
+  <div class="stat-card">
+    <div class="icon">&#x1F4DD;</div>
+    <div class="val">{{ completed_count }}/{{ total_assignments }}</div>
+    <div class="lbl">งานที่ทำแล้ว</div>
+  </div>
+  <div class="stat-card">
+    <div class="icon">&#x1F3AF;</div>
+    <div class="val">{{ "%.0f"|format(overall_pct) }}%</div>
+    <div class="lbl">คะแนนเฉลี่ย</div>
+  </div>
+  <div class="stat-card">
+    <div class="icon">&#x2B50;</div>
+    <div class="val">{{ total_score }}</div>
+    <div class="lbl">คะแนนรวม</div>
+  </div>
+</div>
+
+<!-- Pending Assignments -->
+{% set pending = assignments | selectattr("submission", "none") | list %}
+{% if pending %}
+<div class="section-title">&#x1F4CB; งานที่ยังไม่ได้ทำ ({{ pending|length }})</div>
+<div class="assignment-list">
+  {% for a in pending %}
+  <div class="asgn-card">
+    <div class="asgn-info">
+      <h4>{{ a.title }}</h4>
+      <div class="asgn-meta">
+        <span>&#x1F4DA; {{ a.topic_name }}</span>
+        <span class="badge badge-{{ a.practice_type }}">{{ a.practice_type_label }}</span>
+        {% if a.due_date %}
+        <span class="due-badge">&#x23F0; กำหนดส่ง {{ a.due_date }}</span>
+        {% endif %}
+      </div>
+    </div>
+    <div class="asgn-right">
+      {% if a.link_token %}
+        {% if a.practice_type == 'fill' %}
+        <a href="{{ url_for('practice.public_fill_blanks', token=a.link_token) }}" class="btn-do">&#x270F;&#xFE0F; ทำแบบฝึกหัด</a>
+        {% elif a.practice_type == 'unscramble' %}
+        <a href="{{ url_for('practice.public_unscramble', token=a.link_token) }}" class="btn-do">&#x1F500; ทำแบบฝึกหัด</a>
+        {% else %}
+        <a href="{{ url_for('practice.public_practice', token=a.link_token) }}" class="btn-do">&#x1F4DD; ทำแบบฝึกหัด</a>
+        {% endif %}
+      {% endif %}
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+<!-- Completed Assignments -->
+{% set done = assignments | rejectattr("submission", "none") | list %}
+{% if done %}
+<div class="section-title">&#x2705; งานที่ทำแล้ว ({{ done|length }})</div>
+<div class="assignment-list">
+  {% for a in done %}
+  <div class="asgn-card">
+    <div class="asgn-info">
+      <h4>{{ a.title }}</h4>
+      <div class="asgn-meta">
+        <span>&#x1F4DA; {{ a.topic_name }}</span>
+        <span class="badge badge-{{ a.practice_type }}">{{ a.practice_type_label }}</span>
+      </div>
+    </div>
+    <div class="asgn-right">
+      <div class="score-display done">
+        <div class="sc-val">{{ a.submission.score }}/{{ a.submission.total }}</div>
+        <div class="sc-pct">{{ "%.0f"|format(a.submission.percentage) }}%</div>
+      </div>
+      <span class="btn-done">&#x2705; ส่งแล้ว</span>
+    </div>
+  </div>
+  {% endfor %}
+</div>
+{% endif %}
+
+{% if not assignments %}
+<div class="empty-state">
+  <div class="icon">&#x1F4DA;</div>
+  <p>ยังไม่มีงานที่มอบหมาย</p>
+  <p style="font-size:0.85rem;">รอครูสั่งงาน แล้วกลับมาดูอีกครั้ง</p>
+</div>
+{% endif %}
+
+{% endblock %}
