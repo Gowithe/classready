@@ -25,49 +25,15 @@
     color: #64748b;
     margin-top: 6px;
   }
-
-  /* Progress overlay */
-  .ai-overlay {
-    display: none;
-    position: fixed;
-    inset: 0;
-    background: rgba(0,0,0,0.6);
-    z-index: 9999;
-    justify-content: center;
-    align-items: center;
-  }
-  .ai-overlay.active { display: flex; }
-  .ai-card {
-    background: white;
-    border-radius: 16px;
-    padding: 2.5rem 2rem;
-    text-align: center;
-    max-width: 420px;
-    width: 90%;
-    box-shadow: 0 20px 60px rgba(0,0,0,0.3);
-  }
-  .ai-card .spinner {
-    width: 56px; height: 56px;
-    border: 5px solid #e2e8f0;
-    border-top-color: #667eea;
-    border-radius: 50%;
-    animation: spin 1s linear infinite;
-    margin: 0 auto 1.2rem;
-  }
-  @keyframes spin { to { transform: rotate(360deg); } }
-  .ai-card h3 { margin: 0 0 0.5rem; color: #1e293b; font-size: 1.2rem; }
-  .ai-card .status { color: #64748b; font-size: 0.9rem; margin-bottom: 1rem; }
-  .ai-card .timer { color: #94a3b8; font-size: 0.8rem; }
-  .ai-card .error-msg { color: #ef4444; font-size: 0.9rem; margin-top: 1rem; display: none; }
 </style>
 {% endblock %}
 
 {% block content %}
 <div class="wrap">
   <h2 style="margin:0 0 8px; color:#667eea;">✨ Generate Slides with AI</h2>
-  <div class="hint">กรอกชื่อเรื่อง → เลือกภาษา/ระดับ/สไตล์ → ระบบจะสร้าง Slides + Game + Practice</div>
+  <div class="hint">กรอกชื่อเรื่อง → เลือกภาษา/ระดับ → ระบบจะสร้าง Slides + Game + Practice</div>
 
-  <form id="genForm">
+  <form id="genForm" method="POST" action="{{ url_for('ai_slides') }}">
     <div class="form-group">
       <label for="title">Topic Title *</label>
       <input id="title" name="title" type="text" required
@@ -99,16 +65,6 @@
 
     <div class="row2">
       <div class="form-group">
-        <label for="style">Style</label>
-        <select id="style" name="style">
-          <option value="Minimal" selected>Minimal</option>
-          <option value="Modern">Modern</option>
-          <option value="Colorful">Colorful</option>
-          <option value="Playful">Playful</option>
-        </select>
-      </div>
-
-      <div class="form-group">
         <label>&nbsp;</label>
         <button id="btnSubmit" type="submit" style="width:100%; padding: 0.9rem; font-weight:800;">
           🚀 Generate Now
@@ -118,117 +74,77 @@
     </div>
   </form>
 </div>
-
-<!-- Progress Overlay -->
-<div id="overlay" class="ai-overlay">
-  <div class="ai-card">
-    <div class="spinner" id="spinner"></div>
-    <h3 id="pTitle">⏳ กำลังสร้างบทเรียน...</h3>
-    <div class="status" id="pStatus">กำลังเชื่อมต่อ AI...</div>
-    <div class="timer" id="pTimer">0 วินาที</div>
-    <div class="error-msg" id="pError"></div>
-  </div>
-</div>
 {% endblock %}
 
 {% block extra_js %}
 <script>
-(function(){
   const form = document.getElementById('genForm');
   const btn = document.getElementById('btnSubmit');
-  const overlay = document.getElementById('overlay');
-  const pTitle = document.getElementById('pTitle');
-  const pStatus = document.getElementById('pStatus');
-  const pTimer = document.getElementById('pTimer');
-  const spinner = document.getElementById('spinner');
-  const pError = document.getElementById('pError');
-
-  let timer = null, seconds = 0;
-
-  function startTimer() {
-    seconds = 0;
-    pTimer.textContent = '0 วินาที';
-    timer = setInterval(() => { seconds++; pTimer.textContent = seconds + ' วินาที'; }, 1000);
-  }
-  function stopTimer() { if (timer) clearInterval(timer); }
-
-  function showError(msg) {
-    stopTimer();
-    spinner.style.display = 'none';
-    pTitle.textContent = '❌ เกิดข้อผิดพลาด';
-    pStatus.textContent = 'กรุณาลองใหม่อีกครั้ง';
-    pError.textContent = msg;
-    pError.style.display = 'block';
-    btn.disabled = false;
-    btn.textContent = '🚀 Generate Now';
-    setTimeout(() => {
-      overlay.classList.remove('active');
-      spinner.style.display = '';
-      pError.style.display = 'none';
-    }, 5000);
-  }
-
-  async function pollTask(taskId) {
-    const maxAttempts = 120;
-    for (let i = 0; i < maxAttempts; i++) {
-      await new Promise(r => setTimeout(r, 3000));
-      try {
-        const res = await fetch('/api/ai-task/' + taskId + '/status');
-        const data = await res.json();
-
-        if (data.status === 'generating') {
-          pStatus.textContent = 'AI กำลังสร้าง Slides + Game + Practice...';
-          if (seconds > 60) pStatus.textContent = 'กำลังสร้างเนื้อหา... (อาจใช้เวลา 1-2 นาที)';
-          if (seconds > 120) pStatus.textContent = 'เกือบเสร็จแล้ว... กรุณารอสักครู่';
-        }
-        if (data.status === 'done') {
-          stopTimer();
-          pTitle.textContent = '🎉 สร้างบทเรียนสำเร็จ!';
-          pStatus.textContent = 'กำลังเปิดหน้าบทเรียน...';
-          await new Promise(r => setTimeout(r, 1000));
-          window.location.href = data.result.redirect;
-          return;
-        }
-        if (data.status === 'error') {
-          showError(data.error || 'AI generation failed');
-          return;
-        }
-      } catch (e) { console.error('Poll error:', e); }
-    }
-    showError('ใช้เวลานานเกินไป กรุณาลองใหม่');
-  }
+  const lang = document.getElementById('language');
 
   form.addEventListener('submit', async (e) => {
     e.preventDefault();
+
+    // กันกดซ้ำ
     btn.disabled = true;
     btn.textContent = '⏳ Generating...';
 
-    overlay.classList.add('active');
-    startTimer();
-
-    const v = document.getElementById('language').value;
-    if (v === 'TH') pTitle.textContent = '⏳ กำลัง Generate (Thai Only)';
-    else if (v === 'EN+TH') pTitle.textContent = '⏳ กำลัง Generate (EN+TH)';
-    else pTitle.textContent = '⏳ Generating Lesson';
-    pStatus.textContent = 'เริ่มสร้างเนื้อหา...';
+    // popup
+    const v = (lang.value || 'EN');
+    if(v === 'TH'){
+      if(window.tpShowLoading) window.tpShowLoading('⏳ กำลัง Generate (Thai Only)', 'ระบบกำลังสร้างสไลด์/เกม/แบบฝึก ภาษาไทยล้วน…');
+    }else if(v === 'EN+TH'){
+      if(window.tpShowLoading) window.tpShowLoading('⏳ กำลัง Generate (EN+TH)', 'ระบบกำลังสร้างสไลด์ภาษาอังกฤษ + คำแปล/ตัวอย่างภาษาไทย…');
+    }else{
+      if(window.tpShowLoading) window.tpShowLoading('⏳ Generating Lesson', 'Generating Slides + Game + Practice in English…');
+    }
 
     try {
-      const res = await fetch('{{ url_for("ai_slides") }}', {
+      const formData = new FormData(form);
+      const res = await fetch(form.action || '/ai-slides', {
         method: 'POST',
-        body: new FormData(form),
+        body: formData
       });
       const data = await res.json();
 
       if (!data.ok) {
-        if (data.upgrade_required) { window.location.href = '{{ url_for("payment.pricing") }}'; return; }
-        showError(data.error || 'Unknown error');
+        alert('❌ ' + (data.error || 'เกิดข้อผิดพลาด'));
+        btn.disabled = false;
+        btn.textContent = '🚀 Generate Now';
+        if(window.tpHideLoading) window.tpHideLoading();
         return;
       }
-      await pollTask(data.task_id);
+
+      // Poll for task status
+      const taskId = data.task_id;
+      const poll = setInterval(async () => {
+        try {
+          const sr = await fetch('/api/ai-task/' + taskId + '/status');
+          const sd = await sr.json();
+
+          if (sd.status === 'done') {
+            clearInterval(poll);
+            if(window.tpHideLoading) window.tpHideLoading();
+            const redirect = (sd.result && sd.result.redirect) || '/dashboard';
+            window.location.href = redirect;
+          } else if (sd.status === 'error') {
+            clearInterval(poll);
+            if(window.tpHideLoading) window.tpHideLoading();
+            alert('❌ ' + (sd.error || 'AI generation failed'));
+            btn.disabled = false;
+            btn.textContent = '🚀 Generate Now';
+          }
+        } catch (pe) {
+          // polling error, keep trying
+        }
+      }, 3000);
+
     } catch (err) {
-      showError('Connection error: ' + err.message);
+      alert('❌ Error: ' + err.message);
+      btn.disabled = false;
+      btn.textContent = '🚀 Generate Now';
+      if(window.tpHideLoading) window.tpHideLoading();
     }
   });
-})();
 </script>
 {% endblock %}
