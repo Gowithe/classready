@@ -3,11 +3,18 @@
 # Student Portal: login with join_code, dashboard, view assignments & scores
 # ==============================================================================
 
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, abort
+import os
+import secrets
+
+from flask import (
+    Blueprint, render_template, request, redirect, url_for,
+    session, flash, abort, current_app, jsonify,
+)
+from werkzeug.utils import secure_filename
 
 from models import (
     Classroom, ClassroomStudent, Assignment, PracticeLink,
-    PracticeSubmission, get_db,
+    PracticeSubmission, HomeworkSubmission, get_db,
 )
 
 student_bp = Blueprint("student", __name__)
@@ -110,37 +117,67 @@ def student_dashboard():
     s_no = (student.get("student_no") or "").strip()
 
     for a in assignments:
-        link = PracticeLink.get_by_id(a.get("practice_link_id")) if a.get("practice_link_id") else None
-        my_submission = None
+        exercise_type = a.get("exercise_type") or "mcq"
 
-        if link:
-            submissions = PracticeSubmission.get_by_link(link["id"])
-            for sub in submissions:
-                sub_name = (sub.get("student_name") or "").strip().lower()
-                sub_no = (sub.get("student_no") or "").strip()
-                if (s_name and sub_name == s_name) or (s_no and sub_no and sub_no == s_no):
-                    my_submission = sub
-                    break
+        if exercise_type == "homework":
+            # Homework: check homework_submissions
+            hw_sub = HomeworkSubmission.get_by_student_and_assignment(student["id"], a["id"])
+            item = {
+                "id": a["id"],
+                "title": a.get("title", ""),
+                "description": a.get("description", ""),
+                "topic_name": "",
+                "due_date": a.get("due_date", ""),
+                "created_at": a.get("created_at", ""),
+                "practice_type": "homework",
+                "practice_type_label": "\u0e01\u0e32\u0e23\u0e1a\u0e49\u0e32\u0e19",
+                "link_token": None,
+                "submission": hw_sub,
+                "hw_score": hw_sub.get("score") if hw_sub else None,
+                "hw_max_score": hw_sub.get("max_score", 10) if hw_sub else 10,
+                "hw_comment": hw_sub.get("teacher_comment", "") if hw_sub else "",
+            }
+            if hw_sub:
+                completed_count += 1
+                if hw_sub.get("score") is not None:
+                    total_score += hw_sub["score"]
+                    total_possible += hw_sub.get("max_score", 10)
+        else:
+            # MCQ/Fill/Unscramble
+            link = PracticeLink.get_by_id(a.get("practice_link_id")) if a.get("practice_link_id") else None
+            my_submission = None
 
-        ptype = link.get("practice_type", "mcq") if link else "mcq"
+            if link:
+                submissions = PracticeSubmission.get_by_link(link["id"])
+                for sub in submissions:
+                    sub_name = (sub.get("student_name") or "").strip().lower()
+                    sub_no = (sub.get("student_no") or "").strip()
+                    if (s_name and sub_name == s_name) or (s_no and sub_no and sub_no == s_no):
+                        my_submission = sub
+                        break
 
-        item = {
-            "id": a["id"],
-            "title": a.get("title", ""),
-            "description": a.get("description", ""),
-            "topic_name": a.get("topic_name", ""),
-            "due_date": a.get("due_date", ""),
-            "created_at": a.get("created_at", ""),
-            "practice_type": ptype,
-            "practice_type_label": {"mcq": "MCQ", "fill": "Fill Blanks", "unscramble": "Unscramble"}.get(ptype, "MCQ"),
-            "link_token": link["token"] if link else None,
-            "submission": my_submission,
-        }
+            ptype = link.get("practice_type", "mcq") if link else "mcq"
 
-        if my_submission:
-            completed_count += 1
-            total_score += my_submission.get("score", 0)
-            total_possible += my_submission.get("total", 0)
+            item = {
+                "id": a["id"],
+                "title": a.get("title", ""),
+                "description": a.get("description", ""),
+                "topic_name": a.get("topic_name", ""),
+                "due_date": a.get("due_date", ""),
+                "created_at": a.get("created_at", ""),
+                "practice_type": ptype,
+                "practice_type_label": {"mcq": "MCQ", "fill": "Fill Blanks", "unscramble": "Unscramble"}.get(ptype, "MCQ"),
+                "link_token": link["token"] if link else None,
+                "submission": my_submission,
+                "hw_score": None,
+                "hw_max_score": 10,
+                "hw_comment": "",
+            }
+
+            if my_submission:
+                completed_count += 1
+                total_score += my_submission.get("score", 0)
+                total_possible += my_submission.get("total", 0)
 
         assignment_data.append(item)
 
@@ -157,6 +194,80 @@ def student_dashboard():
         total_possible=total_possible,
         overall_pct=overall_pct,
     )
+
+
+# ==============================================================================
+# Homework: View & Submit
+# ==============================================================================
+@student_bp.route("/student/homework/<int:assignment_id>")
+def student_homework(assignment_id):
+    student = _get_student_or_redirect()
+    if not student:
+        return redirect(url_for("student.student_login"))
+
+    a = Assignment.get_by_id(assignment_id)
+    if not a or a["classroom_id"] != session["student_classroom_id"]:
+        abort(404)
+
+    existing = HomeworkSubmission.get_by_student_and_assignment(student["id"], assignment_id)
+
+    return render_template(
+        "student_homework.html",
+        student=student,
+        assignment=a,
+        submission=existing,
+    )
+
+
+@student_bp.route("/student/homework/<int:assignment_id>/submit", methods=["POST"])
+def student_homework_submit(assignment_id):
+    student = _get_student_or_redirect()
+    if not student:
+        return redirect(url_for("student.student_login"))
+
+    a = Assignment.get_by_id(assignment_id)
+    if not a or a["classroom_id"] != session["student_classroom_id"]:
+        abort(404)
+
+    text_content = (request.form.get("text_content") or "").strip()
+    link_url = (request.form.get("link_url") or "").strip()
+    image_file = ""
+
+    # Handle image upload
+    file = request.files.get("image_file")
+    if file and file.filename:
+        allowed = file.filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.pdf'))
+        if allowed:
+            fn = f"hw_{assignment_id}_{student['id']}_{secrets.token_hex(6)}_{secure_filename(file.filename)}"
+            upload_folder = current_app.config.get("UPLOAD_FOLDER", "uploads")
+            file.save(os.path.join(upload_folder, fn))
+            image_file = fn
+
+    if not text_content and not image_file and not link_url:
+        flash("\u0e01\u0e23\u0e38\u0e13\u0e32\u0e01\u0e23\u0e2d\u0e01\u0e04\u0e33\u0e15\u0e2d\u0e1a \u0e41\u0e19\u0e1a\u0e23\u0e39\u0e1b \u0e2b\u0e23\u0e37\u0e2d\u0e41\u0e19\u0e1a\u0e25\u0e34\u0e07\u0e01\u0e4c\u0e2d\u0e22\u0e48\u0e32\u0e07\u0e19\u0e49\u0e2d\u0e22 1 \u0e2d\u0e22\u0e48\u0e32\u0e07", "error")
+        return redirect(url_for("student.student_homework", assignment_id=assignment_id))
+
+    # Check if already submitted — update instead
+    existing = HomeworkSubmission.get_by_student_and_assignment(student["id"], assignment_id)
+    if existing:
+        HomeworkSubmission.update(
+            existing["id"],
+            text_content=text_content,
+            image_file=image_file if image_file else None,
+            link_url=link_url,
+        )
+        flash("\u0e2d\u0e31\u0e1b\u0e40\u0e14\u0e15\u0e07\u0e32\u0e19\u0e40\u0e23\u0e35\u0e22\u0e1a\u0e23\u0e49\u0e2d\u0e22", "success")
+    else:
+        HomeworkSubmission.create(
+            assignment_id=assignment_id,
+            student_id=student["id"],
+            text_content=text_content,
+            image_file=image_file,
+            link_url=link_url,
+        )
+        flash("\u0e2a\u0e48\u0e07\u0e07\u0e32\u0e19\u0e40\u0e23\u0e35\u0e22\u0e1a\u0e23\u0e49\u0e2d\u0e22!", "success")
+
+    return redirect(url_for("student.student_dashboard"))
 
 
 # ==============================================================================
