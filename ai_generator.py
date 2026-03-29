@@ -3,7 +3,7 @@
 # Generate PROFESSIONAL, CLASSROOM-READY lesson bundle as JSON
 # - slides: 24–30 slides (full 60-90 minute lesson with rich content)
 # - game: 3 sets x 24 tiles
-# - practice: 25–35 MCQ (4 choices)
+# - practice: 20 MCQ (4 choices)
 #
 # IMPORTANT
 # - Uses OpenAI Chat Completions API with json_object response format
@@ -26,8 +26,6 @@ ALLOWED_SLIDE_TYPES = {
     "objectives",
     "context",
     "vocabulary",
-    "concept",
-    "pronunciation",
     "examples",
     "guided_practice",
     "dialogue",
@@ -143,31 +141,6 @@ def _ensure_slide_has_content(slide: Dict[str, Any]) -> Dict[str, Any]:
                 }
             ]
 
-    elif t == "concept":
-        if not (slide.get("pattern") or slide.get("structure") or slide.get("content")):
-            slide["pattern"] = "Structure / Pattern here"
-        hl = _as_list(slide.get("highlights"))
-        if len(hl) < 2:
-            slide["highlights"] = [
-                {"label": "Key part", "note": "What it means"},
-                {"label": "Example", "note": "How to use"},
-            ]
-        cm = _as_list(slide.get("common_mistakes"))
-        if len(cm) < 1:
-            slide["common_mistakes"] = ["Common mistake example"]
-
-    elif t == "pronunciation":
-        if not slide.get("content"):
-            slide["content"] = [
-                "Say the ending clearly.",
-                "Practice slowly → natural speed.",
-            ]
-        if not slide.get("examples"):
-            slide["examples"] = [
-                {"en": "worked /wɜːrkt/", "th": "ลงท้ายเสียง /t/"},
-                {"en": "wanted /ˈwɒntɪd/", "th": "ลงท้ายเสียง /ɪd/"},
-            ]
-
     elif t == "examples":
         ex = _as_list(slide.get("examples"))
         if not ex:
@@ -259,7 +232,7 @@ def _normalize_bundle(bundle: Dict[str, Any]) -> Dict[str, Any]:
         clean_slides.append(ns)
 
     # Guarantee enough slides (24–30). If fewer, pad with review/context slides.
-    while len(clean_slides) < 24:
+    while len(clean_slides) < 20:
         clean_slides.append(
             {
                 "type": "review",
@@ -347,8 +320,8 @@ def _normalize_bundle(bundle: Dict[str, Any]) -> Dict[str, Any]:
             }
         )
 
-    # Ensure at least 25 questions
-    while len(clean_practice) < 25:
+    # Ensure at least 20 questions
+    while len(clean_practice) < 20:
         clean_practice.append(
             {
                 "question": f"(Q{len(clean_practice) + 1}) Choose the best answer.",
@@ -358,8 +331,8 @@ def _normalize_bundle(bundle: Dict[str, Any]) -> Dict[str, Any]:
             }
         )
 
-    # Cap to 35
-    clean_practice = clean_practice[:35]
+    # Cap to 20
+    clean_practice = clean_practice[:20]
 
     return {"slides": clean_slides, "game": game, "practice": clean_practice}
 
@@ -448,65 +421,6 @@ def _fallback_bundle(title: str, level: str, language: str, style: str) -> Dict[
                 {"word": "complain", "meaning": "ร้องเรียน", "example": "I'd like to complain about the service.", "ipa": "/kəmˈpleɪn/"},
             ],
             "teacher_notes": "These are bonus words for stronger students. Spend less time here if class is struggling.",
-        },
-        
-        # === GRAMMAR/CONCEPT (3 slides) ===
-        {
-            "type": "concept",
-            "title": "🧠 Key Grammar Pattern",
-            "subtitle": "Making polite requests",
-            "pattern": "Can I + verb + (object) + please?\nCould I + verb + (object) + please?\nMay I + verb + (object) + please?",
-            "highlights": [
-                {"label": "Can I", "note": "Polite - use with friends, casual situations"},
-                {"label": "Could I", "note": "More polite - use with strangers, formal situations"},
-                {"label": "May I", "note": "Most polite - use with teachers, bosses, elderly"},
-                {"label": "please", "note": "Always add 'please' to sound more polite!"},
-            ],
-            "common_mistakes": [
-                "❌ 'I want coffee.' → ✅ 'Can I have a coffee, please?'",
-                "❌ 'Give me the menu.' → ✅ 'Could I see the menu, please?'",
-                "❌ 'Bill!' → ✅ 'May I have the bill, please?'",
-                "❌ Using 'Can you...' when asking for yourself",
-            ],
-            "teacher_notes": "Write pattern on board. Demonstrate with gestures. Students copy in notebooks.",
-        },
-        {
-            "type": "concept",
-            "title": "🧠 More Useful Patterns",
-            "subtitle": "Offering and responding",
-            "pattern": "Would you like + noun/to + verb?\nI'd like + noun/to + verb.\nYes, please. / No, thank you.",
-            "highlights": [
-                {"label": "Would you like...?", "note": "Polite way to offer something"},
-                {"label": "I'd like...", "note": "Polite way to say what you want (= I would like)"},
-                {"label": "Yes, please.", "note": "Accepting an offer politely"},
-                {"label": "No, thank you.", "note": "Refusing an offer politely"},
-            ],
-            "common_mistakes": [
-                "❌ 'You want coffee?' → ✅ 'Would you like some coffee?'",
-                "❌ 'I want to order.' → ✅ 'I'd like to order, please.'",
-                "❌ 'No.' → ✅ 'No, thank you.'",
-            ],
-            "teacher_notes": "Model a mini-dialogue. Then students practice in pairs: offer → accept/refuse.",
-        },
-        {
-            "type": "pronunciation",
-            "title": "🎤 Pronunciation Focus",
-            "subtitle": "Sound natural and confident",
-            "content": [
-                "🔊 Stress the important words: 'Can I HAVE a COFFEE, please?'",
-                "🔊 Link words together: 'Can-I' sounds like 'CanI' /kænai/",
-                "🔊 'Could I' sounds like /kʊdai/ - the 'L' is silent!",
-                "🔊 Rise your voice at the end of questions ↗️",
-                "🔊 'Please' at the end: lower and softer ↘️",
-                "🔊 Practice: slow → medium → natural speed",
-            ],
-            "examples": [
-                {"en": "Can I have... /kænai hæv/", "th": "เชื่อมเสียง Can + I"},
-                {"en": "Could I get... /kʊdai ɡet/", "th": "ตัว L เงียบ"},
-                {"en": "Would you like... /wʊdʒuː laɪk/", "th": "เชื่อมเสียง Would + you"},
-                {"en": "I'd like... /aɪd laɪk/", "th": "ย่อจาก I would"},
-            ],
-            "teacher_notes": "Play audio if available. Otherwise, model clearly and have students repeat. Focus on linking sounds.",
         },
         
         # === EXAMPLES (2 slides with 15+ examples) ===
@@ -834,7 +748,7 @@ Return ONE JSON object ONLY (valid JSON, no extra text) with:
 {{
   "slides": [...],
   "game": {{"1":[...24], "2":[...24], "3":[...24]}},
-  "practice": [...25-35]
+  "practice": [...20]
 }}
 
 ========================
@@ -862,29 +776,25 @@ REQUIRED SLIDE SEQUENCE (follow this order):
    - "Vocabulary 3" (words 9-12)
    - etc.
 
-5. concept (2-3 slides) - Grammar patterns with highlights and common mistakes
-
-6. pronunciation (1-2 slides) - Sound tips, stress patterns, linking
-
-7. examples (3-5 slides) - SPLIT examples across multiple slides!
+5. examples (3-5 slides) - SPLIT examples across multiple slides!
    ⚠️ MAX 4-5 examples per slide! If you have 15 examples, create 3-4 slides!
    - "Examples 1" (sentences 1-4)
    - "Examples 2" (sentences 5-8)
    - etc.
 
-8. guided_practice (3-4 slides) - SPLIT practice questions!
+6. guided_practice (3-4 slides) - SPLIT practice questions!
    ⚠️ MAX 3-4 questions per slide!
 
-9. dialogue (3-6 slides) - SPLIT dialogues across multiple slides!
+7. dialogue (3-6 slides) - SPLIT dialogues across multiple slides!
    ⚠️ MAX 6 lines per slide! If dialogue has 12 lines, split into 2 slides!
    - "Dialogue Part 1" (lines 1-6)
    - "Dialogue Part 2" (lines 7-12)
 
-10. production (2 slides) - Speaking/writing tasks for fluency
+8. production (2 slides) - Speaking/writing tasks for fluency
 
-11. review (2 slides) - Summary + quick check questions
+9. review (2 slides) - Summary + quick check questions
 
-12. exit_ticket (1 slide) - Final assessment questions
+10. exit_ticket (1 slide) - Final assessment questions
 
 SLIDE TYPE SPECIFICATIONS:
 
@@ -908,12 +818,6 @@ type="vocabulary" (⚠️ MAX 4-5 WORDS PER SLIDE!)
     - ipa: pronunciation in IPA (e.g., /ˈɔːrdər/)
   optional: example_th, pronunciation_tip
   ⚠️ If you have 20 vocabulary words, create 4-5 separate vocabulary slides!
-
-type="concept"
-  fields: title, subtitle, pattern (clear structure), highlights (3-4 items max), common_mistakes (2-3 max), teacher_notes
-
-type="pronunciation"
-  fields: title, subtitle, content (4-5 tips max), examples (3-4 max), teacher_notes
 
 type="examples" (⚠️ MAX 4-5 EXAMPLES PER SLIDE!)
   fields: title, subtitle, examples (4-5 items MAXIMUM per slide, each with en and th), teacher_notes
@@ -959,7 +863,7 @@ Each tile: {{"question":"", "answer":"", "points": 10|15|20}}
 - Hard questions: 20 points
 
 ========================
-C) PRACTICE - 25-35 MCQ
+C) PRACTICE - 20 MCQ
 ========================
 Create comprehensive practice questions:
 - Each: {{"question":"", "choices":["A","B","C","D"], "correct_index":0-3, "explain":""}}
