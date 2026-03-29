@@ -372,11 +372,18 @@ def init_db() -> None:
       grade_level TEXT DEFAULT '',
       academic_year TEXT DEFAULT '',
       description TEXT DEFAULT '',
+      join_code TEXT DEFAULT '',
       student_count INTEGER DEFAULT 0,
       created_at TEXT NOT NULL,
       FOREIGN KEY(owner_id) REFERENCES users(id)
     )
     """)
+
+    # Migration: add join_code if missing
+    try:
+        c.execute("ALTER TABLE classrooms ADD COLUMN join_code TEXT DEFAULT ''")
+    except Exception:
+        pass  # column already exists
 
     # ---------------- classroom_students ----------------
     c.execute("""
@@ -1539,14 +1546,30 @@ class GameSession:
 
 class Classroom:
     @staticmethod
+    def _generate_join_code() -> str:
+        """Generate unique 6-char alphanumeric join code."""
+        import random, string
+        conn = get_db()
+        c = conn.cursor()
+        for _ in range(20):
+            code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+            c.execute("SELECT id FROM classrooms WHERE join_code = ?", (code,))
+            if not c.fetchone():
+                conn.close()
+                return code
+        conn.close()
+        return ''.join(random.choices(string.ascii_uppercase + string.digits, k=8))
+
+    @staticmethod
     def create(owner_id: int, name: str, grade_level: str = "", academic_year: str = "", description: str = "") -> Dict[str, Any]:
         conn = get_db()
         c = conn.cursor()
         now = datetime.utcnow().isoformat()
+        join_code = Classroom._generate_join_code()
         c.execute("""
-            INSERT INTO classrooms (owner_id, name, grade_level, academic_year, description, student_count, created_at)
-            VALUES (?, ?, ?, ?, ?, 0, ?)
-        """, (owner_id, name, grade_level, academic_year, description, now))
+            INSERT INTO classrooms (owner_id, name, grade_level, academic_year, description, join_code, student_count, created_at)
+            VALUES (?, ?, ?, ?, ?, ?, 0, ?)
+        """, (owner_id, name, grade_level, academic_year, description, join_code, now))
         conn.commit()
         classroom_id = c.lastrowid
         conn.close()
@@ -1557,6 +1580,15 @@ class Classroom:
         conn = get_db()
         c = conn.cursor()
         c.execute("SELECT * FROM classrooms WHERE id = ?", (classroom_id,))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    @staticmethod
+    def get_by_join_code(join_code: str) -> Optional[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM classrooms WHERE join_code = ?", (join_code.strip().upper(),))
         row = c.fetchone()
         conn.close()
         return dict(row) if row else None
