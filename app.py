@@ -179,6 +179,7 @@ from blueprints.practice import practice_bp
 from blueprints.library import library_bp
 from blueprints.payment import payment_bp
 from blueprints.admin import admin_bp
+from blueprints.student import student_bp
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(classroom_bp)
@@ -187,6 +188,24 @@ app.register_blueprint(practice_bp)
 app.register_blueprint(library_bp)
 app.register_blueprint(payment_bp)
 app.register_blueprint(admin_bp)
+app.register_blueprint(student_bp)
+
+# --- Backfill join_code for existing classrooms ---
+try:
+    _conn = get_db()
+    _c = _conn.cursor()
+    _c.execute("SELECT id FROM classrooms WHERE join_code IS NULL OR join_code = ''")
+    _rows = _c.fetchall()
+    if _rows:
+        import random, string
+        for _r in _rows:
+            _code = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+            _c.execute("UPDATE classrooms SET join_code = ? WHERE id = ?", (_code, _r[0]))
+        _conn.commit()
+        print(f"\u2705 Backfilled join_code for {len(_rows)} classrooms")
+    _conn.close()
+except Exception as _e:
+    print(f"[join_code backfill] {_e}")
 
 # --- Apply rate limits to sensitive blueprint endpoints ---
 if limiter:
