@@ -174,19 +174,19 @@
   <div class="page-header">
     <div class="header-top">
       <div class="header-info">
-        <h1>ðŸ“‹ {{ assignment.title }}</h1>
+        <h1>📋 {{ assignment.title }}</h1>
         <div class="header-meta">
-          <span>ðŸ« {{ classroom.name }}</span>
-          <span>ðŸ“š {{ topic.name }}</span>
+          <span>🏫 {{ classroom.name }}</span>
+          {% if topic %}<span>📚 {{ topic.name }}</span>{% endif %}
           {% if assignment.due_date %}
-          <span>â° à¸à¸³à¸«à¸™à¸”à¸ªà¹ˆà¸‡: {{ assignment.due_date[:16].replace('T', ' ') }}</span>
+          <span>⏰ กำหนดส่ง: {{ assignment.due_date[:16].replace('T', ' ') }}</span>
           {% endif %}
         </div>
       </div>
       <div style="display:flex;gap:10px;">
-        <a href="{{ url_for('classroom_detail', classroom_id=classroom.id) }}" class="btn btn-ghost">â† à¸à¸¥à¸±à¸š</a>
-        {% if practice_link %}
-        <a href="{{ url_for('practice_scores', topic_id=topic.id) }}" class="btn btn-white">ðŸ“Š à¸„à¸°à¹à¸™à¸™à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”</a>
+        <a href="{{ url_for('classroom.classroom_detail', classroom_id=classroom.id) }}" class="btn btn-ghost">← กลับ</a>
+        {% if practice_link and topic %}
+        <a href="{{ url_for('practice.practice_scores', topic_id=topic.id) }}" class="btn btn-white">📊 คะแนนทั้งหมด</a>
         {% endif %}
       </div>
     </div>
@@ -195,19 +195,19 @@
     <div class="stats-row">
       <div class="stat-item">
         <div class="stat-value">{{ total_students }}</div>
-        <div class="stat-label">à¸™à¸±à¸à¹€à¸£à¸µà¸¢à¸™à¸—à¸±à¹‰à¸‡à¸«à¸¡à¸”</div>
+        <div class="stat-label">นักเรียนทั้งหมด</div>
       </div>
       <div class="stat-item">
         <div class="stat-value">{{ submitted_count }}</div>
-        <div class="stat-label">à¸ªà¹ˆà¸‡à¹à¸¥à¹‰à¸§</div>
+        <div class="stat-label">ส่งแล้ว</div>
       </div>
       <div class="stat-item">
         <div class="stat-value">{{ not_submitted_count }}</div>
-        <div class="stat-label">à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸ªà¹ˆà¸‡</div>
+        <div class="stat-label">ยังไม่ส่ง</div>
       </div>
       <div class="stat-item">
         <div class="stat-value">{{ '%.0f'|format(avg_score) }}%</div>
-        <div class="stat-label">à¸„à¸°à¹à¸™à¸™à¹€à¸‰à¸¥à¸µà¹ˆà¸¢</div>
+        <div class="stat-label">คะแนนเฉลี่ย</div>
       </div>
     </div>
   </div>
@@ -216,17 +216,17 @@
   {% if practice_link %}
   <div class="link-box">
     <div>
-      <strong>ðŸ”— à¸¥à¸´à¸‡à¸à¹Œà¸ªà¸³à¸«à¸£à¸±à¸šà¸™à¸±à¸à¹€à¸£à¸µà¸¢à¸™</strong>
-      <div style="font-size:.85rem;color:#64748b;margin-top:4px;">à¹à¸Šà¸£à¹Œà¹ƒà¸«à¹‰à¸™à¸±à¸à¹€à¸£à¸µà¸¢à¸™à¹€à¸žà¸·à¹ˆà¸­à¸—à¸³à¹à¸šà¸šà¸à¸¶à¸à¸«à¸±à¸”</div>
+      <strong>🔗 ลิงก์สำหรับนักเรียน</strong>
+      <div style="font-size:.85rem;color:#64748b;margin-top:4px;">แชร์ให้นักเรียนเพื่อทำแบบฝึกหัด</div>
     </div>
     <div class="link-url" id="linkUrl">{{ student_url }}</div>
-    <button class="btn btn-primary" onclick="copyLink()">ðŸ“‹ Copy</button>
+    <button class="btn btn-primary" onclick="copyLink()">📋 Copy</button>
   </div>
   {% endif %}
 
   <!-- Progress -->
   <div class="progress-big">
-    <div class="progress-text">à¸„à¸§à¸²à¸¡à¸„à¸·à¸šà¸«à¸™à¹‰à¸²</div>
+    <div class="progress-text">ความคืบหน้า</div>
     <div class="progress-bar-big">
       {% set pct = (submitted_count / total_students * 100) if total_students > 0 else 0 %}
       <div class="progress-fill-big" style="width:{{ pct|int }}%">
@@ -239,9 +239,9 @@
   <!-- Submitted -->
   <div class="card">
     <div class="card-header">
-      <div class="card-title">âœ… à¸ªà¹ˆà¸‡à¹à¸¥à¹‰à¸§ ({{ submitted|length }})</div>
+      <div class="card-title">✅ ส่งแล้ว ({{ submitted|length }})</div>
     </div>
-    
+
     {% if exercise_type is defined and exercise_type == 'homework' %}
     {% if hw_submissions %}
     <div style="padding:16px;">
@@ -255,37 +255,37 @@
           {% if hw.graded_at %}
           <span style="background:#dcfce7;color:#166534;padding:4px 12px;border-radius:20px;font-weight:700;">{{ hw.score }}/{{ hw.max_score }}</span>
           {% else %}
-          <span style="background:#fef3c7;color:#92400e;padding:4px 12px;border-radius:20px;font-weight:700;">&#x23F3; &#xE23;&#xE2D;&#xE15;&#xE23;&#xE27;&#xE08;</span>
+          <span style="background:#fef3c7;color:#92400e;padding:4px 12px;border-radius:20px;font-weight:700;">⏳ รอตรวจ</span>
           {% endif %}
         </div>
         {% if hw.text_content %}<div style="background:#fff;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:8px;white-space:pre-wrap;">{{ hw.text_content }}</div>{% endif %}
         {% if hw.image_file %}<div style="margin-bottom:8px;"><a href="{{ url_for('uploaded_file', filename=hw.image_file) }}" target="_blank"><img src="{{ url_for('uploaded_file', filename=hw.image_file) }}" style="max-width:300px;border-radius:10px;border:1px solid #e2e8f0;"></a></div>{% endif %}
         {% if hw.link_url %}<div style="margin-bottom:8px;"><a href="{{ hw.link_url }}" target="_blank" style="color:#667eea;word-break:break-all;">{{ hw.link_url }}</a></div>{% endif %}
-        {% if hw.teacher_comment %}<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:.9rem;">&#x1F4AC; {{ hw.teacher_comment }}</div>{% endif %}
+        {% if hw.teacher_comment %}<div style="background:#f0fdf4;border:1px solid #bbf7d0;border-radius:8px;padding:8px 12px;margin-bottom:8px;font-size:.9rem;">💬 {{ hw.teacher_comment }}</div>{% endif %}
         <form method="POST" action="{{ url_for('classroom.homework_grade', assignment_id=assignment.id, sub_id=hw.id) }}" style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-top:8px;padding-top:10px;border-top:1px solid #e2e8f0;">
-          <label style="font-weight:700;font-size:.85rem;">&#xE04;&#xE30;&#xE41;&#xE19;&#xE19;:</label>
+          <label style="font-weight:700;font-size:.85rem;">คะแนน:</label>
           <input type="number" name="score" value="{{ hw.score if hw.score is not none else '' }}" min="0" max="100" style="width:60px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:8px;" required>
           <span>/</span>
           <input type="number" name="max_score" value="{{ hw.max_score or 10 }}" min="1" max="100" style="width:60px;padding:6px 8px;border:1px solid #cbd5e1;border-radius:8px;">
-          <input type="text" name="comment" value="{{ hw.teacher_comment or '' }}" placeholder="&#xE04;&#xE27;&#xE32;&#xE21;&#xE40;&#xE2B;&#xE47;&#xE19;" style="flex:1;min-width:100px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:8px;">
-          <button type="submit" style="background:#22c55e;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-weight:700;cursor:pointer;">&#x2705; &#xE43;&#xE2B;&#xE49;&#xE04;&#xE30;&#xE41;&#xE19;&#xE19;</button>
+          <input type="text" name="comment" value="{{ hw.teacher_comment or '' }}" placeholder="ความเห็น" style="flex:1;min-width:100px;padding:6px 10px;border:1px solid #cbd5e1;border-radius:8px;">
+          <button type="submit" style="background:#22c55e;color:#fff;border:none;border-radius:8px;padding:6px 14px;font-weight:700;cursor:pointer;">✅ ให้คะแนน</button>
         </form>
       </div>
       {% endfor %}
     </div>
     {% else %}
-    <div class="empty"><p>&#x1F50D; &#xE22;&#xE31;&#xE07;&#xE44;&#xE21;&#xE48;&#xE21;&#xE35;&#xE19;&#xE31;&#xE01;&#xE40;&#xE23;&#xE35;&#xE22;&#xE19;&#xE2A;&#xE48;&#xE07;&#xE07;&#xE32;&#xE19;</p></div>
+    <div class="empty"><p>🔍 ยังไม่มีนักเรียนส่งงาน</p></div>
     {% endif %}
     {% else %}
     {% if submitted %}
     <table>
       <thead>
         <tr>
-          <th style="width:60px">à¹€à¸¥à¸‚à¸—à¸µà¹ˆ</th>
-          <th>à¸Šà¸·à¹ˆà¸­-à¸ªà¸à¸¸à¸¥</th>
-          <th style="width:100px">à¸„à¸°à¹à¸™à¸™</th>
+          <th style="width:60px">เลขที่</th>
+          <th>ชื่อ-สกุล</th>
+          <th style="width:100px">คะแนน</th>
           <th style="width:80px">%</th>
-          <th style="width:160px">à¹€à¸§à¸¥à¸²à¸ªà¹ˆà¸‡</th>
+          <th style="width:160px">เวลาส่ง</th>
         </tr>
       </thead>
       <tbody>
@@ -322,8 +322,8 @@
     </table>
     {% else %}
     <div class="empty">
-      <div class="empty-icon">ðŸ“­</div>
-      <p>à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸¡à¸µà¸™à¸±à¸à¹€à¸£à¸µà¸¢à¸™à¸ªà¹ˆà¸‡à¸‡à¸²à¸™</p>
+      <div class="empty-icon">🔍</div>
+      <p>ยังไม่มีนักเรียนส่งงาน</p>
     </div>
     {% endif %}
     {% endif %}
@@ -332,15 +332,15 @@
   <!-- Not Submitted -->
   <div class="card">
     <div class="card-header">
-      <div class="card-title">â³ à¸¢à¸±à¸‡à¹„à¸¡à¹ˆà¸ªà¹ˆà¸‡ ({{ not_submitted|length }})</div>
+      <div class="card-title">⏳ ยังไม่ส่ง ({{ not_submitted|length }})</div>
     </div>
     {% if not_submitted %}
     <table>
       <thead>
         <tr>
-          <th style="width:60px">à¹€à¸¥à¸‚à¸—à¸µà¹ˆ</th>
-          <th>à¸Šà¸·à¹ˆà¸­-à¸ªà¸à¸¸à¸¥</th>
-          <th style="width:100px">à¸ªà¸–à¸²à¸™à¸°</th>
+          <th style="width:60px">เลขที่</th>
+          <th>ชื่อ-สกุล</th>
+          <th style="width:100px">สถานะ</th>
         </tr>
       </thead>
       <tbody>
@@ -348,14 +348,14 @@
         <tr>
           <td><strong>{{ s.student_no or '-' }}</strong></td>
           <td>{{ s.student_name }}</td>
-          <td><span class="status-badge badge-pending">à¸£à¸­à¸ªà¹ˆà¸‡</span></td>
+          <td><span class="status-badge badge-pending">รอส่ง</span></td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
     {% else %}
     <div class="empty" style="padding:20px;">
-      <p>ðŸŽ‰ à¸™à¸±à¸à¹€à¸£à¸µà¸¢à¸™à¸ªà¹ˆà¸‡à¸‡à¸²à¸™à¸„à¸£à¸šà¹à¸¥à¹‰à¸§!</p>
+      <p>🎉 นักเรียนส่งงานครบแล้ว!</p>
     </div>
     {% endif %}
   </div>
@@ -365,7 +365,7 @@
 function copyLink() {
   const url = document.getElementById('linkUrl').textContent;
   navigator.clipboard.writeText(url).then(() => {
-    alert('à¸„à¸±à¸”à¸¥à¸­à¸à¸¥à¸´à¸‡à¸à¹Œà¹à¸¥à¹‰à¸§! âœ…');
+    alert('คัดลอกลิงก์แล้ว! ✅');
   });
 }
 </script>
