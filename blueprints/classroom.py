@@ -79,33 +79,65 @@ def classroom_detail(classroom_id):
     scores_by_student = {s["id"]: {"assignments": {}, "total_score": 0, "total_possible": 0} for s in students}
 
     for a in assignments:
-        status = Assignment.get_submissions_status(a["id"])
-        submission_stats[a["id"]] = {"submitted": len(status["submitted"]), "not_submitted": len(status["not_submitted"])}
+        exercise_type = a.get("exercise_type") or "mcq"
 
-        submissions = status.get("submissions") or []
-        if submissions:
-            avg = sum(s.get("percentage") or 0 for s in submissions) / len(submissions)
-            assignment_stats[a["id"]] = {"avg": avg, "count": len(submissions)}
+        if exercise_type == "homework":
+            # Homework: get from homework_submissions
+            hw_subs = HomeworkSubmission.get_by_assignment(a["id"])
+            hw_student_ids = set(h["student_id"] for h in hw_subs)
+            submitted_count = len(hw_student_ids)
+            not_submitted_count = len(students) - submitted_count
+            submission_stats[a["id"]] = {"submitted": submitted_count, "not_submitted": not_submitted_count}
+
+            graded = [h for h in hw_subs if h.get("score") is not None]
+            if graded:
+                avg = sum(h["score"] / (h.get("max_score") or 10) * 100 for h in graded) / len(graded)
+                assignment_stats[a["id"]] = {"avg": avg, "count": len(graded)}
+            else:
+                assignment_stats[a["id"]] = {"avg": 0, "count": 0}
+
+            for student in students:
+                student_id = student["id"]
+                for h in hw_subs:
+                    if h["student_id"] == student_id and h.get("score") is not None:
+                        max_s = h.get("max_score") or 10
+                        scores_by_student[student_id]["assignments"][a["id"]] = {
+                            "score": h["score"],
+                            "total": max_s,
+                            "percentage": h["score"] / max_s * 100 if max_s else 0,
+                        }
+                        scores_by_student[student_id]["total_score"] += h["score"]
+                        scores_by_student[student_id]["total_possible"] += max_s
+                        break
         else:
-            assignment_stats[a["id"]] = {"avg": 0, "count": 0}
+            # MCQ/Fill/Unscramble: existing logic
+            status = Assignment.get_submissions_status(a["id"])
+            submission_stats[a["id"]] = {"submitted": len(status["submitted"]), "not_submitted": len(status["not_submitted"])}
 
-        for student in students:
-            student_id = student["id"]
-            student_name_lower = (student.get("student_name") or "").strip().lower()
-            student_no = (student.get("student_no") or "").strip()
+            submissions = status.get("submissions") or []
+            if submissions:
+                avg = sum(s.get("percentage") or 0 for s in submissions) / len(submissions)
+                assignment_stats[a["id"]] = {"avg": avg, "count": len(submissions)}
+            else:
+                assignment_stats[a["id"]] = {"avg": 0, "count": 0}
 
-            for sub in submissions:
-                sub_name = (sub.get("student_name") or "").strip().lower()
-                sub_no = (sub.get("student_no") or "").strip()
-                if sub_name == student_name_lower or (sub_no and sub_no == student_no):
-                    scores_by_student[student_id]["assignments"][a["id"]] = {
-                        "score": sub.get("score", 0),
-                        "total": sub.get("total", 0),
-                        "percentage": sub.get("percentage", 0),
-                    }
-                    scores_by_student[student_id]["total_score"] += sub.get("score", 0)
-                    scores_by_student[student_id]["total_possible"] += sub.get("total", 0)
-                    break
+            for student in students:
+                student_id = student["id"]
+                student_name_lower = (student.get("student_name") or "").strip().lower()
+                student_no = (student.get("student_no") or "").strip()
+
+                for sub in submissions:
+                    sub_name = (sub.get("student_name") or "").strip().lower()
+                    sub_no = (sub.get("student_no") or "").strip()
+                    if (student_name_lower and sub_name == student_name_lower) or (sub_no and sub_no == student_no):
+                        scores_by_student[student_id]["assignments"][a["id"]] = {
+                            "score": sub.get("score", 0),
+                            "total": sub.get("total", 0),
+                            "percentage": sub.get("percentage", 0),
+                        }
+                        scores_by_student[student_id]["total_score"] += sub.get("score", 0)
+                        scores_by_student[student_id]["total_possible"] += sub.get("total", 0)
+                        break
 
     class_avg = 0
     students_with_scores = [s for s in scores_by_student.values() if s["total_possible"] > 0]
