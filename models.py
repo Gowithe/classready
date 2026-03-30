@@ -449,6 +449,41 @@ def init_db() -> None:
     c.execute("CREATE INDEX IF NOT EXISTS idx_hw_sub_assignment ON homework_submissions(assignment_id)")
     c.execute("CREATE INDEX IF NOT EXISTS idx_hw_sub_student ON homework_submissions(student_id)")
 
+    # ---------------- attendance ----------------
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS attendance (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      classroom_id INTEGER NOT NULL,
+      student_id INTEGER NOT NULL,
+      check_date TEXT NOT NULL,
+      status TEXT NOT NULL DEFAULT 'present',
+      note TEXT DEFAULT '',
+      created_at TEXT NOT NULL,
+      FOREIGN KEY(classroom_id) REFERENCES classrooms(id),
+      FOREIGN KEY(student_id) REFERENCES classroom_students(id)
+    )
+    """)
+    c.execute("CREATE INDEX IF NOT EXISTS idx_attendance_class_date ON attendance(classroom_id, check_date)")
+
+    # ---------------- student_extra_scores (attitude, midterm, final) ----------------
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS student_extra_scores (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      classroom_id INTEGER NOT NULL,
+      student_id INTEGER NOT NULL,
+      attitude_score REAL DEFAULT NULL,
+      attitude_total REAL DEFAULT 10,
+      midterm_score REAL DEFAULT NULL,
+      midterm_total REAL DEFAULT 30,
+      final_score REAL DEFAULT NULL,
+      final_total REAL DEFAULT 30,
+      updated_at TEXT NOT NULL,
+      UNIQUE(classroom_id, student_id),
+      FOREIGN KEY(classroom_id) REFERENCES classrooms(id),
+      FOREIGN KEY(student_id) REFERENCES classroom_students(id)
+    )
+    """)
+
     c.execute("CREATE INDEX IF NOT EXISTS idx_topics_owner_id ON topics(owner_id)")
     c.execute("CREATE INDEX IF NOT EXISTS idx_game_questions_topic_set ON game_questions(topic_id, set_no, tile_no)")
     c.execute("CREATE INDEX IF NOT EXISTS idx_practice_questions_topic ON practice_questions(topic_id)")
@@ -1956,6 +1991,155 @@ class HomeworkSubmission:
         """, (score, max_score, comment, now, now, sub_id))
         conn.commit()
         conn.close()
+
+
+# ==============================================================================
+# Attendance (เช็กชื่อ)
+# ==============================================================================
+class Attendance:
+    @staticmethod
+    def save_bulk(classroom_id: int, check_date: str, records: list) -> None:
+        """Save attendance for all students on a given date (upsert)."""
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        # Delete existing for this date
+        c.execute("DELETE FROM attendance WHERE classroom_id = ? AND check_date = ?",
+                  (classroom_id, check_date))
+        for r in records:
+            student_id = r.get("student_id")
+            status = r.get("status", "present")
+            note = r.get("note", "")
+            if student_id and status:
+                c.execute("""
+                    INSERT INTO attendance (classroom_id, student_id, check_date, status, note, created_at)
+                    VALUES (?, ?, ?, ?, ?, ?)
+                """, (classroom_id, student_id, check_date, status, note, now))
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def get_by_date(classroom_id: int, check_date: str) -> List[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("""
+            SELECT a.*, cs.student_name, cs.student_no
+            FROM attendance a
+            JOIN classroom_students cs ON a.student_id = cs.id
+            WHERE a.classroom_id = ? AND a.check_date = ?
+            ORDER BY cs.student_no, cs.student_name
+        """, (classroom_id, check_date))
+        rows = c.fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+
+    @staticmethod
+    def get_dates(classroom_id: int) -> List[str]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("""
+            SELECT DISTINCT check_date FROM attendance
+            WHERE classroom_id = ? ORDER BY check_date DESC
+        """, (classroom_id,))
+        rows = c.fetchall()
+        conn.close()
+        return [r[0] for r in rows]
+
+    @staticmethod
+    def get_summary(classroom_id: int) -> Dict[int, Dict[str, int]]:
+        """Get attendance summary per student: {student_id: {present: N, late: N, absent: N, leave: N}}"""
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("""
+            SELECT student_id, status, COUNT(*) as cnt
+            FROM attendance WHERE classroom_id = ?
+            GROUP BY student_id, status
+        """, (classroom_id,))
+        rows = c.fetchall()
+        conn.close()
+        summary = {}
+        for r in rows:
+            sid = r[0]
+            if sid not in summary:
+                summary[sid] = {"present": 0, "late": 0, "absent": 0, "leave": 0}
+            summary[sid][r[1]] = r[2]
+        return summary
+
+
+# ==============================================================================
+# Student Extra Scores (จิตพิสัย, สอบกลางภาค, สอบปลายภาค)
+# ==============================================================================
+class StudentExtraScores:
+    @staticmethod
+    def get_by_classroom(classroom_id: int) -> Dict[int, Dict[str, Any]]:
+        """Returns {student_id: {attitude_score, midterm_score, final_score, ...}}"""
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM student_extra_scores WHERE classroom_id = ?", (classroom_id,))
+        rows = c.fetchall()
+        conn.close()
+        return {r["student_id"]: dict(r) for r in rows}
+
+    @staticmethod
+    def save(classroom_id: int, student_id: int, **kwargs) -> None:
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        c.execute("SELECT id FROM student_extra_scores WHERE classroom_id = ? AND student_id = ?",
+                  (classroom_id, student_id))
+        existing = c.fetchone()
+        if existing:
+            sets = []
+            vals = []
+            for k in ("attitude_score", "attitude_total", "midterm_score", "midterm_total",
+                      "final_score", "final_total"):
+                if k in kwargs:
+                    sets.append(f"{k} = ?")
+                    vals.append(kwargs[k])
+            if sets:
+                sets.append("updated_at = ?")
+                vals.append(now)
+                vals.append(existing[0])
+                c.execute(f"UPDATE student_extra_scores SET {', '.join(sets)} WHERE id = ?", vals)
+        else:
+            c.execute("""
+                INSERT INTO student_extra_scores
+                (classroom_id, student_id, attitude_score, attitude_total,
+                 midterm_score, midterm_total, final_score, final_total, updated_at)
+                VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?)
+            """, (
+                classroom_id, student_id,
+                kwargs.get("attitude_score"), kwargs.get("attitude_total", 10),
+                kwargs.get("midterm_score"), kwargs.get("midterm_total", 30),
+                kwargs.get("final_score"), kwargs.get("final_total", 30),
+                now,
+            ))
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def save_bulk(classroom_id: int, data: list) -> None:
+        """data = [{student_id, attitude_score, midterm_score, final_score, ...}]"""
+        for d in data:
+            sid = d.get("student_id")
+            if sid:
+                StudentExtraScores.save(classroom_id, int(sid), **{
+                    k: d[k] for k in
+                    ("attitude_score", "attitude_total", "midterm_score", "midterm_total",
+                     "final_score", "final_total")
+                    if k in d and d[k] is not None
+                })
+
+    @staticmethod
+    def calc_grade(percentage: float) -> str:
+        if percentage >= 80: return "4"
+        if percentage >= 75: return "3.5"
+        if percentage >= 70: return "3"
+        if percentage >= 65: return "2.5"
+        if percentage >= 60: return "2"
+        if percentage >= 55: return "1.5"
+        if percentage >= 50: return "1"
+        return "0"
 
 
 # ==============================================================================
