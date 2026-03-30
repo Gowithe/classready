@@ -131,6 +131,8 @@
   <div class="tabs">
     <div class="tab active" onclick="switchTab('students')">👨‍🎓 รายชื่อ + คะแนน</div>
     <div class="tab" onclick="switchTab('assignments')">📋 งานที่มอบหมาย</div>
+    <div class="tab" onclick="switchTab('attendance')">✅ เช็กชื่อ</div>
+    <div class="tab" onclick="switchTab('grades')">📊 คะแนน + เกรด</div>
   </div>
 
   <div class="tab-content active" id="tab-students">
@@ -277,6 +279,171 @@
       {% endif %}
     </div>
   </div>
+
+<!-- ==================== TAB: Attendance ==================== -->
+<div class="tab-content" id="tab-attendance">
+  <div class="card" style="padding:20px;">
+    <h3 style="margin:0 0 16px;">✅ เช็กชื่อนักเรียน</h3>
+    <form method="POST" action="{{ url_for('classroom.classroom_attendance_save', classroom_id=classroom.id) }}">
+      <div style="display:flex;gap:12px;align-items:center;margin-bottom:16px;flex-wrap:wrap;">
+        <label style="font-weight:700;">วันที่:</label>
+        <input type="date" name="check_date" id="attendanceDate" value="{{ today }}" required
+               style="padding:8px 12px;border:1px solid #cbd5e1;border-radius:8px;font-size:.95rem;"
+               onchange="loadAttendance(this.value)">
+        <button type="button" class="btn btn-secondary" style="padding:6px 14px;" onclick="setAllStatus('present')">✅ มาทั้งหมด</button>
+      </div>
+
+      <div class="table-container">
+        <table class="student-table">
+          <thead>
+            <tr>
+              <th style="width:60px">เลขที่</th>
+              <th>ชื่อ-สกุล</th>
+              <th style="width:100px">มาเรียน</th>
+              <th style="width:100px">สาย</th>
+              <th style="width:100px">ขาด</th>
+              <th style="width:100px">ลา</th>
+              <th>หมายเหตุ</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in students %}
+            <tr>
+              <td><strong>{{ s.student_no or '-' }}</strong></td>
+              <td>{{ s.student_name }}</td>
+              <td><input type="radio" name="status_{{ s.id }}" value="present" checked class="att-radio" data-sid="{{ s.id }}"></td>
+              <td><input type="radio" name="status_{{ s.id }}" value="late" class="att-radio" data-sid="{{ s.id }}"></td>
+              <td><input type="radio" name="status_{{ s.id }}" value="absent" class="att-radio" data-sid="{{ s.id }}"></td>
+              <td><input type="radio" name="status_{{ s.id }}" value="leave" class="att-radio" data-sid="{{ s.id }}"></td>
+              <td><input type="text" name="note_{{ s.id }}" placeholder="" style="width:100%;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:.85rem;" class="att-note" data-sid="{{ s.id }}"></td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:16px;display:flex;justify-content:flex-end;">
+        <button type="submit" class="btn btn-primary">💾 บันทึกเช็กชื่อ</button>
+      </div>
+    </form>
+
+    {% if attendance_dates %}
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid #e2e8f0;">
+      <h4 style="margin:0 0 10px;">📅 ประวัติเช็กชื่อ</h4>
+      <div style="display:flex;gap:8px;flex-wrap:wrap;">
+        {% for d in attendance_dates[:20] %}
+        <button type="button" class="btn btn-secondary" style="padding:4px 10px;font-size:.8rem;"
+                onclick="document.getElementById('attendanceDate').value='{{ d }}';loadAttendance('{{ d }}')">{{ d }}</button>
+        {% endfor %}
+      </div>
+    </div>
+    {% endif %}
+
+    {% if students %}
+    <div style="margin-top:20px;padding-top:16px;border-top:1px solid #e2e8f0;">
+      <h4 style="margin:0 0 10px;">📊 สรุปการมาเรียน</h4>
+      <div class="table-container">
+        <table class="student-table">
+          <thead><tr><th>เลขที่</th><th>ชื่อ-สกุล</th><th>มา</th><th>สาย</th><th>ขาด</th><th>ลา</th></tr></thead>
+          <tbody>
+            {% for s in students %}
+            {% set att = attendance_summary.get(s.id, {}) %}
+            <tr>
+              <td>{{ s.student_no or '-' }}</td>
+              <td>{{ s.student_name }}</td>
+              <td style="color:#22c55e;font-weight:700;">{{ att.get('present', 0) }}</td>
+              <td style="color:#f59e0b;font-weight:700;">{{ att.get('late', 0) }}</td>
+              <td style="color:#ef4444;font-weight:700;">{{ att.get('absent', 0) }}</td>
+              <td style="color:#3b82f6;font-weight:700;">{{ att.get('leave', 0) }}</td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+    </div>
+    {% endif %}
+  </div>
+</div>
+
+<!-- ==================== TAB: Grades ==================== -->
+<div class="tab-content" id="tab-grades">
+  <div class="card" style="padding:20px;">
+    <h3 style="margin:0 0 16px;">📊 คะแนนจิตพิสัย + สอบ + เกรด</h3>
+    <form method="POST" action="{{ url_for('classroom.classroom_extra_scores_save', classroom_id=classroom.id) }}">
+      <div class="table-container">
+        <table class="student-table">
+          <thead>
+            <tr>
+              <th>เลขที่</th>
+              <th>ชื่อ-สกุล</th>
+              <th style="text-align:center;">งาน<br><span style="font-size:.65rem;color:#94a3b8;">รวม</span></th>
+              <th style="text-align:center;">จิตพิสัย<br><span style="font-size:.65rem;color:#94a3b8;">/เต็ม</span></th>
+              <th style="text-align:center;">กลางภาค<br><span style="font-size:.65rem;color:#94a3b8;">/เต็ม</span></th>
+              <th style="text-align:center;">ปลายภาค<br><span style="font-size:.65rem;color:#94a3b8;">/เต็ม</span></th>
+              <th style="text-align:center;">รวม</th>
+              <th style="text-align:center;">%</th>
+              <th style="text-align:center;">เกรด</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for s in students %}
+            {% set sid = s.id %}
+            {% set sbs = scores_by_student.get(sid, {}) %}
+            {% set es = extra_scores.get(sid, {}) %}
+            {% set g = grades.get(sid, {}) %}
+            <tr>
+              <td>{{ s.student_no or '-' }}</td>
+              <td>{{ s.student_name }}</td>
+              <td style="text-align:center;">
+                {% if sbs.total_possible %}
+                <span style="font-weight:700;">{{ sbs.total_score }}/{{ sbs.total_possible }}</span>
+                {% else %}-{% endif %}
+              </td>
+              <td style="text-align:center;">
+                <input type="number" name="attitude_score_{{ sid }}" value="{{ es.attitude_score if es.attitude_score is not none else '' }}"
+                       style="width:45px;padding:4px;border:1px solid #e2e8f0;border-radius:6px;text-align:center;" step="0.5" min="0">
+                / <input type="number" name="attitude_total_{{ sid }}" value="{{ es.attitude_total|default(10) }}"
+                       style="width:40px;padding:4px;border:1px solid #e2e8f0;border-radius:6px;text-align:center;" min="1">
+              </td>
+              <td style="text-align:center;">
+                <input type="number" name="midterm_score_{{ sid }}" value="{{ es.midterm_score if es.midterm_score is not none else '' }}"
+                       style="width:45px;padding:4px;border:1px solid #e2e8f0;border-radius:6px;text-align:center;" step="0.5" min="0">
+                / <input type="number" name="midterm_total_{{ sid }}" value="{{ es.midterm_total|default(30) }}"
+                       style="width:40px;padding:4px;border:1px solid #e2e8f0;border-radius:6px;text-align:center;" min="1">
+              </td>
+              <td style="text-align:center;">
+                <input type="number" name="final_score_{{ sid }}" value="{{ es.final_score if es.final_score is not none else '' }}"
+                       style="width:45px;padding:4px;border:1px solid #e2e8f0;border-radius:6px;text-align:center;" step="0.5" min="0">
+                / <input type="number" name="final_total_{{ sid }}" value="{{ es.final_total|default(30) }}"
+                       style="width:40px;padding:4px;border:1px solid #e2e8f0;border-radius:6px;text-align:center;" min="1">
+              </td>
+              <td style="text-align:center;font-weight:700;">{{ "%.1f"|format(g.total_earned) }}/{{ "%.0f"|format(g.total_max) }}</td>
+              <td style="text-align:center;font-weight:700;color:#667eea;">{{ "%.0f"|format(g.percentage) }}%</td>
+              <td style="text-align:center;">
+                <span style="display:inline-block;padding:4px 12px;border-radius:20px;font-weight:900;font-size:.95rem;
+                  {% if g.grade == '4' %}background:#dcfce7;color:#166534;
+                  {% elif g.grade in ['3', '3.5'] %}background:#dbeafe;color:#2563eb;
+                  {% elif g.grade in ['2', '2.5'] %}background:#fef3c7;color:#92400e;
+                  {% elif g.grade in ['1', '1.5'] %}background:#fed7aa;color:#9a3412;
+                  {% else %}background:#fee2e2;color:#991b1b;{% endif %}">
+                  {{ g.grade }}
+                </span>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:16px;display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:10px;">
+        <div style="font-size:.8rem;color:#94a3b8;">
+          เกรด: 50-54=1 | 55-59=1.5 | 60-64=2 | 65-69=2.5 | 70-74=3 | 75-79=3.5 | 80+=4
+        </div>
+        <button type="submit" class="btn btn-primary">💾 บันทึกคะแนน</button>
+      </div>
+    </form>
+  </div>
+</div>
 </div>
 
 <div class="modal-overlay" id="studentModal">
@@ -437,6 +604,29 @@ function toggleTopicField(){
     topicSelect.setAttribute('required','');
     maxScoreGroup.style.display='none';
   }
+}
+// --- Attendance helpers ---
+function setAllStatus(status){
+  document.querySelectorAll(`.att-radio[value="${status}"]`).forEach(r=>r.checked=true);
+}
+
+async function loadAttendance(dateStr){
+  try{
+    const r=await fetch(`/api/classroom/{{ classroom.id }}/attendance/${dateStr}`);
+    const d=await r.json();
+    if(d.records){
+      // Reset all to present
+      document.querySelectorAll('.att-radio[value="present"]').forEach(r=>r.checked=true);
+      document.querySelectorAll('.att-note').forEach(n=>n.value='');
+      // Apply saved records
+      for(const [sid, rec] of Object.entries(d.records)){
+        const radio=document.querySelector(`.att-radio[data-sid="${sid}"][value="${rec.status}"]`);
+        if(radio) radio.checked=true;
+        const note=document.querySelector(`.att-note[data-sid="${sid}"]`);
+        if(note) note.value=rec.note||'';
+      }
+    }
+  }catch(e){console.error(e);}
 }
 </script>
 {% endblock %}
