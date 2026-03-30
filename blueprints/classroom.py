@@ -11,6 +11,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from models import (
     Classroom, ClassroomStudent, Assignment, Topic, PracticeLink,
     PracticeQuestion, PracticeSubmission, UsageLimits, HomeworkSubmission,
+    Attendance, StudentExtraScores,
 )
 from blueprints.helpers import login_required, is_premium_user, _get_topic_or_404
 
@@ -144,11 +145,50 @@ def classroom_detail(classroom_id):
     if students_with_scores:
         class_avg = sum((s["total_score"] / s["total_possible"] * 100) for s in students_with_scores) / len(students_with_scores)
 
+    # Attendance summary
+    attendance_summary = Attendance.get_summary(classroom_id)
+    attendance_dates = Attendance.get_dates(classroom_id)
+
+    # Extra scores (attitude, midterm, final)
+    extra_scores = StudentExtraScores.get_by_classroom(classroom_id)
+
+    # Grade calculation per student
+    from datetime import date
+    today = date.today().isoformat()
+
+    grades = {}
+    for s in students:
+        sid = s["id"]
+        sbs = scores_by_student.get(sid, {})
+        es = extra_scores.get(sid, {})
+
+        total_earned = sbs.get("total_score", 0)
+        total_max = sbs.get("total_possible", 0)
+
+        # Add extra scores
+        for field, total_field in [("attitude_score", "attitude_total"),
+                                    ("midterm_score", "midterm_total"),
+                                    ("final_score", "final_total")]:
+            val = es.get(field)
+            if val is not None:
+                total_earned += float(val)
+                total_max += float(es.get(total_field) or 10)
+
+        pct = (total_earned / total_max * 100) if total_max > 0 else 0
+        grades[sid] = {
+            "total_earned": total_earned,
+            "total_max": total_max,
+            "percentage": pct,
+            "grade": StudentExtraScores.calc_grade(pct),
+        }
+
     return render_template(
         "classroom_detail.html",
         classroom=cls, students=students, assignments=assignments, topics=topics,
         submission_stats=submission_stats, scores_by_student=scores_by_student,
         assignment_stats=assignment_stats, class_avg=class_avg,
+        attendance_summary=attendance_summary, attendance_dates=attendance_dates,
+        extra_scores=extra_scores, grades=grades, today=today,
     )
 
 
@@ -181,6 +221,72 @@ def classroom_delete(classroom_id):
     Classroom.delete(classroom_id)
     flash("\u0e25\u0e1a\u0e2b\u0e49\u0e2d\u0e07\u0e40\u0e23\u0e35\u0e22\u0e19\u0e41\u0e25\u0e49\u0e27", "success")
     return redirect(url_for("classroom.classrooms"))
+
+
+# ==============================================================================
+# Attendance (เช็กชื่อ)
+# ==============================================================================
+@classroom_bp.route("/classroom/<int:classroom_id>/attendance", methods=["POST"])
+@login_required
+def classroom_attendance_save(classroom_id):
+    cls = Classroom.get_by_id(classroom_id)
+    if not cls or cls["owner_id"] != session["user_id"]:
+        abort(404)
+    check_date = request.form.get("check_date") or ""
+    if not check_date:
+        flash("\u0e01\u0e23\u0e38\u0e13\u0e32\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48", "error")
+        return redirect(url_for("classroom.classroom_detail", classroom_id=classroom_id))
+
+    students = ClassroomStudent.get_by_classroom(classroom_id)
+    records = []
+    for s in students:
+        status = request.form.get(f"status_{s['id']}", "present")
+        note = request.form.get(f"note_{s['id']}", "")
+        records.append({"student_id": s["id"], "status": status, "note": note})
+
+    Attendance.save_bulk(classroom_id, check_date, records)
+    flash(f"\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e40\u0e0a\u0e47\u0e01\u0e0a\u0e37\u0e48\u0e2d\u0e27\u0e31\u0e19\u0e17\u0e35\u0e48 {check_date} \u0e40\u0e23\u0e35\u0e22\u0e1a\u0e23\u0e49\u0e2d\u0e22", "success")
+    return redirect(url_for("classroom.classroom_detail", classroom_id=classroom_id))
+
+
+@classroom_bp.route("/api/classroom/<int:classroom_id>/attendance/<check_date>")
+@login_required
+def api_classroom_attendance(classroom_id, check_date):
+    cls = Classroom.get_by_id(classroom_id)
+    if not cls or cls["owner_id"] != session["user_id"]:
+        return jsonify({"error": "Not found"}), 404
+    records = Attendance.get_by_date(classroom_id, check_date)
+    return jsonify({"records": {r["student_id"]: {"status": r["status"], "note": r.get("note", "")} for r in records}})
+
+
+# ==============================================================================
+# Extra Scores (จิตพิสัย, สอบกลางภาค, สอบปลายภาค)
+# ==============================================================================
+@classroom_bp.route("/classroom/<int:classroom_id>/extra-scores", methods=["POST"])
+@login_required
+def classroom_extra_scores_save(classroom_id):
+    cls = Classroom.get_by_id(classroom_id)
+    if not cls or cls["owner_id"] != session["user_id"]:
+        abort(404)
+
+    students = ClassroomStudent.get_by_classroom(classroom_id)
+
+    for s in students:
+        sid = s["id"]
+        data = {}
+        for field in ("attitude_score", "attitude_total", "midterm_score", "midterm_total",
+                      "final_score", "final_total"):
+            raw = request.form.get(f"{field}_{sid}", "").strip()
+            if raw != "":
+                try:
+                    data[field] = float(raw)
+                except ValueError:
+                    pass
+        if data:
+            StudentExtraScores.save(classroom_id, sid, **data)
+
+    flash("\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e04\u0e30\u0e41\u0e19\u0e19\u0e40\u0e23\u0e35\u0e22\u0e1a\u0e23\u0e49\u0e2d\u0e22", "success")
+    return redirect(url_for("classroom.classroom_detail", classroom_id=classroom_id))
 
 
 # ==============================================================================
