@@ -478,7 +478,7 @@
     showModal(mode);
 
     try{
-      setStatus('⏳ Generating... Please wait.');
+      setStatus('⏳ กำลังสร้าง... กรุณารอสักครู่');
 
       const res = await fetch(`/api/topic/${topicId}/generate`, {
         method: 'POST',
@@ -496,7 +496,20 @@
         return;
       }
 
-      setStatus('✅ Generated successfully!');
+      // Poll for task completion
+      const taskId = data.task_id;
+      if(taskId){
+        setStatus('⏳ AI กำลังสร้างเนื้อหา... อาจใช้เวลา 30-60 วินาที');
+        const result = await pollTask(taskId);
+        if(result.status === 'error'){
+          hideModal();
+          alert('❌ ' + (result.error || 'Generate failed'));
+          setStatus('❌ ' + (result.error || 'Generate failed'));
+          return;
+        }
+      }
+
+      setStatus('✅ สร้างเสร็จแล้ว!');
       hideModal();
 
       if(mode === 'game'){
@@ -517,6 +530,27 @@
     }finally{
       buttons.forEach(b => { if(b) b.disabled = false; });
     }
+  }
+
+  function pollTask(taskId){
+    return new Promise((resolve) => {
+      const interval = setInterval(async () => {
+        try{
+          const r = await fetch(`/api/ai-task/${taskId}/status`);
+          const d = await r.json();
+          if(d.status === 'done'){
+            clearInterval(interval);
+            resolve(d);
+          }else if(d.status === 'error'){
+            clearInterval(interval);
+            resolve(d);
+          }
+          // else keep polling
+        }catch(e){
+          // network error, keep trying
+        }
+      }, 3000);
+    });
   }
 
   const btnAll = document.getElementById('btnGenAll');
