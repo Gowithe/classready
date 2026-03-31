@@ -264,7 +264,7 @@
         <a href="{{ url_for('download_slides_pdf', topic_id=topic.id) }}">📥 Download PDF</a>
         {% endif %}
         {% if topic.pdf_file %}
-        <a href="{{ url_for('uploaded_file', filename=topic.pdf_file) }}" target="_blank">📄 View Original PDF</a>
+        <a href="{{ url_for('pdf_presentation', topic_id=topic.id) }}">📄 PDF Presentation</a>
         {% endif %}
       </div>
     </div>
@@ -273,7 +273,7 @@
       <button class="dropdown-btn games {% if not has_game %}disabled{% endif %}">🎮 Games ▼</button>
       <div class="dropdown-content">
         {% if has_game %}
-        <a href="{{ url_for('game.game', topic_id=topic.id) }}">🎯 Mystery Tiles</a>
+        <a href="{{ url_for('game.game', topic_id=topic.id) }}">🎯 Bamboozle</a>
         <a href="{{ url_for('game.game_memory', topic_id=topic.id) }}">🃏 Memory Match</a>
         <a href="{{ url_for('game.game_sentence_builder', topic_id=topic.id) }}">🏗️ Sentence Builder</a>
         {% if has_practice %}
@@ -311,7 +311,7 @@
     <strong>PDF:</strong>
     {% if topic.pdf_file %}
       <span class="muted">{{ topic.pdf_file }}</span>
-      <a class="btn2 gray" style="margin-left:10px;" href="{{ url_for('uploaded_file', filename=topic.pdf_file) }}" target="_blank">📄 Open PDF</a>
+      <a class="btn2 gray" style="margin-left:10px;" href="{{ url_for('pdf_presentation', topic_id=topic.id) }}">📄 Open PDF</a>
     {% else %}
       <span class="muted">ยังไม่มี PDF (อัปโหลดก่อนถึงจะ Generate จาก PDF ได้)</span>
     {% endif %}
@@ -458,24 +458,6 @@
     return await res.json();
   }
 
-  async function pollTaskStatus(taskId) {
-    const maxAttempts = 120; // poll for up to 6 minutes
-    for (let i = 0; i < maxAttempts; i++) {
-      await new Promise(r => setTimeout(r, 3000));
-      try {
-        const res = await fetch('/api/ai-task/' + taskId + '/status');
-        const data = await res.json();
-        if (data.status === 'generating') {
-          if (i > 5) modalMessage.textContent = 'AI กำลังสร้างเนื้อหา... (อาจใช้เวลา 1-2 นาที)';
-          if (i > 30) modalMessage.textContent = 'เกือบเสร็จแล้ว... กรุณารอสักครู่';
-        }
-        if (data.status === 'done') return { ok: true };
-        if (data.status === 'error') return { ok: false, error: data.error };
-      } catch(e) { console.error('Poll error:', e); }
-    }
-    return { ok: false, error: 'ใช้เวลานานเกินไป กรุณาลองใหม่' };
-  }
-
   async function callGenerate(mode){
     if(!hasPdf){
       alert('ยังไม่มี PDF — กรุณาอัปโหลด PDF ก่อน');
@@ -512,18 +494,6 @@
         alert(msg);
         setStatus('❌ Generate failed: ' + msg);
         return;
-      }
-
-      // Background task — poll until complete
-      if (data.task_id) {
-        modalMessage.textContent = 'AI กำลังสร้างเนื้อหา...';
-        const result = await pollTaskStatus(data.task_id);
-        if (!result.ok) {
-          hideModal();
-          alert(result.error || 'Generate failed');
-          setStatus('❌ ' + (result.error || 'Generate failed'));
-          return;
-        }
       }
 
       setStatus('✅ Generated successfully!');
