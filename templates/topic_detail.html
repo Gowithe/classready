@@ -259,10 +259,6 @@
         {% if is_owner or is_admin %}
         <a href="{{ url_for('edit_slides', topic_id=topic.id) }}">✏️ Edit Slides</a>
         {% endif %}
-        {% if has_slides %}
-        <div class="dropdown-divider"></div>
-        <a href="{{ url_for('download_slides_pdf', topic_id=topic.id) }}">📥 Download PDF</a>
-        {% endif %}
         {% if topic.pdf_file %}
         <a href="{{ url_for('pdf_presentation', topic_id=topic.id) }}">📄 PDF Presentation</a>
         {% endif %}
