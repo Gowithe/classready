@@ -133,9 +133,25 @@ def _cleanup_old_tasks():
         for k in old:
             del _tasks[k]
 
-UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
+# Use persistent disk on Render, local folder otherwise
+if os.path.isdir("/var/data"):
+    UPLOAD_FOLDER = "/var/data/uploads"
+    # Migrate: copy files from old location if any exist
+    _old_uploads = os.path.join(os.path.dirname(__file__), "uploads")
+    if os.path.isdir(_old_uploads):
+        for _f in os.listdir(_old_uploads):
+            _src = os.path.join(_old_uploads, _f)
+            _dst = os.path.join(UPLOAD_FOLDER, _f)
+            if os.path.isfile(_src) and not os.path.exists(_dst):
+                import shutil
+                os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+                shutil.copy2(_src, _dst)
+                print(f"  Migrated upload: {_f}")
+else:
+    UPLOAD_FOLDER = os.path.join(os.path.dirname(__file__), "uploads")
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
 app.config["UPLOAD_FOLDER"] = UPLOAD_FOLDER
+print(f"📁 UPLOAD_FOLDER = {UPLOAD_FOLDER}")
 app.config["MAX_CONTENT_LENGTH"] = 25 * 1024 * 1024
 ALLOWED_EXTENSIONS = {"pdf"}
 ALLOWED_IMAGE_EXTENSIONS = {"png", "jpg", "jpeg", "gif", "webp"}
