@@ -1630,12 +1630,13 @@ body.fullscreen-mode .slide-footer {
      =========================== */
   .sentence-stack{ display:flex; flex-direction:column; gap:14px; margin: 10px 0 2px; }
   .sentence-card{
-    background: rgba(255, 240, 178, 0.92);
-    border: 2px solid rgba(17, 24, 39, 0.14);
-    border-left: 8px solid rgba(245, 158, 11, 0.95);
+    background: rgba(248, 250, 252, 0.95);
+    border: 1px solid rgba(0, 0, 0, 0.08);
+    border-left: 6px solid #667eea;
     border-radius: 16px;
     padding: 18px 20px;
-    box-shadow: 0 14px 35px rgba(0,0,0,0.10);
+    box-shadow: 0 4px 16px rgba(0,0,0,0.06);
+    color: #1e293b;
   }
   .sentence-row{ display:flex; gap:12px; align-items:flex-start; }
   .sentence-icon{
@@ -1643,8 +1644,8 @@ body.fullscreen-mode .slide-footer {
     width: 34px; height: 34px;
     display:flex; align-items:center; justify-content:center;
     border-radius: 12px;
-    background: rgba(245,158,11,0.18);
-    border: 1px solid rgba(245,158,11,0.35);
+    background: rgba(102,126,234,0.12);
+    border: 1px solid rgba(102,126,234,0.25);
     font-size: 18px;
     margin-top: 2px;
   }
@@ -1653,6 +1654,7 @@ body.fullscreen-mode .slide-footer {
     font-weight: 900;
     line-height: 1.25;
     letter-spacing: -0.02em;
+    color: #1e293b;
   }
   .sentence-actions{ margin-top: 10px; display:flex; align-items:center; gap:10px; flex-wrap:wrap; }
   .sentence-meaning{
@@ -1664,6 +1666,7 @@ body.fullscreen-mode .slide-footer {
     font-size: clamp(18px, 2vw, 26px);
     font-weight: 800;
     line-height: 1.45;
+    color: #334155;
   }
   .sentence-card .reveal-btn{
     border-radius: 999px;
@@ -1671,17 +1674,79 @@ body.fullscreen-mode .slide-footer {
     font-weight: 900;
   }
   .sentence-card .meaning{ font-weight: 900; }
-  /* Keep readable on blackboard theme */
+
+  /* Blackboard */
   body[data-theme="blackboard"] .sentence-card{
     background: rgba(255, 220, 120, 0.16);
     border-color: rgba(255,255,255,0.22);
     border-left-color: rgba(255, 209, 102, 0.95);
     box-shadow: 0 14px 35px rgba(0,0,0,0.25);
+    color: #f1f5f9;
   }
+  body[data-theme="blackboard"] .sentence-en{ color: #f5f5f4; }
   body[data-theme="blackboard"] .sentence-meaning{
     background: rgba(255,255,255,0.08);
     border-color: rgba(255,255,255,0.16);
+    color: #d6d3d1;
   }
+
+  /* Minimal */
+  .theme-minimal .sentence-card{
+    background: #fff;
+    border: 1px solid #e2e8f0;
+    border-left: 6px solid #667eea;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.04);
+    color: #1e293b;
+  }
+  .theme-minimal .sentence-icon{ background: rgba(102,126,234,0.1); border-color: rgba(102,126,234,0.25); }
+  .theme-minimal .sentence-en{ color: #1e293b; }
+  .theme-minimal .sentence-meaning{ background: #f8fafc; border-color: #e2e8f0; color: #334155; }
+
+  /* Colorful */
+  .theme-colorful .sentence-card{
+    background: linear-gradient(135deg, rgba(244,114,182,0.12), rgba(129,140,248,0.18));
+    border: 1px solid rgba(255,255,255,0.25);
+    border-left: 6px solid #818cf8;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.15);
+    backdrop-filter: blur(6px);
+    color: #f1f5f9;
+  }
+  .theme-colorful .sentence-icon{ background: rgba(129,140,248,0.2); border-color: rgba(129,140,248,0.4); }
+  .theme-colorful .sentence-en{ color: #fff; }
+  .theme-colorful .sentence-meaning{ background: rgba(255,255,255,0.1); border-color: rgba(255,255,255,0.15); color: #e2e8f0; }
+
+  /* Corporate */
+  .theme-corporate .sentence-card{
+    background: rgba(30,58,95,0.6);
+    border: 1px solid rgba(59,130,246,0.3);
+    border-left: 6px solid #3b82f6;
+    box-shadow: 0 8px 24px rgba(0,0,0,0.2);
+    backdrop-filter: blur(8px);
+    color: #e2e8f0;
+  }
+  .theme-corporate .sentence-icon{ background: rgba(59,130,246,0.2); border-color: rgba(59,130,246,0.4); }
+  .theme-corporate .sentence-en{ color: #f1f5f9; }
+  .theme-corporate .sentence-meaning{ background: rgba(59,130,246,0.1); border-color: rgba(59,130,246,0.25); color: #cbd5e1; }
+  .theme-corporate .sentence-card .reveal-btn{ background: rgba(59,130,246,0.2); color: #93c5fd; border: 1px solid rgba(59,130,246,0.4); }
+
+  /* Playful */
+  .theme-playful .sentence-card{
+    background: #fff;
+    border: 3px solid #1e293b;
+    border-left: 8px solid #f59e0b;
+    box-shadow: 4px 4px 0 #1e293b;
+    border-radius: 18px;
+    color: #1e293b;
+  }
+  .theme-playful .sentence-icon{ background: #fef3c7; border-color: #fbbf24; }
+  .theme-playful .sentence-en{ color: #1e293b; }
+  .theme-playful .sentence-meaning{ background: #fefce8; border-color: #fde68a; color: #1e293b; }
+
+  /* Corporate vocab cards */
+  .theme-corporate .vocab-card{ background: rgba(30,58,95,0.5); border: 1px solid rgba(59,130,246,0.25); border-radius: 14px; }
+  .theme-corporate .vocab-card .word{ color: #f1f5f9; }
+  .theme-corporate .vocab-card .meaning{ color: #93c5fd; }
+  .theme-minimal .vocab-card{ background: #fff; border: 1px solid #e2e8f0; border-radius: 14px; box-shadow: 0 2px 8px rgba(0,0,0,0.04); }
 
 
 /* ===============================
@@ -2965,10 +3030,10 @@ document.addEventListener('fullscreenchange', () => {
 // Keyboard navigation
 document.addEventListener('keydown', (e) => {
   if (typeof vocabFocusActive !== 'undefined' && vocabFocusActive) return;
-  if (e.key === 'ArrowRight' || e.key === ' ' || e.key === 'PageDown' || e.key === 'ArrowDown') {
+  if (e.key === 'ArrowRight' || e.key === ' ') {
     e.preventDefault();
     nextSlide();
-  } else if (e.key === 'ArrowLeft' || e.key === 'PageUp' || e.key === 'ArrowUp') {
+  } else if (e.key === 'ArrowLeft') {
     e.preventDefault();
     prevSlide();
   } else if (e.key === 'Escape') {
