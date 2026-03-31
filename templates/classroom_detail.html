@@ -381,7 +381,6 @@
               <th style="text-align:center;">กลางภาค<br><span style="font-size:.65rem;color:#94a3b8;">/เต็ม</span></th>
               <th style="text-align:center;">ปลายภาค<br><span style="font-size:.65rem;color:#94a3b8;">/เต็ม</span></th>
               <th style="text-align:center;">รวม</th>
-              <th style="text-align:center;">%</th>
               <th style="text-align:center;">เกรด</th>
             </tr>
           </thead>
@@ -401,24 +400,23 @@
               </td>
               <td style="text-align:center;">
                 <input type="number" name="attitude_score_{{ sid }}" value="{{ es.attitude_score if es.attitude_score is not none else '' }}"
-                       style="width:45px;padding:4px;border:1px solid #e2e8f0;border-radius:6px;text-align:center;" step="0.5" min="0">
+                       style="width:58px;padding:5px;border:1px solid #e2e8f0;border-radius:6px;text-align:center;font-size:.9rem;" step="0.5" min="0">
                 / <input type="number" name="attitude_total_{{ sid }}" value="{{ es.attitude_total|default(10) }}"
-                       style="width:40px;padding:4px;border:1px solid #e2e8f0;border-radius:6px;text-align:center;" min="1">
+                       style="width:48px;padding:5px;border:1px solid #e2e8f0;border-radius:6px;text-align:center;font-size:.9rem;" min="1">
               </td>
               <td style="text-align:center;">
                 <input type="number" name="midterm_score_{{ sid }}" value="{{ es.midterm_score if es.midterm_score is not none else '' }}"
-                       style="width:45px;padding:4px;border:1px solid #e2e8f0;border-radius:6px;text-align:center;" step="0.5" min="0">
+                       style="width:58px;padding:5px;border:1px solid #e2e8f0;border-radius:6px;text-align:center;font-size:.9rem;" step="0.5" min="0">
                 / <input type="number" name="midterm_total_{{ sid }}" value="{{ es.midterm_total|default(30) }}"
-                       style="width:40px;padding:4px;border:1px solid #e2e8f0;border-radius:6px;text-align:center;" min="1">
+                       style="width:48px;padding:5px;border:1px solid #e2e8f0;border-radius:6px;text-align:center;font-size:.9rem;" min="1">
               </td>
               <td style="text-align:center;">
                 <input type="number" name="final_score_{{ sid }}" value="{{ es.final_score if es.final_score is not none else '' }}"
-                       style="width:45px;padding:4px;border:1px solid #e2e8f0;border-radius:6px;text-align:center;" step="0.5" min="0">
+                       style="width:58px;padding:5px;border:1px solid #e2e8f0;border-radius:6px;text-align:center;font-size:.9rem;" step="0.5" min="0">
                 / <input type="number" name="final_total_{{ sid }}" value="{{ es.final_total|default(30) }}"
-                       style="width:40px;padding:4px;border:1px solid #e2e8f0;border-radius:6px;text-align:center;" min="1">
+                       style="width:48px;padding:5px;border:1px solid #e2e8f0;border-radius:6px;text-align:center;font-size:.9rem;" min="1">
               </td>
               <td style="text-align:center;font-weight:700;">{{ "%.1f"|format(g.total_earned) }}/{{ "%.0f"|format(g.total_max) }}</td>
-              <td style="text-align:center;font-weight:700;color:#667eea;">{{ "%.0f"|format(g.percentage) }}%</td>
               <td style="text-align:center;">
                 <span style="display:inline-block;padding:4px 12px;border-radius:20px;font-weight:900;font-size:.95rem;
                   {% if g.grade == '4' %}background:#dcfce7;color:#166534;
