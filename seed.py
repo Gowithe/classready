@@ -10,6 +10,7 @@ import json
 import secrets
 import base64
 import textwrap
+from urllib.parse import quote as url_quote
 import tempfile
 import threading
 import uuid
@@ -660,12 +661,18 @@ def download_slides_pdf(topic_id):
         flash("\u0e44\u0e21\u0e48\u0e21\u0e35\u0e2a\u0e44\u0e25\u0e14\u0e4c", "error")
         return redirect(url_for("topic_detail", topic_id=topic_id))
 
-    pdf_bytes = _generate_slides_pdf(topic["name"], slides)
+    try:
+        pdf_bytes = _generate_slides_pdf(topic["name"], slides)
+    except Exception as e:
+        print(f"\u274c PDF generation error: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f"\u0e2a\u0e23\u0e49\u0e32\u0e07 PDF \u0e44\u0e21\u0e48\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08: {e}", "error")
+        return redirect(url_for("topic_detail", topic_id=topic_id))
 
     # ASCII-only filename for HTTP header safety
     safe_name = "".join(c for c in topic["name"] if c.isascii() and (c.isalnum() or c in " -_")).strip()[:50] or "slides"
-    from urllib.parse import quote
-    utf8_name = quote(topic["name"][:50] + "_slides.pdf")
+    utf8_name = url_quote(topic["name"][:50] + "_slides.pdf")
 
     return Response(
         pdf_bytes,
