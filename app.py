@@ -671,6 +671,20 @@ def download_slides_pdf(topic_id):
     )
 
 
+@app.route("/topic/<int:topic_id>/pdf-present")
+@login_required
+def pdf_presentation(topic_id):
+    topic = _get_topic_or_404(topic_id)
+    if not topic.get("pdf_file"):
+        flash("\u0e44\u0e21\u0e48\u0e21\u0e35\u0e44\u0e1f\u0e25\u0e4c PDF", "error")
+        return redirect(url_for("topic_detail", topic_id=topic_id))
+    return render_template(
+        "slides_pdf_presentation.html",
+        topic=topic,
+        pdf_url=url_for("uploaded_file", filename=topic["pdf_file"]),
+    )
+
+
 def _generate_slides_pdf(title, slides):
     """Generate a PDF from slides data – supports all slide types + Thai language."""
     from reportlab.lib.pagesizes import A4, landscape
