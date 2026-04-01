@@ -136,9 +136,11 @@ def verify_email(token):
 # ==============================================================================
 @auth_bp.route("/login", methods=["GET", "POST"])
 def login():
+    next_url = request.args.get("next") or ""
     if request.method == "POST":
         email = (request.form.get("email") or "").strip().lower()
         password = (request.form.get("password") or "").strip()
+        next_url = request.form.get("next") or next_url
         user = User.get_by_email(email)
         if user and check_password_hash(user["password_hash"], password):
             if not int(user.get("is_verified") or 0):
@@ -148,9 +150,11 @@ def login():
             session["email"] = user["email"]
             session["role"] = user["role"]
             session["display_name"] = user.get("display_name") or ""
+            if next_url and next_url.startswith("/"):
+                return redirect(next_url)
             return redirect(url_for("dashboard"))
         flash("Invalid email or password.", "error")
-    return render_template("login.html")
+    return render_template("login.html", next_url=next_url)
 
 
 @auth_bp.route("/logout")
@@ -167,6 +171,11 @@ def google_login():
     if not GOOGLE_CLIENT_ID:
         flash("Google Login \u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e44\u0e14\u0e49\u0e15\u0e31\u0e49\u0e07\u0e04\u0e48\u0e32", "error")
         return redirect(url_for("auth.login"))
+
+    # Save next URL for after login
+    next_url = request.args.get("next", "")
+    if next_url and next_url.startswith("/"):
+        session["login_next_url"] = next_url
 
     # Build callback URL
     callback_url = _build_external_url(url_for("auth.google_callback"))
@@ -254,6 +263,9 @@ def google_callback():
     session["role"] = user.get("role", "teacher")
     session["display_name"] = user.get("display_name") or display_name
 
+    next_url = session.pop("login_next_url", "")
+    if next_url and next_url.startswith("/"):
+        return redirect(next_url)
     return redirect(url_for("dashboard"))
 
 
