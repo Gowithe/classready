@@ -4,8 +4,10 @@
 # ==============================================================================
 
 import os
+import secrets as _secrets
 import traceback
 from datetime import datetime
+from urllib.parse import urlencode
 
 import requests as http_requests
 from flask import Blueprint, render_template, request, redirect, url_for, session, flash
@@ -23,6 +25,10 @@ auth_bp = Blueprint("auth", __name__)
 # --- Cloudflare Turnstile CAPTCHA ---
 TURNSTILE_SITE_KEY = os.environ.get("TURNSTILE_SITE_KEY", "").strip()
 TURNSTILE_SECRET_KEY = os.environ.get("TURNSTILE_SECRET_KEY", "").strip()
+
+# --- Google OAuth ---
+GOOGLE_CLIENT_ID = os.environ.get("GOOGLE_CLIENT_ID", "").strip()
+GOOGLE_CLIENT_SECRET = os.environ.get("GOOGLE_CLIENT_SECRET", "").strip()
 
 
 def _verify_turnstile(token: str) -> bool:
@@ -151,6 +157,104 @@ def login():
 def logout():
     session.clear()
     return redirect(url_for("auth.landing"))
+
+
+# ==============================================================================
+# Google OAuth Login
+# ==============================================================================
+@auth_bp.route("/auth/google")
+def google_login():
+    if not GOOGLE_CLIENT_ID:
+        flash("Google Login \u0e22\u0e31\u0e07\u0e44\u0e21\u0e48\u0e44\u0e14\u0e49\u0e15\u0e31\u0e49\u0e07\u0e04\u0e48\u0e32", "error")
+        return redirect(url_for("auth.login"))
+
+    # Build callback URL
+    callback_url = _build_external_url(url_for("auth.google_callback"))
+
+    # Generate state to prevent CSRF
+    state = _secrets.token_urlsafe(32)
+    session["google_oauth_state"] = state
+
+    params = urlencode({
+        "client_id": GOOGLE_CLIENT_ID,
+        "redirect_uri": callback_url,
+        "response_type": "code",
+        "scope": "openid email profile",
+        "state": state,
+        "prompt": "select_account",
+    })
+    return redirect(f"https://accounts.google.com/o/oauth2/v2/auth?{params}")
+
+
+@auth_bp.route("/auth/google/callback")
+def google_callback():
+    error = request.args.get("error")
+    if error:
+        flash(f"Google Login \u0e16\u0e39\u0e01\u0e22\u0e01\u0e40\u0e25\u0e34\u0e01: {error}", "error")
+        return redirect(url_for("auth.login"))
+
+    code = request.args.get("code")
+    state = request.args.get("state")
+
+    # Verify state
+    if not state or state != session.pop("google_oauth_state", None):
+        flash("\u0e40\u0e01\u0e34\u0e14\u0e02\u0e49\u0e2d\u0e1c\u0e34\u0e14\u0e1e\u0e25\u0e32\u0e14 (state mismatch)", "error")
+        return redirect(url_for("auth.login"))
+
+    if not code:
+        flash("Google Login \u0e25\u0e49\u0e21\u0e40\u0e2b\u0e25\u0e27", "error")
+        return redirect(url_for("auth.login"))
+
+    callback_url = _build_external_url(url_for("auth.google_callback"))
+
+    # Exchange code for tokens
+    try:
+        token_resp = http_requests.post("https://oauth2.googleapis.com/token", data={
+            "code": code,
+            "client_id": GOOGLE_CLIENT_ID,
+            "client_secret": GOOGLE_CLIENT_SECRET,
+            "redirect_uri": callback_url,
+            "grant_type": "authorization_code",
+        }, timeout=15)
+        token_data = token_resp.json()
+    except Exception as e:
+        print(f"[GOOGLE OAuth] Token exchange error: {e}")
+        flash("Google Login \u0e25\u0e49\u0e21\u0e40\u0e2b\u0e25\u0e27", "error")
+        return redirect(url_for("auth.login"))
+
+    access_token = token_data.get("access_token")
+    if not access_token:
+        print(f"[GOOGLE OAuth] No access_token: {token_data}")
+        flash("Google Login \u0e25\u0e49\u0e21\u0e40\u0e2b\u0e25\u0e27", "error")
+        return redirect(url_for("auth.login"))
+
+    # Get user info
+    try:
+        user_resp = http_requests.get("https://www.googleapis.com/oauth2/v2/userinfo",
+            headers={"Authorization": f"Bearer {access_token}"}, timeout=10)
+        user_info = user_resp.json()
+    except Exception as e:
+        print(f"[GOOGLE OAuth] Userinfo error: {e}")
+        flash("Google Login \u0e25\u0e49\u0e21\u0e40\u0e2b\u0e25\u0e27", "error")
+        return redirect(url_for("auth.login"))
+
+    email = (user_info.get("email") or "").strip().lower()
+    if not email:
+        flash("\u0e44\u0e21\u0e48\u0e2a\u0e32\u0e21\u0e32\u0e23\u0e16\u0e14\u0e36\u0e07\u0e2d\u0e35\u0e40\u0e21\u0e25\u0e08\u0e32\u0e01 Google", "error")
+        return redirect(url_for("auth.login"))
+
+    display_name = user_info.get("name") or ""
+
+    # Find or create user
+    user = User.create_or_get_google_user(email, display_name)
+
+    # Set session
+    session["user_id"] = user["id"]
+    session["email"] = user["email"]
+    session["role"] = user.get("role", "teacher")
+    session["display_name"] = user.get("display_name") or display_name
+
+    return redirect(url_for("dashboard"))
 
 
 # ==============================================================================
