@@ -13,40 +13,40 @@
     box-shadow: 0 8px 24px rgba(0, 0, 0, 0.1);
     border: 1px solid rgba(0,0,0,0.06);
   }
-
+  
   .auth-header {
     text-align: center;
     margin-bottom: 1.5rem;
   }
-
+  
   .auth-header .icon {
     font-size: 3rem;
     margin-bottom: 0.5rem;
   }
-
+  
   .auth-header h2 {
     color: #1e293b;
     font-size: 1.5rem;
     margin: 0 0 0.5rem;
   }
-
+  
   .auth-header p {
     color: #64748b;
     font-size: 0.9rem;
     margin: 0;
   }
-
+  
   .form-group {
     margin-bottom: 1rem;
   }
-
+  
   .form-group label {
     display: block;
     font-weight: 700;
     margin-bottom: 0.4rem;
     color: #334155;
   }
-
+  
   .form-group input {
     width: 100%;
     padding: 0.75rem 1rem;
@@ -55,13 +55,13 @@
     font-size: 1rem;
     transition: all 0.2s;
   }
-
+  
   .form-group input:focus {
     outline: none;
     border-color: #667eea;
     box-shadow: 0 0 0 3px rgba(102,126,234,0.12);
   }
-
+  
   .btn-login {
     width: 100%;
     padding: 0.85rem;
@@ -75,29 +75,53 @@
     transition: all 0.2s;
     margin-top: 0.5rem;
   }
-
+  
   .btn-login:hover {
     opacity: 0.9;
     transform: translateY(-1px);
     box-shadow: 0 8px 20px rgba(102,126,234,0.3);
   }
 
+  .btn-google {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: 10px;
+    width: 100%;
+    padding: 0.85rem;
+    background: #fff;
+    color: #1e293b;
+    border: 2px solid #e2e8f0;
+    border-radius: 12px;
+    font-size: 1rem;
+    font-weight: 700;
+    text-decoration: none;
+    cursor: pointer;
+    transition: all 0.2s;
+  }
+  .btn-google:hover {
+    background: #f8fafc;
+    border-color: #cbd5e1;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.08);
+    transform: translateY(-1px);
+  }
+  
   .auth-links {
     margin-top: 1.5rem;
     text-align: center;
   }
-
+  
   .auth-links a {
     color: #667eea;
     text-decoration: none;
     font-weight: 600;
     font-size: 0.9rem;
   }
-
+  
   .auth-links a:hover {
     text-decoration: underline;
   }
-
+  
   .auth-divider {
     display: flex;
     align-items: center;
@@ -105,7 +129,7 @@
     color: #94a3b8;
     font-size: 0.85rem;
   }
-
+  
   .auth-divider::before,
   .auth-divider::after {
     content: "";
@@ -113,24 +137,24 @@
     height: 1px;
     background: #e2e8f0;
   }
-
+  
   .auth-divider span {
     padding: 0 1rem;
   }
-
+  
   .forgot-link {
     display: block;
     text-align: right;
     margin-top: -0.5rem;
     margin-bottom: 1rem;
   }
-
+  
   .forgot-link a {
     color: #64748b;
     font-size: 0.85rem;
     text-decoration: none;
   }
-
+  
   .forgot-link a:hover {
     color: #667eea;
   }
@@ -144,32 +168,42 @@
     <h2>เข้าสู่ระบบ</h2>
     <p>ยินดีต้อนรับกลับมา!</p>
   </div>
-
+  
   <form method="POST">
     <div class="form-group">
       <label for="email">อีเมล</label>
       <input type="email" id="email" name="email" required placeholder="you@example.com">
     </div>
-
+    
     <div class="form-group">
       <label for="password">รหัสผ่าน</label>
       <input type="password" id="password" name="password" required placeholder="••••••••">
     </div>
-
+    
     <div class="forgot-link">
       <a href="{{ url_for('auth.forgot_password') }}">ลืมรหัสผ่าน?</a>
     </div>
-
+    
     <button type="submit" class="btn-login">เข้าสู่ระบบ</button>
   </form>
-
+  
   <div class="auth-divider"><span>หรือ</span></div>
 
+  <a href="{{ url_for('auth.google_login') }}" class="btn-google">
+    <svg width="20" height="20" viewBox="0 0 48 48" style="flex-shrink:0;">
+      <path fill="#EA4335" d="M24 9.5c3.54 0 6.71 1.22 9.21 3.6l6.85-6.85C35.9 2.38 30.47 0 24 0 14.62 0 6.51 5.38 2.56 13.22l7.98 6.19C12.43 13.72 17.74 9.5 24 9.5z"/>
+      <path fill="#4285F4" d="M46.98 24.55c0-1.57-.15-3.09-.38-4.55H24v9.02h12.94c-.58 2.96-2.26 5.48-4.78 7.18l7.73 6c4.51-4.18 7.09-10.36 7.09-17.65z"/>
+      <path fill="#FBBC05" d="M10.53 28.59c-.48-1.45-.76-2.99-.76-4.59s.27-3.14.76-4.59l-7.98-6.19C.92 16.46 0 20.12 0 24c0 3.88.92 7.54 2.56 10.78l7.97-6.19z"/>
+      <path fill="#34A853" d="M24 48c6.48 0 11.93-2.13 15.89-5.81l-7.73-6c-2.15 1.45-4.92 2.3-8.16 2.3-6.26 0-11.57-4.22-13.47-9.91l-7.98 6.19C6.51 42.62 14.62 48 24 48z"/>
+    </svg>
+    เข้าสู่ระบบด้วย Google
+  </a>
+  
   <div class="auth-links">
     <p style="margin:0 0 0.5rem;color:#64748b;">ยังไม่มีบัญชี?</p>
     <a href="{{ url_for('auth.register') }}">สมัครสมาชิก</a>
   </div>
-
+  
   <div class="auth-links" style="margin-top:1rem;padding-top:1rem;border-top:1px solid #e2e8f0;">
     <p style="margin:0 0 0.5rem;color:#64748b;font-size:0.85rem;">ยังไม่ได้ยืนยันอีเมล?</p>
     <a href="{{ url_for('auth.resend_verification') }}" style="font-size:0.85rem;">ส่งลิงก์ยืนยันอีกครั้ง</a>
