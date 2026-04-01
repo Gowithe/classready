@@ -1,0 +1,404 @@
+{% extends "base.html" %}
+{% block title %}ลองสร้างสไลด์ AI ฟรี — Clazzee{% endblock %}
+
+{% block extra_css %}
+<style>
+  .try-hero {
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    color: white; text-align: center; padding: 3rem 1.5rem 2rem;
+    border-radius: 0 0 30px 30px; margin: -1rem -1rem 2rem;
+  }
+  .try-hero h1 { font-size: 2rem; margin: 0 0 0.5rem; }
+  .try-hero p { font-size: 1.05rem; opacity: 0.9; margin: 0 auto; max-width: 600px; }
+
+  .try-container { max-width: 900px; margin: 0 auto; padding: 0 1rem; }
+
+  .try-form-card {
+    background: white; border-radius: 20px; padding: 2rem;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08); border: 1px solid rgba(0,0,0,0.05);
+    margin-bottom: 2rem;
+  }
+  .try-form-card h2 { margin: 0 0 1.25rem; font-size: 1.3rem; color: #1e293b; }
+
+  .form-group { margin-bottom: 1.25rem; }
+  .form-group label { display: block; font-weight: 700; margin-bottom: 0.4rem; color: #334155; }
+  .form-group input, .form-group select {
+    width: 100%; padding: 0.85rem 1rem;
+    border: 2px solid #e2e8f0; border-radius: 12px;
+    font-size: 1.05rem; transition: all 0.2s;
+  }
+  .form-group input:focus, .form-group select:focus {
+    outline: none; border-color: #667eea;
+    box-shadow: 0 0 0 3px rgba(102,126,234,0.12);
+  }
+
+  .btn-generate {
+    width: 100%; padding: 1rem;
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white; border: none; border-radius: 12px;
+    font-size: 1.15rem; font-weight: 800; cursor: pointer; transition: all 0.2s;
+  }
+  .btn-generate:hover { transform: translateY(-2px); box-shadow: 0 8px 24px rgba(102,126,234,0.3); }
+  .btn-generate:disabled { opacity: 0.6; cursor: not-allowed; transform: none; }
+
+  .trust-badges {
+    display: flex; justify-content: center; gap: 2rem;
+    padding: 1.5rem 0; color: #94a3b8; font-size: 0.85rem; flex-wrap: wrap;
+  }
+  .trust-badges span { display: flex; align-items: center; gap: 6px; }
+
+  /* Loading */
+  .loading-box {
+    display: none; text-align: center; padding: 3rem 1rem;
+    background: white; border-radius: 20px;
+    box-shadow: 0 8px 30px rgba(0,0,0,0.08); margin-bottom: 2rem;
+  }
+  .loading-box.show { display: block; }
+  .loading-spinner {
+    width: 50px; height: 50px; border: 4px solid #e2e8f0;
+    border-top-color: #667eea; border-radius: 50%;
+    animation: spin 0.8s linear infinite; margin: 0 auto 1rem;
+  }
+  @keyframes spin { to { transform: rotate(360deg); } }
+  .loading-box h3 { margin: 0 0 0.5rem; color: #1e293b; }
+  .loading-box p { color: #64748b; margin: 0; }
+
+  /* Slide Viewer */
+  .viewer-wrap {
+    display: none; background: #0f172a; border-radius: 20px; overflow: hidden;
+    box-shadow: 0 12px 40px rgba(0,0,0,0.2); margin-bottom: 1.5rem;
+  }
+  .viewer-wrap.show { display: block; }
+
+  .viewer-topbar {
+    display: flex; justify-content: space-between; align-items: center;
+    padding: 12px 20px; background: rgba(255,255,255,0.06);
+    color: #e2e8f0; flex-wrap: wrap; gap: 10px;
+  }
+  .viewer-topbar h3 { margin: 0; font-size: 1rem; }
+  .viewer-controls { display: flex; gap: 8px; align-items: center; }
+  .viewer-controls button {
+    background: rgba(255,255,255,0.12); border: 1px solid rgba(255,255,255,0.16);
+    color: #fff; padding: 8px 14px; border-radius: 10px; cursor: pointer;
+    font-weight: 700; font-size: 0.9rem; transition: all 0.15s;
+  }
+  .viewer-controls button:hover { background: rgba(255,255,255,0.2); }
+  .viewer-controls .counter {
+    background: rgba(255,255,255,0.1); padding: 8px 14px;
+    border-radius: 10px; font-weight: 700; min-width: 80px; text-align: center;
+  }
+
+  .slide-stage {
+    position: relative; min-height: 450px; display: flex;
+    justify-content: center; align-items: center; padding: 30px;
+  }
+
+  .slide-card {
+    background: white; border-radius: 16px; width: 100%; max-width: 780px;
+    min-height: 380px; padding: 40px; box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+    display: flex; flex-direction: column;
+  }
+  .slide-badge {
+    display: inline-block; background: #667eea; color: white;
+    padding: 3px 12px; border-radius: 6px; font-size: 0.7rem;
+    font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px;
+    margin-bottom: 12px; align-self: flex-start;
+  }
+  .slide-card h2 { margin: 0 0 8px; font-size: 1.5rem; color: #1e293b; }
+  .slide-card .subtitle { color: #667eea; font-weight: 700; margin-bottom: 16px; font-size: 0.95rem; }
+  .slide-card p { color: #475569; line-height: 1.6; margin: 0 0 8px; font-size: 1rem; }
+  .slide-card ul { margin: 8px 0; padding-left: 24px; color: #475569; }
+  .slide-card li { margin-bottom: 6px; line-height: 1.5; }
+  .slide-card .prompt-box {
+    background: linear-gradient(135deg, rgba(102,126,234,0.08), rgba(118,75,162,0.08));
+    border-left: 4px solid #667eea; padding: 16px 20px; border-radius: 0 12px 12px 0;
+    font-size: 1.1rem; font-weight: 600; color: #334155; margin: 12px 0;
+  }
+  .slide-card .vocab-grid {
+    display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 10px; margin: 12px 0;
+  }
+  .slide-card .vocab-item {
+    background: #f8fafc; border: 1px solid #e2e8f0; border-radius: 10px; padding: 12px;
+  }
+  .slide-card .vocab-item .word { font-weight: 900; color: #1e293b; font-size: 1.1rem; }
+  .slide-card .vocab-item .meaning { color: #667eea; font-size: 0.9rem; margin-top: 2px; }
+  .slide-card .vocab-item .example { color: #94a3b8; font-size: 0.8rem; font-style: italic; margin-top: 4px; }
+
+  .slide-card .dialogue-line {
+    padding: 6px 0; border-bottom: 1px solid #f1f5f9;
+  }
+  .slide-card .speaker { font-weight: 800; color: #667eea; }
+
+  .lock-banner {
+    background: linear-gradient(135deg, #667eea, #764ba2);
+    color: white; text-align: center; padding: 20px;
+  }
+  .lock-banner p { margin: 0 0 12px; font-size: 1.05rem; font-weight: 600; }
+  .lock-banner .badge { background: rgba(255,255,255,0.2); padding: 4px 14px; border-radius: 20px; font-size: 0.85rem; margin-bottom: 12px; display: inline-block; }
+
+  .btn-save {
+    display: inline-block; padding: 0.85rem 2.5rem;
+    background: #22c55e; color: white; border: none; border-radius: 12px;
+    font-size: 1.1rem; font-weight: 800; cursor: pointer; transition: all 0.2s;
+    text-decoration: none;
+  }
+  .btn-save:hover { background: #16a34a; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(34,197,94,0.3); }
+
+  .bottom-actions {
+    display: flex; justify-content: center; gap: 12px; flex-wrap: wrap; margin-bottom: 2rem;
+  }
+  .btn-retry {
+    display: inline-block; padding: 0.7rem 1.5rem;
+    background: #f1f5f9; color: #667eea; border: 2px solid #667eea;
+    border-radius: 10px; font-weight: 700; cursor: pointer;
+    text-decoration: none; font-size: 0.9rem; transition: all 0.2s;
+  }
+  .btn-retry:hover { background: #667eea; color: white; }
+
+  @media(max-width:640px){
+    .slide-stage { padding: 16px; min-height: 350px; }
+    .slide-card { padding: 24px; min-height: 280px; }
+    .slide-card h2 { font-size: 1.2rem; }
+  }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="try-hero">
+  <h1>✨ ลองสร้างสไลด์ AI ฟรี</h1>
+  <p>พิมพ์หัวข้อบทเรียน แล้ว AI จะสร้างสไลด์ + เกม + แบบฝึกหัด ให้คุณทันที</p>
+</div>
+
+<div class="try-container">
+  <!-- Form -->
+  <div class="try-form-card" id="formCard">
+    <h2>🚀 กรอกหัวข้อบทเรียนแล้วกด Generate</h2>
+    <div class="form-group">
+      <label>📚 หัวข้อบทเรียน</label>
+      <input type="text" id="topicTitle" placeholder="เช่น Past Simple Tense, Food and Drinks, สัตว์เลี้ยงลูกด้วยนม..." maxlength="100" autofocus>
+    </div>
+    <div class="form-group">
+      <label>🌐 ภาษา</label>
+      <select id="language">
+        <option value="EN">English</option>
+        <option value="TH">ภาษาไทย</option>
+        <option value="EN+TH">English + คำแปลไทย</option>
+      </select>
+    </div>
+    <button class="btn-generate" id="btnGenerate" onclick="startGenerate()">✨ สร้างสไลด์ฟรี</button>
+    <div class="trust-badges">
+      <span>✅ ไม่ต้องสมัคร</span>
+      <span>⚡ ใช้เวลา 30-60 วินาที</span>
+      <span>🎯 พร้อมใช้งานทันที</span>
+    </div>
+  </div>
+
+  <!-- Loading -->
+  <div class="loading-box" id="loadingBox">
+    <div class="loading-spinner"></div>
+    <h3>✨ AI กำลังสร้างบทเรียน...</h3>
+    <p id="loadingMsg">กำลังสร้างสไลด์ + เกม + แบบฝึกหัด อาจใช้เวลา 30-60 วินาที</p>
+  </div>
+
+  <!-- Slide Viewer -->
+  <div class="viewer-wrap" id="viewerWrap">
+    <div class="viewer-topbar">
+      <h3>✅ สร้างเสร็จ! — <span id="topicName"></span></h3>
+      <div class="viewer-controls">
+        <button onclick="prevSlide()">← ก่อนหน้า</button>
+        <div class="counter"><span id="slideNum">1</span> / <span id="slideTotal">1</span></div>
+        <button onclick="nextSlide()">ถัดไป →</button>
+      </div>
+    </div>
+
+    <div class="slide-stage">
+      <div class="slide-card" id="slideCard"></div>
+    </div>
+
+    <div class="lock-banner" id="lockBanner">
+      <div class="badge" id="lockBadge"></div>
+      <p>🔓 สมัครฟรีเพื่อดูทั้งหมด + เกม + แบบฝึกหัด</p>
+      <button class="btn-save" id="btnSave" onclick="saveSlides()">💾 บันทึก + ใช้งานจริง (ฟรี!)</button>
+    </div>
+  </div>
+
+  <div class="bottom-actions" id="bottomActions" style="display:none;">
+    <a href="javascript:void(0)" class="btn-retry" onclick="resetForm()">🔄 ลองหัวข้อใหม่</a>
+  </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+let currentTaskId = null;
+let previewSlides = [];
+let currentSlideIdx = 0;
+
+function esc(text) {
+  const d = document.createElement('div');
+  d.textContent = text || '';
+  return d.innerHTML;
+}
+
+function renderSlide(slide, idx) {
+  const type = slide.type || 'context';
+  const title = esc(slide.title || 'Slide ' + (idx+1));
+  const subtitle = slide.subtitle ? `<div class="subtitle">${esc(slide.subtitle)}</div>` : '';
+  let body = '';
+
+  if (type === 'hook' && slide.prompt) {
+    body = `<div class="prompt-box">${esc(slide.prompt)}</div>`;
+    if (slide.keywords && Array.isArray(slide.keywords)) {
+      body += '<p style="color:#94a3b8;font-size:.85rem;">🏷️ ' + slide.keywords.map(k => esc(k)).join(', ') + '</p>';
+    }
+  } else if (type === 'objectives' && slide.objectives) {
+    body = '<ul>' + slide.objectives.map(o => `<li>${esc(o)}</li>`).join('') + '</ul>';
+  } else if (type === 'vocabulary' && slide.vocabulary) {
+    body = '<div class="vocab-grid">' + slide.vocabulary.slice(0,6).map(v =>
+      `<div class="vocab-item">
+        <div class="word">${esc(v.word || '')}</div>
+        <div class="meaning">${esc(v.meaning || '')}</div>
+        ${v.example ? `<div class="example">"${esc(v.example)}"</div>` : ''}
+      </div>`
+    ).join('') + '</div>';
+  } else if (type === 'examples' && slide.examples) {
+    body = '<ul>' + slide.examples.slice(0,5).map(ex => {
+      if (typeof ex === 'string') return `<li>${esc(ex)}</li>`;
+      let txt = esc(ex.en || '');
+      if (ex.th) txt += ` <span style="color:#667eea;">— ${esc(ex.th)}</span>`;
+      return `<li>${txt}</li>`;
+    }).join('') + '</ul>';
+  } else if (type === 'dialogue' && slide.lines) {
+    if (slide.scenario) body += `<p style="font-style:italic;color:#94a3b8;">📍 ${esc(slide.scenario)}</p>`;
+    body += slide.lines.slice(0,8).map(l =>
+      `<div class="dialogue-line"><span class="speaker">${esc(l.speaker || 'A')}:</span> ${esc(l.text || '')}</div>`
+    ).join('');
+  } else if (type === 'guided_practice' && slide.items) {
+    body = slide.items.slice(0,4).map((it, i) => {
+      let h = `<p style="font-weight:700;">❓ ${esc(it.q || it.question || '')}</p>`;
+      if (it.choices) h += '<ul>' + it.choices.map(c => `<li>${esc(c)}</li>`).join('') + '</ul>';
+      return h;
+    }).join('<hr style="border:none;border-top:1px solid #f1f5f9;margin:8px 0;">');
+  } else if (type === 'production' && slide.tasks) {
+    body = '<ul>' + slide.tasks.map(t => `<li>${esc(t)}</li>`).join('') + '</ul>';
+  } else if (type === 'exit_ticket' && slide.questions) {
+    body = '<ul>' + slide.questions.map(q => `<li>${esc(q)}</li>`).join('') + '</ul>';
+  } else if (type === 'review' && slide.summary) {
+    body = '<ul>' + slide.summary.map(s => `<li>${esc(s)}</li>`).join('') + '</ul>';
+  } else if (slide.content && Array.isArray(slide.content)) {
+    body = '<ul>' + slide.content.slice(0,6).map(c => `<li>${esc(c)}</li>`).join('') + '</ul>';
+  } else if (slide.content && typeof slide.content === 'string') {
+    body = `<p>${esc(slide.content)}</p>`;
+  }
+
+  const typeIcons = {
+    hook:'🎣', objectives:'🎯', context:'📍', vocabulary:'📚',
+    examples:'💬', guided_practice:'✏️', dialogue:'🗣️',
+    production:'🚀', review:'📝', exit_ticket:'🎫'
+  };
+  const icon = typeIcons[type] || '📄';
+
+  return `<span class="slide-badge">${icon} ${esc(type)}</span>
+    <h2>${title}</h2>
+    ${subtitle}
+    ${body}`;
+}
+
+function showSlide(idx) {
+  if (idx < 0 || idx >= previewSlides.length) return;
+  currentSlideIdx = idx;
+  document.getElementById('slideCard').innerHTML = renderSlide(previewSlides[idx], idx);
+  document.getElementById('slideNum').textContent = idx + 1;
+}
+
+function prevSlide() { showSlide(currentSlideIdx - 1); }
+function nextSlide() { showSlide(currentSlideIdx + 1); }
+
+document.addEventListener('keydown', e => {
+  if (e.key === 'ArrowRight' || e.key === 'PageDown' || e.key === ' ') { e.preventDefault(); nextSlide(); }
+  if (e.key === 'ArrowLeft' || e.key === 'PageUp') { e.preventDefault(); prevSlide(); }
+});
+
+async function startGenerate() {
+  const title = document.getElementById('topicTitle').value.trim();
+  if (!title) { alert('กรุณากรอกหัวข้อบทเรียน'); return; }
+
+  const language = document.getElementById('language').value;
+  document.getElementById('btnGenerate').disabled = true;
+  document.getElementById('formCard').style.display = 'none';
+  document.getElementById('loadingBox').classList.add('show');
+  document.getElementById('viewerWrap').classList.remove('show');
+  document.getElementById('bottomActions').style.display = 'none';
+
+  try {
+    const res = await fetch('/api/try-slides', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({ title, language })
+    });
+    const data = await res.json();
+    if (!data.ok) { alert(data.error || 'Error'); resetForm(); return; }
+    currentTaskId = data.task_id;
+    pollTrialTask(data.task_id);
+  } catch (err) { alert('Error: ' + err.message); resetForm(); }
+}
+
+function pollTrialTask(taskId) {
+  const interval = setInterval(async () => {
+    try {
+      const r = await fetch('/api/try-task/' + taskId + '/status');
+      const d = await r.json();
+      if (d.status === 'done') { clearInterval(interval); showViewer(d.result); }
+      else if (d.status === 'error') { clearInterval(interval); alert('❌ ' + (d.error || 'Failed')); resetForm(); }
+    } catch (e) {}
+  }, 3000);
+}
+
+function showViewer(result) {
+  document.getElementById('loadingBox').classList.remove('show');
+
+  previewSlides = result.slides || [];
+  const total = result.total_slides || previewSlides.length;
+  currentSlideIdx = 0;
+
+  document.getElementById('topicName').textContent = result.title || '';
+  document.getElementById('slideTotal').textContent = previewSlides.length;
+  document.getElementById('lockBadge').textContent = 'แสดง ' + previewSlides.length + ' จาก ' + total + ' สไลด์ + เกม + แบบฝึกหัด';
+
+  showSlide(0);
+
+  document.getElementById('viewerWrap').classList.add('show');
+  document.getElementById('bottomActions').style.display = 'flex';
+}
+
+async function saveSlides() {
+  if (!currentTaskId) return;
+  {% if session.user_id %}
+    const btn = document.getElementById('btnSave');
+    btn.disabled = true; btn.textContent = '⏳ กำลังบันทึก...';
+    try {
+      const res = await fetch('/try-slides/save', {
+        method: 'POST', headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ task_id: currentTaskId })
+      });
+      const data = await res.json();
+      if (data.ok && data.redirect) { window.location.href = data.redirect; }
+      else { alert(data.error || 'Save failed'); btn.disabled = false; btn.textContent = '💾 บันทึก + ใช้งานจริง (ฟรี!)'; }
+    } catch (err) { alert('Error: ' + err.message); btn.disabled = false; btn.textContent = '💾 บันทึก + ใช้งานจริง (ฟรี!)'; }
+  {% else %}
+    sessionStorage.setItem('trySlides_taskId', currentTaskId);
+    window.location.href = '/login?next=/try-slides/resume';
+  {% endif %}
+}
+
+function resetForm() {
+  document.getElementById('formCard').style.display = 'block';
+  document.getElementById('loadingBox').classList.remove('show');
+  document.getElementById('viewerWrap').classList.remove('show');
+  document.getElementById('bottomActions').style.display = 'none';
+  document.getElementById('btnGenerate').disabled = false;
+  currentTaskId = null; previewSlides = []; currentSlideIdx = 0;
+}
+</script>
+{% endblock %}
