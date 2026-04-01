@@ -10,6 +10,7 @@ import json
 import secrets
 import base64
 import textwrap
+from urllib.parse import quote as url_quote
 import tempfile
 import threading
 import uuid
@@ -660,14 +661,23 @@ def download_slides_pdf(topic_id):
         flash("\u0e44\u0e21\u0e48\u0e21\u0e35\u0e2a\u0e44\u0e25\u0e14\u0e4c", "error")
         return redirect(url_for("topic_detail", topic_id=topic_id))
 
-    pdf_bytes = _generate_slides_pdf(topic["name"], slides)
+    try:
+        pdf_bytes = _generate_slides_pdf(topic["name"], slides)
+    except Exception as e:
+        print(f"\u274c PDF generation error: {e}")
+        import traceback
+        traceback.print_exc()
+        flash(f"\u0e2a\u0e23\u0e49\u0e32\u0e07 PDF \u0e44\u0e21\u0e48\u0e2a\u0e33\u0e40\u0e23\u0e47\u0e08: {e}", "error")
+        return redirect(url_for("topic_detail", topic_id=topic_id))
 
-    safe_name = "".join(c for c in topic["name"] if c.isalnum() or c in " -_").strip()[:50] or "slides"
+    # ASCII-only filename for HTTP header safety
+    safe_name = "".join(c for c in topic["name"] if c.isascii() and (c.isalnum() or c in " -_")).strip()[:50] or "slides"
+    utf8_name = url_quote(topic["name"][:50] + "_slides.pdf")
 
     return Response(
         pdf_bytes,
         mimetype="application/pdf",
-        headers={"Content-Disposition": f"attachment; filename={safe_name}_slides.pdf"},
+        headers={"Content-Disposition": f"attachment; filename=\"{safe_name}_slides.pdf\"; filename*=UTF-8''{utf8_name}"},
     )
 
 
@@ -1250,6 +1260,121 @@ def api_generate_from_pdf(topic_id):
 
     threading.Thread(target=run_pdf_generate, daemon=True).start()
     return jsonify({"ok": True, "task_id": task_id})
+
+
+# ==============================================================================
+# Try Slides (No Login Required — Public Demo)
+# ==============================================================================
+@app.route("/try-slides")
+def try_slides():
+    return render_template("try_slides.html")
+
+
+@app.route("/api/try-slides", methods=["POST"])
+@rate_limit("3/hour")
+def api_try_slides():
+    """Public AI generation — limited, no login required."""
+    data = request.get_json(silent=True) or {}
+    title = (data.get("title") or "").strip()
+    if not title:
+        return jsonify({"ok": False, "error": "Topic title required."}), 400
+    if len(title) > 100:
+        return jsonify({"ok": False, "error": "Title too long (max 100 chars)."}), 400
+
+    language = data.get("language", "EN")
+    if language not in ("EN", "TH", "EN+TH"):
+        language = "EN"
+
+    _cleanup_old_tasks()
+    task_id = _create_task()
+
+    def run_trial_generate():
+        try:
+            _update_task(task_id, status="generating")
+            bundle = generate_lesson_bundle(
+                title=title, level="Secondary", language=language,
+                style="Minimal", text_model="gpt-4o-mini",
+            )
+            slides = bundle.get("slides", []) or []
+            _update_task(task_id, status="done", result={
+                "slides": slides[:8],
+                "total_slides": len(slides),
+                "title": title,
+                "language": language,
+                "full_bundle": {
+                    "slides": slides,
+                    "game": bundle.get("game") or {},
+                    "practice": bundle.get("practice") or [],
+                },
+            })
+        except Exception as e:
+            import traceback
+            traceback.print_exc()
+            _update_task(task_id, status="error", error=str(e))
+
+    threading.Thread(target=run_trial_generate, daemon=True).start()
+    return jsonify({"ok": True, "task_id": task_id})
+
+
+@app.route("/api/try-task/<task_id>/status")
+def api_try_task_status(task_id):
+    """Poll endpoint for trial tasks — no login required."""
+    task = _get_task(task_id)
+    if not task:
+        return jsonify({"ok": False, "error": "Task not found"}), 404
+    return jsonify({
+        "ok": True,
+        "status": task["status"],
+        "result": task.get("result"),
+        "error": task.get("error"),
+    })
+
+
+@app.route("/try-slides/save", methods=["POST"])
+@login_required
+def try_slides_save():
+    """Save trial slides to user's account."""
+    data = request.get_json(silent=True) or {}
+    task_id = data.get("task_id", "")
+
+    task = _get_task(task_id)
+    if not task or task.get("status") != "done":
+        return jsonify({"ok": False, "error": "Task not found or not complete"}), 404
+
+    result = task.get("result", {})
+    full_bundle = result.get("full_bundle", {})
+    title = result.get("title", "AI Generated")
+    slides = full_bundle.get("slides", [])
+
+    if not slides:
+        return jsonify({"ok": False, "error": "No slides to save"}), 400
+
+    user_id = session["user_id"]
+    is_premium = is_premium_user(user_id)
+    can_create, msg = UsageLimits.can_create_topic(user_id, is_premium)
+    if not can_create:
+        return jsonify({"ok": False, "error": msg, "upgrade_required": True}), 403
+
+    topic = Topic.create(
+        user_id, title, "AI generated (trial)",
+        json.dumps({"slides": slides}, ensure_ascii=False),
+        "ai", None,
+    )
+    _save_game_and_practice(
+        topic["id"],
+        full_bundle.get("game") or {},
+        full_bundle.get("practice") or [],
+    )
+    UsageLimits.increment_ai_generate(user_id)
+
+    return jsonify({"ok": True, "redirect": f"/topic/{topic['id']}"})
+
+
+@app.route("/try-slides/resume")
+@login_required
+def try_slides_resume():
+    """After login, this page auto-saves trial slides using sessionStorage task_id."""
+    return render_template("try_slides_resume.html")
 
 
 # ==============================================================================
