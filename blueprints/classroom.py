@@ -11,7 +11,7 @@ from flask import Blueprint, render_template, request, redirect, url_for, sessio
 from models import (
     Classroom, ClassroomStudent, Assignment, Topic, PracticeLink,
     PracticeQuestion, PracticeSubmission, UsageLimits, HomeworkSubmission,
-    Attendance, StudentExtraScores,
+    Attendance, StudentExtraScores, TeachingSchedule,
 )
 from blueprints.helpers import login_required, is_premium_user, _get_topic_or_404
 
@@ -189,6 +189,7 @@ def classroom_detail(classroom_id):
         assignment_stats=assignment_stats, class_avg=class_avg,
         attendance_summary=attendance_summary, attendance_dates=attendance_dates,
         extra_scores=extra_scores, grades=grades, today=today,
+        schedule=TeachingSchedule.get_by_classroom(classroom_id),
     )
 
 
@@ -286,6 +287,28 @@ def classroom_extra_scores_save(classroom_id):
             StudentExtraScores.save(classroom_id, sid, **data)
 
     flash("\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e04\u0e30\u0e41\u0e19\u0e19\u0e40\u0e23\u0e35\u0e22\u0e1a\u0e23\u0e49\u0e2d\u0e22", "success")
+    return redirect(url_for("classroom.classroom_detail", classroom_id=classroom_id))
+
+
+# ==============================================================================
+# Teaching Schedule (ตารางสอน)
+# ==============================================================================
+@classroom_bp.route("/classroom/<int:classroom_id>/schedule", methods=["POST"])
+@login_required
+def classroom_schedule_save(classroom_id):
+    cls = Classroom.get_by_id(classroom_id)
+    if not cls or cls["owner_id"] != session["user_id"]:
+        abort(404)
+
+    entries = []
+    for day in range(5):
+        for period in range(1, 9):
+            subject = request.form.get(f"subj_{day}_{period}", "").strip()
+            room = request.form.get(f"room_{day}_{period}", "").strip()
+            entries.append({"day_of_week": day, "period": period, "subject": subject, "room": room})
+
+    TeachingSchedule.save_bulk(classroom_id, entries)
+    flash("\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e15\u0e32\u0e23\u0e32\u0e07\u0e2a\u0e2d\u0e19\u0e40\u0e23\u0e35\u0e22\u0e1a\u0e23\u0e49\u0e2d\u0e22", "success")
     return redirect(url_for("classroom.classroom_detail", classroom_id=classroom_id))
 
 
