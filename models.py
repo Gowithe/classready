@@ -484,6 +484,22 @@ def init_db() -> None:
     )
     """)
 
+    # ---------------- teaching_schedule ----------------
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS teaching_schedule (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      classroom_id INTEGER NOT NULL,
+      day_of_week INTEGER NOT NULL,
+      period INTEGER NOT NULL,
+      subject TEXT DEFAULT '',
+      room TEXT DEFAULT '',
+      note TEXT DEFAULT '',
+      updated_at TEXT NOT NULL,
+      UNIQUE(classroom_id, day_of_week, period),
+      FOREIGN KEY(classroom_id) REFERENCES classrooms(id)
+    )
+    """)
+
     c.execute("CREATE INDEX IF NOT EXISTS idx_topics_owner_id ON topics(owner_id)")
     c.execute("CREATE INDEX IF NOT EXISTS idx_game_questions_topic_set ON game_questions(topic_id, set_no, tile_no)")
     c.execute("CREATE INDEX IF NOT EXISTS idx_practice_questions_topic ON practice_questions(topic_id)")
@@ -2179,6 +2195,50 @@ class StudentExtraScores:
         if percentage >= 55: return "1.5"
         if percentage >= 50: return "1"
         return "0"
+
+
+# ==============================================================================
+# Teaching Schedule (ตารางสอน)
+# ==============================================================================
+class TeachingSchedule:
+    DAYS = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์"]
+
+    @staticmethod
+    def get_by_classroom(classroom_id: int) -> Dict:
+        """Returns {(day, period): {subject, room, note}}"""
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM teaching_schedule WHERE classroom_id = ?", (classroom_id,))
+        rows = c.fetchall()
+        conn.close()
+        result = {}
+        for r in rows:
+            row = dict(r)
+            key = (row["day_of_week"], row["period"])
+            result[key] = {"subject": row["subject"], "room": row["room"], "note": row.get("note", "")}
+        return result
+
+    @staticmethod
+    def save_bulk(classroom_id: int, entries: list) -> None:
+        """entries = [{day_of_week, period, subject, room, note}]"""
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        for e in entries:
+            day = int(e.get("day_of_week", 0))
+            period = int(e.get("period", 0))
+            subject = (e.get("subject") or "").strip()
+            room = (e.get("room") or "").strip()
+            note = (e.get("note") or "").strip()
+            if day >= 0 and period >= 1:
+                c.execute("""
+                    INSERT INTO teaching_schedule (classroom_id, day_of_week, period, subject, room, note, updated_at)
+                    VALUES (?, ?, ?, ?, ?, ?, ?)
+                    ON CONFLICT(classroom_id, day_of_week, period)
+                    DO UPDATE SET subject=excluded.subject, room=excluded.room, note=excluded.note, updated_at=excluded.updated_at
+                """, (classroom_id, day, period, subject, room, note, now))
+        conn.commit()
+        conn.close()
 
 
 # ==============================================================================
