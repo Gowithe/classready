@@ -133,6 +133,7 @@
     <div class="tab" onclick="switchTab('assignments')">📋 งานที่มอบหมาย</div>
     <div class="tab" onclick="switchTab('attendance')">✅ เช็กชื่อ</div>
     <div class="tab" onclick="switchTab('grades')">📊 คะแนน + เกรด</div>
+    <div class="tab" onclick="switchTab('schedule')">📅 ตารางสอน</div>
   </div>
 
   <div class="tab-content active" id="tab-students">
@@ -442,6 +443,50 @@
     </form>
   </div>
 </div>
+
+<!-- ==================== TAB: Schedule ==================== -->
+<div class="tab-content" id="tab-schedule">
+  <div class="card" style="padding:20px;">
+    <h3 style="margin:0 0 16px;">📅 ตารางสอน</h3>
+    <form method="POST" action="{{ url_for('classroom.classroom_schedule_save', classroom_id=classroom.id) }}">
+      <div class="table-container">
+        <table class="student-table" style="min-width:900px;">
+          <thead>
+            <tr>
+              <th style="width:70px;text-align:center;">คาบ</th>
+              <th style="text-align:center;">จันทร์</th>
+              <th style="text-align:center;">อังคาร</th>
+              <th style="text-align:center;">พุธ</th>
+              <th style="text-align:center;">พฤหัสบดี</th>
+              <th style="text-align:center;">ศุกร์</th>
+            </tr>
+          </thead>
+          <tbody>
+            {% for p in range(1, 9) %}
+            <tr{% if p == 4 %} style="border-bottom:3px solid #667eea;"{% endif %}>
+              <td style="text-align:center;font-weight:900;font-size:1.1rem;color:#667eea;">{{ p }}</td>
+              {% for d in range(5) %}
+              {% set cell = schedule.get((d, p), {}) %}
+              <td style="padding:6px;">
+                <input type="text" name="subj_{{ d }}_{{ p }}" value="{{ cell.get('subject', '') }}"
+                       placeholder="วิชา" style="width:100%;padding:5px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:.85rem;margin-bottom:3px;">
+                <input type="text" name="room_{{ d }}_{{ p }}" value="{{ cell.get('room', '') }}"
+                       placeholder="ห้อง" style="width:100%;padding:4px 8px;border:1px solid #e2e8f0;border-radius:6px;font-size:.8rem;color:#667eea;">
+              </td>
+              {% endfor %}
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+
+      <div style="margin-top:16px;display:flex;justify-content:flex-end;">
+        <button type="submit" class="btn btn-primary">💾 บันทึกตารางสอน</button>
+      </div>
+    </form>
+  </div>
+</div>
+
 </div>
 
 <div class="modal-overlay" id="studentModal">
