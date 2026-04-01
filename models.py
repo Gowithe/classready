@@ -1052,6 +1052,45 @@ class User:
         conn.close()
         return dict(row) if row else None
 
+    @staticmethod
+    def create_or_get_google_user(email: str, display_name: str = "") -> Dict[str, Any]:
+        """Find existing user by email or create a new one for Google login.
+        Google users are auto-verified with a random password (they won't use it)."""
+        user = User.get_by_email(email)
+        if user:
+            # Update display_name if empty
+            if display_name and not user.get("display_name"):
+                conn = get_db()
+                c = conn.cursor()
+                c.execute("UPDATE users SET display_name = ? WHERE id = ?", (display_name, user["id"]))
+                conn.commit()
+                conn.close()
+                user["display_name"] = display_name
+            # Auto-verify if not yet verified
+            if not int(user.get("is_verified") or 0):
+                conn = get_db()
+                c = conn.cursor()
+                c.execute("UPDATE users SET is_verified = 1 WHERE id = ?", (user["id"],))
+                conn.commit()
+                conn.close()
+                user["is_verified"] = 1
+            return user
+
+        # Create new user (Google-verified, random password)
+        import secrets as _secrets
+        random_pw = _secrets.token_urlsafe(32)
+        user = User.create(email, random_pw, "teacher")
+        # Auto-verify
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("UPDATE users SET is_verified = 1, display_name = ? WHERE id = ?",
+                  (display_name, user["id"]))
+        conn.commit()
+        conn.close()
+        user["is_verified"] = 1
+        user["display_name"] = display_name
+        return user
+
 
     @staticmethod
     def get_by_verify_token(token: str) -> Optional[Dict[str, Any]]:
