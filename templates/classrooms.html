@@ -250,6 +250,22 @@
     grid-template-columns:1fr 1fr;
     gap:12px;
   }
+  /* Tabs */
+  .tabs{display:flex;gap:8px;margin-bottom:24px;border-bottom:2px solid #e2e8f0;}
+  .tab{padding:12px 20px;font-weight:700;color:#64748b;cursor:pointer;border-bottom:3px solid transparent;margin-bottom:-2px;transition:all .2s;}
+  .tab:hover{color:#667eea;}
+  .tab.active{color:#667eea;border-bottom-color:#667eea;}
+  .tab-content{display:none;}
+  .tab-content.active{display:block;}
+
+  /* Schedule */
+  .schedule-table{width:100%;border-collapse:separate;border-spacing:6px;min-width:800px;}
+  .schedule-table th{text-align:center;padding:8px;background:#667eea;color:#fff;border-radius:8px;font-size:.85rem;}
+  .schedule-table .period-cell{text-align:center;font-weight:900;font-size:1.2rem;color:#667eea;vertical-align:middle;}
+  .schedule-cell{background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;min-height:52px;}
+  .schedule-cell input{width:100%;border:none;background:transparent;outline:none;padding:0;}
+  .schedule-cell .subj-input{font-size:.9rem;font-weight:700;color:#1e293b;margin-bottom:2px;}
+  .schedule-cell .room-input{font-size:.75rem;color:#667eea;}
 </style>
 {% endblock %}
 
@@ -284,6 +300,14 @@
     </div>
   </div>
 
+  <!-- Tabs -->
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('classrooms')">🏫 ห้องเรียน</div>
+    <div class="tab" onclick="switchTab('schedule')">📅 ตารางสอน</div>
+  </div>
+
+  <!-- TAB: Classrooms -->
+  <div class="tab-content active" id="tab-classrooms">
   {% if classrooms %}
   <div class="classroom-grid">
     {% for cls in classrooms %}
@@ -331,6 +355,52 @@
     <button class="btn btn-primary" onclick="openCreateModal()">➕ สร้างห้องแรก</button>
   </div>
   {% endif %}
+  </div>
+
+  <!-- TAB: Schedule -->
+  <div class="tab-content" id="tab-schedule">
+    <div style="background:white;border-radius:20px;padding:20px;box-shadow:0 2px 8px rgba(0,0,0,0.06);border:1px solid rgba(0,0,0,0.05);">
+      <h3 style="margin:0 0 16px;">📅 ตารางสอนประจำสัปดาห์</h3>
+      <form method="POST" action="{{ url_for('classroom.classroom_schedule_save') }}">
+        <div style="overflow-x:auto;">
+          <table class="schedule-table">
+            <thead>
+              <tr>
+                <th style="width:50px;background:transparent;color:#667eea;">คาบ</th>
+                <th>จันทร์</th>
+                <th>อังคาร</th>
+                <th>พุธ</th>
+                <th>พฤหัสบดี</th>
+                <th>ศุกร์</th>
+              </tr>
+            </thead>
+            <tbody>
+              {% for p in range(1, 9) %}
+              <tr>
+                <td class="period-cell" {% if p == 5 %}style="border-top:3px solid #667eea;padding-top:10px;"{% endif %}>{{ p }}</td>
+                {% for d in range(5) %}
+                {% set cell = schedule.get((d, p), {}) %}
+                <td {% if p == 5 %}style="border-top:3px solid #667eea;padding-top:10px;"{% endif %}>
+                  <div class="schedule-cell">
+                    <input type="text" name="subj_{{ d }}_{{ p }}" value="{{ cell.get('subject', '') }}"
+                           placeholder="วิชา..." class="subj-input">
+                    <input type="text" name="room_{{ d }}_{{ p }}" value="{{ cell.get('room', '') }}"
+                           placeholder="ห้อง..." class="room-input">
+                  </div>
+                </td>
+                {% endfor %}
+              </tr>
+              {% endfor %}
+            </tbody>
+          </table>
+        </div>
+        <div style="margin-top:16px;display:flex;justify-content:flex-end;">
+          <button type="submit" class="btn btn-primary">💾 บันทึกตารางสอน</button>
+        </div>
+      </form>
+    </div>
+  </div>
+
 </div>
 
 <div class="modal-overlay" id="classroomModal">
@@ -410,6 +480,13 @@
 </div>
 
 <script>
+function switchTab(t){
+  document.querySelectorAll('.tab').forEach(x=>x.classList.remove('active'));
+  document.querySelectorAll('.tab-content').forEach(x=>x.classList.remove('active'));
+  document.querySelector(`.tab[onclick="switchTab('${t}')"]`).classList.add('active');
+  document.getElementById(`tab-${t}`).classList.add('active');
+}
+
 const modal = document.getElementById('classroomModal');
 const form = document.getElementById('classroomForm');
 let isEdit = false;
