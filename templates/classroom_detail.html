@@ -133,7 +133,6 @@
     <div class="tab" onclick="switchTab('assignments')">📋 งานที่มอบหมาย</div>
     <div class="tab" onclick="switchTab('attendance')">✅ เช็กชื่อ</div>
     <div class="tab" onclick="switchTab('grades')">📊 คะแนน + เกรด</div>
-    <div class="tab" onclick="switchTab('schedule')">📅 ตารางสอน</div>
   </div>
 
   <div class="tab-content active" id="tab-students">
@@ -439,54 +438,6 @@
           เกรด: 50-54=1 | 55-59=1.5 | 60-64=2 | 65-69=2.5 | 70-74=3 | 75-79=3.5 | 80+=4
         </div>
         <button type="submit" class="btn btn-primary">💾 บันทึกคะแนน</button>
-      </div>
-    </form>
-  </div>
-</div>
-
-<!-- ==================== TAB: Schedule ==================== -->
-<div class="tab-content" id="tab-schedule">
-  <div class="card" style="padding:20px;">
-    <h3 style="margin:0 0 16px;">📅 ตารางสอน</h3>
-    <form method="POST" action="{{ url_for('classroom.classroom_schedule_save', classroom_id=classroom.id) }}">
-      <div class="table-container">
-        <table style="width:100%;border-collapse:separate;border-spacing:6px;min-width:800px;">
-          <thead>
-            <tr>
-              <th style="width:50px;text-align:center;padding:8px;color:#667eea;font-size:.85rem;">คาบ</th>
-              <th style="text-align:center;padding:8px;background:#667eea;color:#fff;border-radius:8px;font-size:.85rem;">จันทร์</th>
-              <th style="text-align:center;padding:8px;background:#667eea;color:#fff;border-radius:8px;font-size:.85rem;">อังคาร</th>
-              <th style="text-align:center;padding:8px;background:#667eea;color:#fff;border-radius:8px;font-size:.85rem;">พุธ</th>
-              <th style="text-align:center;padding:8px;background:#667eea;color:#fff;border-radius:8px;font-size:.85rem;">พฤหัสบดี</th>
-              <th style="text-align:center;padding:8px;background:#667eea;color:#fff;border-radius:8px;font-size:.85rem;">ศุกร์</th>
-            </tr>
-          </thead>
-          <tbody>
-            {% for p in range(1, 9) %}
-            <tr>
-              <td style="text-align:center;font-weight:900;font-size:1.2rem;color:#667eea;vertical-align:middle;
-                {% if p == 5 %}border-top:3px solid #667eea;padding-top:10px;{% endif %}">{{ p }}</td>
-              {% for d in range(5) %}
-              {% set cell = schedule.get((d, p), {}) %}
-              <td style="vertical-align:top;{% if p == 5 %}border-top:3px solid #667eea;padding-top:10px;{% endif %}">
-                <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:8px 10px;min-height:52px;">
-                  <input type="text" name="subj_{{ d }}_{{ p }}" value="{{ cell.get('subject', '') }}"
-                         placeholder="วิชา..."
-                         style="width:100%;border:none;background:transparent;font-size:.9rem;font-weight:700;color:#1e293b;outline:none;padding:0;margin-bottom:2px;">
-                  <input type="text" name="room_{{ d }}_{{ p }}" value="{{ cell.get('room', '') }}"
-                         placeholder="ห้อง..."
-                         style="width:100%;border:none;background:transparent;font-size:.75rem;color:#667eea;outline:none;padding:0;">
-                </div>
-              </td>
-              {% endfor %}
-            </tr>
-            {% endfor %}
-          </tbody>
-        </table>
-      </div>
-
-      <div style="margin-top:16px;display:flex;justify-content:flex-end;">
-        <button type="submit" class="btn btn-primary">💾 บันทึกตารางสอน</button>
       </div>
     </form>
   </div>
