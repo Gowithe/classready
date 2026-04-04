@@ -543,23 +543,21 @@ class LibrarySubject:
     """วิชาในคลังบทเรียน"""
     
     @staticmethod
-    def create(subject_id: int, name: str, unit_number: int = 1, description: str = "",
-               slides_json: str = "", game_json: str = "", practice_json: str = "",
-               is_free: bool = False, estimated_time: int = 60, pdf_file: str = None) -> Dict[str, Any]:
+    def create(name: str, description: str = "", grade_level: str = "",
+               subject_type: str = "english", icon: str = "📚", color: str = "#667eea",
+               sort_order: int = 0) -> Dict[str, Any]:
         conn = get_db()
         c = conn.cursor()
         now = datetime.utcnow().isoformat()
         c.execute('''
-            INSERT INTO library_units 
-            (subject_id, name, unit_number, description, slides_json, game_json, practice_json, 
-             is_free, estimated_time, pdf_file, created_at, updated_at)
-            VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)
-        ''', (subject_id, name, unit_number, description, slides_json, game_json, practice_json,
-              1 if is_free else 0, estimated_time, pdf_file, now, now))
+            INSERT INTO library_subjects 
+            (name, description, grade_level, subject_type, icon, color, sort_order, is_active, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, ?, 1, ?, ?)
+        ''', (name, description, grade_level, subject_type, icon, color, sort_order, now, now))
         conn.commit()
-        unit_id = c.lastrowid
+        subject_id = c.lastrowid
         conn.close()
-        return LibraryUnit.get_by_id(unit_id)
+        return LibrarySubject.get_by_id(subject_id)
     
     @staticmethod
     def get_by_id(subject_id: int) -> Optional[Dict[str, Any]]:
