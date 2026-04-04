@@ -488,17 +488,23 @@ def init_db() -> None:
     c.execute("""
     CREATE TABLE IF NOT EXISTS teaching_schedule (
       id INTEGER PRIMARY KEY AUTOINCREMENT,
-      classroom_id INTEGER NOT NULL,
+      owner_id INTEGER NOT NULL,
       day_of_week INTEGER NOT NULL,
       period INTEGER NOT NULL,
       subject TEXT DEFAULT '',
       room TEXT DEFAULT '',
       note TEXT DEFAULT '',
       updated_at TEXT NOT NULL,
-      UNIQUE(classroom_id, day_of_week, period),
-      FOREIGN KEY(classroom_id) REFERENCES classrooms(id)
+      UNIQUE(owner_id, day_of_week, period),
+      FOREIGN KEY(owner_id) REFERENCES users(id)
     )
     """)
+
+    # Migration: rename classroom_id to owner_id if old table exists
+    try:
+        c.execute("ALTER TABLE teaching_schedule RENAME COLUMN classroom_id TO owner_id")
+    except Exception:
+        pass
 
     c.execute("CREATE INDEX IF NOT EXISTS idx_topics_owner_id ON topics(owner_id)")
     c.execute("CREATE INDEX IF NOT EXISTS idx_game_questions_topic_set ON game_questions(topic_id, set_no, tile_no)")
@@ -2204,11 +2210,11 @@ class TeachingSchedule:
     DAYS = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์"]
 
     @staticmethod
-    def get_by_classroom(classroom_id: int) -> Dict:
+    def get_by_owner(owner_id: int) -> Dict:
         """Returns {(day, period): {subject, room, note}}"""
         conn = get_db()
         c = conn.cursor()
-        c.execute("SELECT * FROM teaching_schedule WHERE classroom_id = ?", (classroom_id,))
+        c.execute("SELECT * FROM teaching_schedule WHERE owner_id = ?", (owner_id,))
         rows = c.fetchall()
         conn.close()
         result = {}
@@ -2219,7 +2225,7 @@ class TeachingSchedule:
         return result
 
     @staticmethod
-    def save_bulk(classroom_id: int, entries: list) -> None:
+    def save_bulk(owner_id: int, entries: list) -> None:
         """entries = [{day_of_week, period, subject, room, note}]"""
         conn = get_db()
         c = conn.cursor()
@@ -2232,11 +2238,11 @@ class TeachingSchedule:
             note = (e.get("note") or "").strip()
             if day >= 0 and period >= 1:
                 c.execute("""
-                    INSERT INTO teaching_schedule (classroom_id, day_of_week, period, subject, room, note, updated_at)
+                    INSERT INTO teaching_schedule (owner_id, day_of_week, period, subject, room, note, updated_at)
                     VALUES (?, ?, ?, ?, ?, ?, ?)
-                    ON CONFLICT(classroom_id, day_of_week, period)
+                    ON CONFLICT(owner_id, day_of_week, period)
                     DO UPDATE SET subject=excluded.subject, room=excluded.room, note=excluded.note, updated_at=excluded.updated_at
-                """, (classroom_id, day, period, subject, room, note, now))
+                """, (owner_id, day, period, subject, room, note, now))
         conn.commit()
         conn.close()
 
