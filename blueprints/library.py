@@ -13,7 +13,7 @@ from flask import (
 from models import (
     Topic, LibrarySubject, LibraryUnit, LibraryClone, LibraryRating,
     UserSubscription, SubscriptionPlan, GameQuestion, PracticeQuestion,
-    PaymentTransaction,
+    PaymentTransaction, get_db,
 )
 from blueprints.helpers import login_required, is_premium_user
 
@@ -166,6 +166,37 @@ def library_clone_unit(unit_id):
 
     LibraryClone.create(session["user_id"], unit_id, topic["id"])
     return jsonify({"ok": True, "topic_id": topic["id"]})
+
+
+@library_bp.route("/library/unit/<int:unit_id>/unclone", methods=["POST"])
+@login_required
+def library_unclone_unit(unit_id):
+    """Remove a cloned unit — deletes the clone record and the created topic."""
+    clones = LibraryClone.get_by_user(session["user_id"])
+    clone = None
+    for c in clones:
+        if c["unit_id"] == unit_id:
+            clone = c
+            break
+    if not clone:
+        flash("\u0e44\u0e21\u0e48\u0e1e\u0e1a\u0e1a\u0e17\u0e40\u0e23\u0e35\u0e22\u0e19\u0e17\u0e35\u0e48 clone \u0e44\u0e27\u0e49", "error")
+        return redirect(request.referrer or url_for("library.library_browse"))
+
+    # Delete the topic that was created
+    topic_id = clone.get("topic_id")
+    if topic_id:
+        Topic.delete(topic_id)
+
+    # Delete clone record
+    conn = get_db()
+    c = conn.cursor()
+    c.execute("DELETE FROM library_clones WHERE user_id = ? AND unit_id = ?",
+              (session["user_id"], unit_id))
+    conn.commit()
+    conn.close()
+
+    flash("\u0e25\u0e1a\u0e1a\u0e17\u0e40\u0e23\u0e35\u0e22\u0e19\u0e2d\u0e2d\u0e01\u0e08\u0e32\u0e01\u0e04\u0e25\u0e31\u0e07\u0e41\u0e25\u0e49\u0e27", "success")
+    return redirect(request.referrer or url_for("library.library_browse"))
 
 
 # ==============================================================================
