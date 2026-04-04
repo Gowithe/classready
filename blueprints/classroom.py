@@ -30,7 +30,9 @@ def classrooms():
     assignments = Assignment.get_by_owner(user_id)
     for c in cls_list:
         c["assignment_count"] = len([a for a in assignments if a["classroom_id"] == c["id"]])
-    return render_template("classrooms.html", classrooms=cls_list, total_students=total_students, total_assignments=len(assignments))
+    return render_template("classrooms.html", classrooms=cls_list, total_students=total_students,
+                           total_assignments=len(assignments),
+                           schedule=TeachingSchedule.get_by_owner(user_id))
 
 
 # ==============================================================================
@@ -189,7 +191,6 @@ def classroom_detail(classroom_id):
         assignment_stats=assignment_stats, class_avg=class_avg,
         attendance_summary=attendance_summary, attendance_dates=attendance_dates,
         extra_scores=extra_scores, grades=grades, today=today,
-        schedule=TeachingSchedule.get_by_classroom(classroom_id),
     )
 
 
@@ -291,15 +292,11 @@ def classroom_extra_scores_save(classroom_id):
 
 
 # ==============================================================================
-# Teaching Schedule (ตารางสอน)
+# Teaching Schedule (ตารางสอน — per teacher)
 # ==============================================================================
-@classroom_bp.route("/classroom/<int:classroom_id>/schedule", methods=["POST"])
+@classroom_bp.route("/classrooms/schedule", methods=["POST"])
 @login_required
-def classroom_schedule_save(classroom_id):
-    cls = Classroom.get_by_id(classroom_id)
-    if not cls or cls["owner_id"] != session["user_id"]:
-        abort(404)
-
+def classroom_schedule_save():
     entries = []
     for day in range(5):
         for period in range(1, 9):
@@ -307,9 +304,9 @@ def classroom_schedule_save(classroom_id):
             room = request.form.get(f"room_{day}_{period}", "").strip()
             entries.append({"day_of_week": day, "period": period, "subject": subject, "room": room})
 
-    TeachingSchedule.save_bulk(classroom_id, entries)
+    TeachingSchedule.save_bulk(session["user_id"], entries)
     flash("\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e15\u0e32\u0e23\u0e32\u0e07\u0e2a\u0e2d\u0e19\u0e40\u0e23\u0e35\u0e22\u0e1a\u0e23\u0e49\u0e2d\u0e22", "success")
-    return redirect(url_for("classroom.classroom_detail", classroom_id=classroom_id))
+    return redirect(url_for("classroom.classrooms"))
 
 
 # ==============================================================================
