@@ -1,0 +1,82 @@
+{% extends "base.html" %}
+{% block title %}{% if freebie %}แก้ไข{% else %}เพิ่ม{% endif %} Freebie — Admin{% endblock %}
+
+{% block extra_css %}
+<style>
+  .wrap { max-width: 700px; margin: 1.5rem auto; padding: 0 1rem; }
+  .card { background: white; border-radius: 16px; padding: 2rem; box-shadow: 0 4px 12px rgba(0,0,0,0.06); }
+  .form-group { margin-bottom: 1.25rem; }
+  .form-group label { display: block; font-weight: 700; margin-bottom: 6px; color: #334155; }
+  .form-group input[type=text], .form-group textarea, .form-group select {
+    width: 100%; padding: 10px 14px; border: 2px solid #e2e8f0;
+    border-radius: 10px; font-size: 1rem; font-family: inherit;
+  }
+  .form-group textarea { min-height: 100px; resize: vertical; }
+  .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
+    outline: none; border-color: #667eea;
+  }
+  .form-row { display: flex; gap: 12px; align-items: center; }
+  .checkbox-row { display: flex; gap: 20px; margin: 1rem 0; }
+  .checkbox-row label { display: flex; align-items: center; gap: 8px; font-weight: 600; cursor: pointer; }
+  .btn { padding: 10px 20px; border-radius: 10px; font-weight: 700; border: none; cursor: pointer; text-decoration: none; display: inline-block; }
+  .btn-primary { background: #667eea; color: white; }
+  .btn-secondary { background: #e2e8f0; color: #475569; }
+  .current-file { background: #f0fdf4; border: 1px solid #bbf7d0; padding: 10px 14px; border-radius: 10px; font-size: 0.9rem; color: #166534; margin-bottom: 10px; }
+</style>
+{% endblock %}
+
+{% block content %}
+<div class="wrap">
+  <h1>{% if freebie %}✏️ แก้ไข{% else %}➕ เพิ่ม{% endif %} PDF</h1>
+
+  <div class="card">
+    <form method="POST" enctype="multipart/form-data">
+      <div class="form-group">
+        <label>ชื่อ PDF <span style="color:red;">*</span></label>
+        <input type="text" name="title" value="{{ freebie.title if freebie else '' }}" required placeholder="เช่น สรุป Verb to be">
+      </div>
+
+      <div class="form-group">
+        <label>คำอธิบาย</label>
+        <textarea name="description" placeholder="อธิบายว่า PDF นี้เกี่ยวกับอะไร">{{ freebie.description if freebie else '' }}</textarea>
+      </div>
+
+      <div class="form-group">
+        <label>หมวดหมู่</label>
+        <select name="category">
+          {% for cat_key, cat in categories.items() %}
+          <option value="{{ cat_key }}" {% if freebie and freebie.category == cat_key %}selected{% endif %}>{{ cat.icon }} {{ cat.name }}</option>
+          {% endfor %}
+        </select>
+      </div>
+
+      <div class="form-group">
+        <label>ไฟล์ PDF {% if not freebie %}<span style="color:red;">*</span>{% endif %}</label>
+        {% if freebie and freebie.pdf_file %}
+        <div class="current-file">📎 ไฟล์ปัจจุบัน: <strong>{{ freebie.pdf_file }}</strong></div>
+        {% endif %}
+        <input type="file" name="pdf_file" accept="application/pdf" {% if not freebie %}required{% endif %}>
+        {% if freebie %}<small style="color:#94a3b8;">(ไม่ต้องเลือกถ้าไม่ต้องการเปลี่ยน)</small>{% endif %}
+      </div>
+
+      <div class="form-group">
+        <label>ลำดับการแสดง</label>
+        <input type="text" name="sort_order" value="{{ freebie.sort_order if freebie else 0 }}" placeholder="0">
+        <small style="color:#94a3b8;">ค่ามาก = แสดงก่อน</small>
+      </div>
+
+      <div class="checkbox-row">
+        <label><input type="checkbox" name="is_free" {% if not freebie or freebie.is_free %}checked{% endif %}> 🆓 ฟรี (ไม่ต้อง Premium)</label>
+        {% if freebie %}
+        <label><input type="checkbox" name="is_active" {% if freebie.is_active %}checked{% endif %}> ✅ เปิดใช้งาน</label>
+        {% endif %}
+      </div>
+
+      <div style="display:flex;gap:10px;justify-content:flex-end;margin-top:1.5rem;">
+        <a href="{{ url_for('freebies.admin_freebies') }}" class="btn btn-secondary">ยกเลิก</a>
+        <button type="submit" class="btn btn-primary">💾 บันทึก</button>
+      </div>
+    </form>
+  </div>
+</div>
+{% endblock %}
