@@ -484,6 +484,40 @@ def init_db() -> None:
     )
     """)
 
+    # ---------------- freebies (free PDFs for lead gen) ----------------
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS freebies (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      category TEXT DEFAULT 'fundamentals',
+      pdf_file TEXT NOT NULL,
+      thumbnail TEXT DEFAULT '',
+      is_free INTEGER DEFAULT 1,
+      download_count INTEGER DEFAULT 0,
+      is_active INTEGER DEFAULT 1,
+      sort_order INTEGER DEFAULT 0,
+      share_token TEXT DEFAULT '',
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+    """)
+
+    # Migration: add share_token column if not exists
+    try:
+        c.execute("ALTER TABLE freebies ADD COLUMN share_token TEXT DEFAULT ''")
+    except Exception:
+        pass
+
+    # Backfill share_token for existing rows
+    try:
+        c.execute("SELECT id FROM freebies WHERE share_token = '' OR share_token IS NULL")
+        for row in c.fetchall():
+            token = secrets.token_urlsafe(12)
+            c.execute("UPDATE freebies SET share_token = ? WHERE id = ?", (token, row["id"]))
+    except Exception:
+        pass
+
     # ---------------- teaching_schedule ----------------
     c.execute("""
     CREATE TABLE IF NOT EXISTS teaching_schedule (
@@ -500,11 +534,64 @@ def init_db() -> None:
     )
     """)
 
+    # ---------------- freebies (free PDF library) ----------------
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS freebies (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      category TEXT DEFAULT '',
+      pdf_file TEXT NOT NULL,
+      thumbnail TEXT DEFAULT '',
+      is_free INTEGER DEFAULT 1,
+      download_count INTEGER DEFAULT 0,
+      is_active INTEGER DEFAULT 1,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+    """)
+
+    # ---------------- freebies (PDF downloads) ----------------
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS freebies (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      category TEXT DEFAULT '',
+      pdf_file TEXT NOT NULL,
+      thumbnail TEXT DEFAULT '',
+      is_free INTEGER DEFAULT 1,
+      download_count INTEGER DEFAULT 0,
+      is_active INTEGER DEFAULT 1,
+      sort_order INTEGER DEFAULT 0,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+    """)
+
     # Migration: rename classroom_id to owner_id if old table exists
     try:
         c.execute("ALTER TABLE teaching_schedule RENAME COLUMN classroom_id TO owner_id")
     except Exception:
         pass
+
+    # ---------------- freebies (PDF downloads) ----------------
+    c.execute("""
+    CREATE TABLE IF NOT EXISTS freebies (
+      id INTEGER PRIMARY KEY AUTOINCREMENT,
+      title TEXT NOT NULL,
+      description TEXT DEFAULT '',
+      category TEXT DEFAULT 'fundamentals',
+      pdf_file TEXT NOT NULL,
+      thumbnail TEXT DEFAULT '',
+      is_free INTEGER DEFAULT 1,
+      download_count INTEGER DEFAULT 0,
+      sort_order INTEGER DEFAULT 0,
+      is_active INTEGER DEFAULT 1,
+      created_at TEXT NOT NULL,
+      updated_at TEXT NOT NULL
+    )
+    """)
 
     c.execute("CREATE INDEX IF NOT EXISTS idx_topics_owner_id ON topics(owner_id)")
     c.execute("CREATE INDEX IF NOT EXISTS idx_game_questions_topic_set ON game_questions(topic_id, set_no, tile_no)")
@@ -2202,7 +2289,105 @@ class StudentExtraScores:
 
 
 # ==============================================================================
-# Teaching Schedule (ตารางสอน)
+# Freebies (free PDF library)
+# ==============================================================================
+class Freebie:
+    CATEGORIES = {
+        "fundamentals": {"name": "ปรับพื้นฐาน", "icon": "📘", "color": "#667eea"},
+        "grammar": {"name": "ไวยากรณ์", "icon": "📝", "color": "#8b5cf6"},
+        "vocabulary": {"name": "คำศัพท์", "icon": "📚", "color": "#ec4899"},
+        "conversation": {"name": "การสนทนา", "icon": "💬", "color": "#f59e0b"},
+        "reading": {"name": "การอ่าน", "icon": "📖", "color": "#10b981"},
+        "writing": {"name": "การเขียน", "icon": "✍️", "color": "#06b6d4"},
+    }
+
+    @staticmethod
+    def create(title: str, description: str, category: str, pdf_file: str,
+               thumbnail: str = "", is_free: bool = True, sort_order: int = 0) -> Dict[str, Any]:
+        conn = get_db()
+        c = conn.cursor()
+        now = datetime.utcnow().isoformat()
+        share_token = secrets.token_urlsafe(12)
+        c.execute("""
+            INSERT INTO freebies (title, description, category, pdf_file, thumbnail,
+                                  is_free, download_count, sort_order, share_token, is_active, created_at, updated_at)
+            VALUES (?, ?, ?, ?, ?, ?, 0, ?, ?, 1, ?, ?)
+        """, (title, description, category, pdf_file, thumbnail,
+              1 if is_free else 0, sort_order, share_token, now, now))
+        conn.commit()
+        freebie_id = c.lastrowid
+        conn.close()
+        return Freebie.get_by_id(freebie_id)
+
+    @staticmethod
+    def get_by_token(share_token: str) -> Optional[Dict[str, Any]]:
+        if not share_token:
+            return None
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM freebies WHERE share_token = ? AND is_active = 1", (share_token,))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    @staticmethod
+    def get_by_id(freebie_id: int) -> Optional[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("SELECT * FROM freebies WHERE id = ?", (freebie_id,))
+        row = c.fetchone()
+        conn.close()
+        return dict(row) if row else None
+
+    @staticmethod
+    def get_all(active_only: bool = True, category: str = None) -> List[Dict[str, Any]]:
+        conn = get_db()
+        c = conn.cursor()
+        sql = "SELECT * FROM freebies WHERE 1=1"
+        params = []
+        if active_only:
+            sql += " AND is_active = 1"
+        if category:
+            sql += " AND category = ?"
+            params.append(category)
+        sql += " ORDER BY sort_order ASC, created_at DESC"
+        c.execute(sql, params)
+        rows = c.fetchall()
+        conn.close()
+        return [dict(r) for r in rows]
+
+    @staticmethod
+    def update(freebie_id: int, **fields) -> None:
+        if not fields:
+            return
+        conn = get_db()
+        c = conn.cursor()
+        fields["updated_at"] = datetime.utcnow().isoformat()
+        sets = ", ".join(f"{k} = ?" for k in fields.keys())
+        values = list(fields.values()) + [freebie_id]
+        c.execute(f"UPDATE freebies SET {sets} WHERE id = ?", values)
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def delete(freebie_id: int) -> None:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("DELETE FROM freebies WHERE id = ?", (freebie_id,))
+        conn.commit()
+        conn.close()
+
+    @staticmethod
+    def increment_download(freebie_id: int) -> None:
+        conn = get_db()
+        c = conn.cursor()
+        c.execute("UPDATE freebies SET download_count = download_count + 1 WHERE id = ?", (freebie_id,))
+        conn.commit()
+        conn.close()
+
+
+# ==============================================================================
+# Teaching Schedule (ตารางสอน — per teacher)
 # ==============================================================================
 class TeachingSchedule:
     DAYS = ["จันทร์", "อังคาร", "พุธ", "พฤหัสบดี", "ศุกร์"]
