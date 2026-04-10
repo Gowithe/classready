@@ -26,7 +26,7 @@ from werkzeug.utils import secure_filename
 from models import (
     get_db, init_db, User, Topic, GameQuestion, PracticeQuestion,
     AttemptHistory, Classroom, ClassroomStudent, Assignment,
-    UserSubscription, UsageLimits,
+    UserSubscription, UsageLimits, Freebie,
 )
 from ai_generator import generate_lesson_bundle
 
@@ -197,6 +197,7 @@ from blueprints.library import library_bp
 from blueprints.payment import payment_bp
 from blueprints.admin import admin_bp
 from blueprints.student import student_bp
+from blueprints.freebies import freebies_bp
 
 app.register_blueprint(auth_bp)
 app.register_blueprint(classroom_bp)
@@ -206,6 +207,7 @@ app.register_blueprint(library_bp)
 app.register_blueprint(payment_bp)
 app.register_blueprint(admin_bp)
 app.register_blueprint(student_bp)
+app.register_blueprint(freebies_bp)
 
 # --- Backfill join_code for existing classrooms ---
 try:
@@ -1375,6 +1377,196 @@ def try_slides_save():
 def try_slides_resume():
     """After login, this page auto-saves trial slides using sessionStorage task_id."""
     return render_template("try_slides_resume.html")
+
+
+# ==============================================================================
+# Freebies (PDF Downloads — Public List, Login to Download)
+# ==============================================================================
+@app.route("/freebies")
+def freebies():
+    category = request.args.get("category", "")
+    items = Freebie.get_all_active()
+    if category:
+        items = [i for i in items if i.get("category") == category]
+    return render_template("freebies.html",
+                           freebies=items,
+                           categories=Freebie.CATEGORIES,
+                           current_category=category)
+
+
+@app.route("/freebies/<int:freebie_id>/download")
+@login_required
+def freebies_download(freebie_id):
+    item = Freebie.get_by_id(freebie_id)
+    if not item or not item.get("is_active"):
+        abort(404)
+
+    # Check premium for non-free items
+    if not item.get("is_free"):
+        if not is_premium_user(session["user_id"]):
+            flash("\u0e44\u0e1f\u0e25\u0e4c\u0e19\u0e35\u0e49\u0e2a\u0e33\u0e2b\u0e23\u0e31\u0e1a\u0e2a\u0e21\u0e32\u0e0a\u0e34\u0e01 Premium \u0e40\u0e17\u0e48\u0e32\u0e19\u0e31\u0e49\u0e19", "error")
+            return redirect(url_for("payment.pricing"))
+
+    Freebie.increment_download(freebie_id)
+
+    pdf_path = os.path.join(app.config["UPLOAD_FOLDER"], "freebies", item["pdf_file"])
+    if not os.path.exists(pdf_path):
+        flash("\u0e44\u0e1f\u0e25\u0e4c\u0e2b\u0e32\u0e22", "error")
+        return redirect(url_for("freebies"))
+
+    return send_from_directory(
+        os.path.join(app.config["UPLOAD_FOLDER"], "freebies"),
+        item["pdf_file"],
+        as_attachment=True,
+        download_name=item["pdf_file"]
+    )
+
+
+# ==============================================================================
+# Admin: Freebies Management
+# ==============================================================================
+def _is_admin():
+    return session.get("role") == "admin"
+
+
+@app.route("/admin/freebies")
+@login_required
+def admin_freebies():
+    if not _is_admin():
+        abort(403)
+    items = Freebie.get_all_admin()
+    return render_template("admin_freebies.html",
+                           freebies=items,
+                           categories=Freebie.CATEGORIES)
+
+
+@app.route("/admin/freebies/create", methods=["GET", "POST"])
+@login_required
+def admin_freebies_create():
+    if not _is_admin():
+        abort(403)
+
+    if request.method == "POST":
+        title = (request.form.get("title") or "").strip()
+        description = (request.form.get("description") or "").strip()
+        category = (request.form.get("category") or "fundamentals").strip()
+        is_free = request.form.get("is_free") == "on"
+
+        if not title:
+            flash("\u0e01\u0e23\u0e38\u0e13\u0e32\u0e43\u0e2a\u0e48\u0e0a\u0e37\u0e48\u0e2d", "error")
+            return redirect(url_for("admin_freebies_create"))
+
+        file = request.files.get("pdf_file")
+        if not file or not file.filename:
+            flash("\u0e01\u0e23\u0e38\u0e13\u0e32\u0e40\u0e25\u0e37\u0e2d\u0e01\u0e44\u0e1f\u0e25\u0e4c PDF", "error")
+            return redirect(url_for("admin_freebies_create"))
+
+        if not file.filename.lower().endswith(".pdf"):
+            flash("\u0e15\u0e49\u0e2d\u0e07\u0e40\u0e1b\u0e47\u0e19\u0e44\u0e1f\u0e25\u0e4c PDF \u0e40\u0e17\u0e48\u0e32\u0e19\u0e31\u0e49\u0e19", "error")
+            return redirect(url_for("admin_freebies_create"))
+
+        # Save PDF
+        freebies_dir = os.path.join(app.config["UPLOAD_FOLDER"], "freebies")
+        os.makedirs(freebies_dir, exist_ok=True)
+
+        safe_name = "".join(c for c in file.filename if c.isascii() and (c.isalnum() or c in "._-"))
+        if not safe_name:
+            safe_name = "freebie.pdf"
+        final_name = f"{secrets.token_hex(6)}_{safe_name}"
+        file.save(os.path.join(freebies_dir, final_name))
+
+        # Optional thumbnail
+        thumb_file = request.files.get("thumbnail")
+        thumbnail = ""
+        if thumb_file and thumb_file.filename:
+            ext = thumb_file.filename.rsplit(".", 1)[-1].lower()
+            if ext in ("png", "jpg", "jpeg", "webp"):
+                thumb_name = f"{secrets.token_hex(6)}_thumb.{ext}"
+                thumb_file.save(os.path.join(freebies_dir, thumb_name))
+                thumbnail = thumb_name
+
+        Freebie.create(
+            title=title,
+            description=description,
+            category=category,
+            pdf_file=final_name,
+            thumbnail=thumbnail,
+            is_free=is_free,
+        )
+        flash("\u0e2a\u0e23\u0e49\u0e32\u0e07 Freebie \u0e40\u0e23\u0e35\u0e22\u0e1a\u0e23\u0e49\u0e2d\u0e22", "success")
+        return redirect(url_for("admin_freebies"))
+
+    return render_template("admin_freebie_edit.html",
+                           freebie=None,
+                           categories=Freebie.CATEGORIES)
+
+
+@app.route("/admin/freebies/<int:freebie_id>/edit", methods=["GET", "POST"])
+@login_required
+def admin_freebies_edit(freebie_id):
+    if not _is_admin():
+        abort(403)
+
+    item = Freebie.get_by_id(freebie_id)
+    if not item:
+        abort(404)
+
+    if request.method == "POST":
+        title = (request.form.get("title") or "").strip()
+        description = (request.form.get("description") or "").strip()
+        category = (request.form.get("category") or "fundamentals").strip()
+        is_free = request.form.get("is_free") == "on"
+
+        # Optional: replace PDF
+        pdf_file = None
+        file = request.files.get("pdf_file")
+        if file and file.filename and file.filename.lower().endswith(".pdf"):
+            freebies_dir = os.path.join(app.config["UPLOAD_FOLDER"], "freebies")
+            os.makedirs(freebies_dir, exist_ok=True)
+            safe_name = "".join(c for c in file.filename if c.isascii() and (c.isalnum() or c in "._-"))
+            if not safe_name:
+                safe_name = "freebie.pdf"
+            pdf_file = f"{secrets.token_hex(6)}_{safe_name}"
+            file.save(os.path.join(freebies_dir, pdf_file))
+
+        # Optional: replace thumbnail
+        thumbnail = None
+        thumb_file = request.files.get("thumbnail")
+        if thumb_file and thumb_file.filename:
+            ext = thumb_file.filename.rsplit(".", 1)[-1].lower()
+            if ext in ("png", "jpg", "jpeg", "webp"):
+                freebies_dir = os.path.join(app.config["UPLOAD_FOLDER"], "freebies")
+                os.makedirs(freebies_dir, exist_ok=True)
+                thumbnail = f"{secrets.token_hex(6)}_thumb.{ext}"
+                thumb_file.save(os.path.join(freebies_dir, thumbnail))
+
+        Freebie.update(freebie_id, title, description, category, is_free,
+                       pdf_file=pdf_file, thumbnail=thumbnail)
+        flash("\u0e1a\u0e31\u0e19\u0e17\u0e36\u0e01\u0e40\u0e23\u0e35\u0e22\u0e1a\u0e23\u0e49\u0e2d\u0e22", "success")
+        return redirect(url_for("admin_freebies"))
+
+    return render_template("admin_freebie_edit.html",
+                           freebie=item,
+                           categories=Freebie.CATEGORIES)
+
+
+@app.route("/admin/freebies/<int:freebie_id>/delete", methods=["POST"])
+@login_required
+def admin_freebies_delete(freebie_id):
+    if not _is_admin():
+        abort(403)
+    item = Freebie.get_by_id(freebie_id)
+    if item:
+        # Delete file
+        pdf_path = os.path.join(app.config["UPLOAD_FOLDER"], "freebies", item["pdf_file"])
+        if os.path.exists(pdf_path):
+            try:
+                os.remove(pdf_path)
+            except Exception:
+                pass
+        Freebie.delete(freebie_id)
+        flash("\u0e25\u0e1a\u0e40\u0e23\u0e35\u0e22\u0e1a\u0e23\u0e49\u0e2d\u0e22", "success")
+    return redirect(url_for("admin_freebies"))
 
 
 # ==============================================================================
