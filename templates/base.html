@@ -142,6 +142,7 @@
         {% endif %}
 
         <a href="{{ url_for('library.library') }}">📚 คลังบทเรียน</a>
+          <a href="{{ url_for('freebies.freebies_index') }}">📥 PDF ฟรี</a>
 
         <a href="{{ url_for('payment.pricing') }}" class="nav-upgrade">💎 Premium</a>
 
@@ -163,6 +164,7 @@
           {% endif %}
 
           <a href="{{ url_for('library.library') }}">📚 คลังบทเรียน</a>
+          <a href="{{ url_for('freebies.freebies_index') }}">📥 PDF ฟรี</a>
           <a href="{{ url_for('auth.my_account') }}">👤 บัญชีของฉัน</a>
           <a href="{{ url_for('payment.pricing') }}" class="primary">💎 อัปเกรด Premium</a>
           <a href="{{ url_for('auth.logout') }}" class="muted">
