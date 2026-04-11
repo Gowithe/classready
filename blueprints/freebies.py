@@ -60,6 +60,16 @@ def freebies_public(token):
     return render_template("freebies_public.html", freebie=freebie)
 
 
+@freebies_bp.route("/f/<token>/pdf")
+def freebies_public_pdf(token):
+    """Serve the PDF file publicly (no login) for shared freebie links."""
+    freebie = Freebie.get_by_token(token)
+    if not freebie:
+        abort(404)
+    upload_folder = current_app.config["UPLOAD_FOLDER"]
+    return send_from_directory(upload_folder, freebie["pdf_file"])
+
+
 @freebies_bp.route("/freebies/<int:freebie_id>/view")
 def freebies_view(freebie_id):
     """View PDF inline — PUBLIC, no login required (for sharing)."""
