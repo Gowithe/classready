@@ -90,6 +90,7 @@
   <div class="stage" id="stage">
     <button class="nav-arrow prev" id="prevArrow" title="ก่อนหน้า">←</button>
     <canvas id="pdfCanvas"></canvas>
+    <iframe id="pdfFallback" style="display:none;width:100%;height:100%;border:none;background:#fff;border-radius:8px;"></iframe>
     <div class="loading" id="loadingMsg">⏳ กำลังโหลด PDF...</div>
     <button class="nav-arrow next" id="nextArrow" title="ถัดไป">→</button>
   </div>
@@ -99,18 +100,18 @@
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js"></script>
 <script>
-pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
-
 const pdfUrl = "{{ url_for('uploaded_file', filename=freebie.pdf_file) }}";
 const canvas = document.getElementById('pdfCanvas');
 const ctx = canvas.getContext('2d');
 const presWrap = document.getElementById('presWrap');
 const loadingMsg = document.getElementById('loadingMsg');
+const fallbackFrame = document.getElementById('pdfFallback');
 
 let pdfDoc = null;
 let currentPage = 1;
 let rendering = false;
 let pendingPage = null;
+let useFallback = false;
 
 async function renderPage(num){
   if(!pdfDoc) return;
@@ -136,26 +137,42 @@ async function renderPage(num){
 }
 
 function goPage(num){
+  if(useFallback) return;
   if(!pdfDoc || num < 1 || num > pdfDoc.numPages) return;
   currentPage = num;
   if(rendering){ pendingPage = num; } else { renderPage(num); }
 }
 
 function updateButtons(){
+  if(!pdfDoc) return;
   document.getElementById('prevBtn').disabled = currentPage <= 1;
   document.getElementById('nextBtn').disabled = currentPage >= pdfDoc.numPages;
   document.getElementById('prevArrow').disabled = currentPage <= 1;
   document.getElementById('nextArrow').disabled = currentPage >= pdfDoc.numPages;
 }
 
+function showFallback(){
+  useFallback = true;
+  canvas.style.display = 'none';
+  loadingMsg.style.display = 'none';
+  fallbackFrame.src = pdfUrl + '#view=FitH&toolbar=1';
+  fallbackFrame.style.display = 'block';
+  document.getElementById('prevArrow').style.display = 'none';
+  document.getElementById('nextArrow').style.display = 'none';
+  document.getElementById('pageNum').textContent = '-';
+  document.getElementById('pageTotal').textContent = '-';
+}
+
 (async () => {
   try {
+    if(typeof pdfjsLib === 'undefined') throw new Error('PDF.js not loaded');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = 'https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.worker.min.js';
     pdfDoc = await pdfjsLib.getDocument(pdfUrl).promise;
     document.getElementById('pageTotal').textContent = pdfDoc.numPages;
     await renderPage(1);
   } catch(e){
-    loadingMsg.textContent = '❌ โหลด PDF ไม่สำเร็จ';
-    console.error(e);
+    console.warn('PDF.js failed, using iframe fallback:', e);
+    showFallback();
   }
 })();
 
