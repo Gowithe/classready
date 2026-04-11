@@ -169,6 +169,9 @@
             {% if f.is_free %}📥 โหลด{% else %}⭐ โหลด{% endif %}
           </a>
           <button type="button" class="btn-share" title="แชร์ลิงก์" onclick="openShare('{{ f.share_token }}', '{{ f.title|e }}')">🔗</button>
+          {% if session.role == 'admin' %}
+          <a href="{{ url_for('freebies.admin_freebie_edit', freebie_id=f.id) }}" class="btn-share" title="แก้ไข">✏️</a>
+          {% endif %}
         </div>
       </div>
     </div>
