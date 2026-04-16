@@ -170,6 +170,12 @@ def init_db() -> None:
     )
     """)
 
+    # Migration: add pdf_file column if not exists
+    try:
+        c.execute("ALTER TABLE library_units ADD COLUMN pdf_file TEXT")
+    except Exception:
+        pass
+
     # ================== Library Clones ==================
     c.execute("""
     CREATE TABLE IF NOT EXISTS library_clones (
