@@ -53,14 +53,12 @@ def freebies_index():
 # ==============================================================================
 @freebies_bp.route("/f/<token>")
 def freebies_public(token):
-    """Public link — serve PDF directly so mobile browsers can display it natively."""
+    """Public link — simple full-screen PDF embed page for mobile compatibility."""
     freebie = Freebie.get_by_token(token)
     if not freebie:
         abort(404)
-    upload_folder = current_app.config["UPLOAD_FOLDER"]
-    response = send_from_directory(upload_folder, freebie["pdf_file"], mimetype="application/pdf")
-    response.headers["Content-Disposition"] = "inline"
-    return response
+    pdf_url = url_for("freebies.freebies_public_pdf", token=token, _external=True)
+    return render_template("freebies_public.html", freebie=freebie, pdf_url=pdf_url)
 
 
 @freebies_bp.route("/f/<token>/pdf")
@@ -70,7 +68,9 @@ def freebies_public_pdf(token):
     if not freebie:
         abort(404)
     upload_folder = current_app.config["UPLOAD_FOLDER"]
-    return send_from_directory(upload_folder, freebie["pdf_file"])
+    response = send_from_directory(upload_folder, freebie["pdf_file"], mimetype="application/pdf")
+    response.headers["Content-Disposition"] = "inline"
+    return response
 
 
 @freebies_bp.route("/freebies/<int:freebie_id>/view")
