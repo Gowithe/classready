@@ -53,11 +53,12 @@ def freebies_index():
 # ==============================================================================
 @freebies_bp.route("/f/<token>")
 def freebies_public(token):
-    """Public viewer — anyone with the link can view, no login needed."""
+    """Public link — serve PDF directly so mobile browsers can display it natively."""
     freebie = Freebie.get_by_token(token)
     if not freebie:
         abort(404)
-    return render_template("freebies_public.html", freebie=freebie)
+    upload_folder = current_app.config["UPLOAD_FOLDER"]
+    return send_from_directory(upload_folder, freebie["pdf_file"])
 
 
 @freebies_bp.route("/f/<token>/pdf")
