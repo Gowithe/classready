@@ -1,9 +1,21 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="th">
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>{% block title %}Teacher Platform{% endblock %}</title>
+  <title>{% block title %}Clazzee — สร้างสไลด์พร้อมสอนด้วย AI{% endblock %}</title>
+
+  <!-- SEO -->
+  <meta name="description" content="{% block meta_description %}Clazzee ช่วยครูสร้างสไลด์ด้วย AI เกมส์ตอบคำถาม แบบฝึกหัดออนไลน์ และจัดการห้องเรียน ทุกอย่างในที่เดียว{% endblock %}">
+  <meta name="robots" content="index, follow">
+  <link rel="canonical" href="{% block canonical %}https://clazzee.com/{% endblock %}">
+
+  <!-- Open Graph -->
+  <meta property="og:type" content="website">
+  <meta property="og:site_name" content="Clazzee">
+  <meta property="og:title" content="{% block og_title %}Clazzee — สร้างสไลด์พร้อมสอนด้วย AI{% endblock %}">
+  <meta property="og:description" content="{% block og_description %}แพลตฟอร์มสำหรับครู: สร้างสไลด์ด้วย AI เกมส์ตอบคำถาม แบบฝึกหัดออนไลน์ และจัดการห้องเรียน{% endblock %}">
+  <meta property="og:url" content="{% block og_url %}https://clazzee.com/{% endblock %}">
 
   <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;600;700&display=swap" rel="stylesheet">
 
