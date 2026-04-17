@@ -58,7 +58,9 @@ def freebies_public(token):
     if not freebie:
         abort(404)
     upload_folder = current_app.config["UPLOAD_FOLDER"]
-    return send_from_directory(upload_folder, freebie["pdf_file"])
+    response = send_from_directory(upload_folder, freebie["pdf_file"], mimetype="application/pdf")
+    response.headers["Content-Disposition"] = "inline"
+    return response
 
 
 @freebies_bp.route("/f/<token>/pdf")
