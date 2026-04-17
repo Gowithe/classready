@@ -434,6 +434,14 @@ def init_db() -> None:
     except Exception:
         pass
 
+    # Migration: add image_file and link_url to assignments
+    if not _column_exists(conn, "assignments", "image_file"):
+        c.execute("ALTER TABLE assignments ADD COLUMN image_file TEXT DEFAULT ''")
+        conn.commit()
+    if not _column_exists(conn, "assignments", "link_url"):
+        c.execute("ALTER TABLE assignments ADD COLUMN link_url TEXT DEFAULT ''")
+        conn.commit()
+
     # ---------------- homework_submissions ----------------
     c.execute("""
     CREATE TABLE IF NOT EXISTS homework_submissions (
@@ -1992,16 +2000,18 @@ class Assignment:
 
     @staticmethod
     def create_homework(classroom_id: int, title: str, description: str, due_date: str,
-                        created_by: int, max_score: int = 10) -> Dict[str, Any]:
+                        created_by: int, max_score: int = 10,
+                        image_file: str = "", link_url: str = "") -> Dict[str, Any]:
         conn = get_db()
         c = conn.cursor()
         now = datetime.utcnow().isoformat()
         c.execute("PRAGMA foreign_keys = OFF")
         c.execute("""
             INSERT INTO assignments (classroom_id, topic_id, practice_link_id, title, description,
-                                     due_date, is_active, created_by, created_at, exercise_type)
-            VALUES (?, 0, NULL, ?, ?, ?, 1, ?, ?, 'homework')
-        """, (classroom_id, title, description, due_date, created_by, now))
+                                     due_date, is_active, created_by, created_at, exercise_type,
+                                     image_file, link_url)
+            VALUES (?, 0, NULL, ?, ?, ?, 1, ?, ?, 'homework', ?, ?)
+        """, (classroom_id, title, description, due_date, created_by, now, image_file, link_url))
         c.execute("PRAGMA foreign_keys = ON")
         conn.commit()
         assignment_id = c.lastrowid
