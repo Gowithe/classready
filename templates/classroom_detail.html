@@ -497,7 +497,7 @@
       <h3>📝 สั่งงานใหม่</h3>
       <button class="modal-close" onclick="closeAssignModal()">✕</button>
     </div>
-    <form action="{{ url_for('classroom.classroom_assign', classroom_id=classroom.id) }}" method="POST">
+    <form action="{{ url_for('classroom.classroom_assign', classroom_id=classroom.id) }}" method="POST" enctype="multipart/form-data">
       <div class="modal-body">
         <div class="form-group" id="topicFieldGroup">
           <label>เลือก Topic *</label>
@@ -521,6 +521,19 @@
           <label>คะแนนเต็ม</label>
           <input type="number" name="max_score" value="10" min="1" max="100">
         </div>
+
+        <!-- แนบรูป + ลิงก์ (เฉพาะการบ้าน) -->
+        <div id="homeworkAttachGroup" style="display:none;">
+          <div class="form-group">
+            <label>🔗 แนบลิงก์ (ไม่บังคับ)</label>
+            <input type="url" name="link_url" placeholder="https://..." style="font-size:.9rem;">
+          </div>
+          <div class="form-group">
+            <label>📷 แนบรูปภาพ (ไม่บังคับ)</label>
+            <input type="file" name="attach_image" accept="image/*" style="font-size:.9rem;">
+          </div>
+        </div>
+
         <div class="form-group"><label>กำหนดส่ง</label><input type="datetime-local" name="due_date"></div>
       </div>
       <div class="modal-footer">
@@ -593,15 +606,18 @@ function toggleTopicField(){
   const topicGroup=document.getElementById('topicFieldGroup');
   const topicSelect=document.getElementById('topicSelect');
   const maxScoreGroup=document.getElementById('maxScoreGroup');
+  const attachGroup=document.getElementById('homeworkAttachGroup');
   if(v==='homework'){
     topicGroup.style.display='none';
     topicSelect.removeAttribute('required');
     topicSelect.value='';
     maxScoreGroup.style.display='block';
+    attachGroup.style.display='block';
   }else{
     topicGroup.style.display='block';
     topicSelect.setAttribute('required','');
     maxScoreGroup.style.display='none';
+    attachGroup.style.display='none';
   }
 }
 // --- Attendance helpers ---
