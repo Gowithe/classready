@@ -170,11 +170,12 @@ def init_db() -> None:
     )
     """)
 
+    conn.commit()
+
     # Migration: add pdf_file column if not exists
-    try:
+    if not _column_exists(conn, "library_units", "pdf_file"):
         c.execute("ALTER TABLE library_units ADD COLUMN pdf_file TEXT")
-    except Exception:
-        pass
+        conn.commit()
 
     # ================== Library Clones ==================
     c.execute("""
