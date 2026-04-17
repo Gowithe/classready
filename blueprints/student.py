@@ -271,6 +271,18 @@ def student_homework_submit(assignment_id):
 
 
 # ==============================================================================
+# Serve assignment images for students (no user_id login needed)
+# ==============================================================================
+@student_bp.route("/student/file/<path:filename>")
+def student_file(filename):
+    """Serve uploaded files for logged-in students."""
+    if "student_id" not in session:
+        abort(403)
+    from flask import current_app, send_from_directory
+    return send_from_directory(current_app.config["UPLOAD_FOLDER"], filename)
+
+
+# ==============================================================================
 # Student Logout
 # ==============================================================================
 @student_bp.route("/student/logout")
