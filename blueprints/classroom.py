@@ -3,10 +3,11 @@
 # Classroom Blueprint: classrooms, students, assignments
 # ==============================================================================
 
+import os
 import secrets
 import json
 
-from flask import Blueprint, render_template, request, redirect, url_for, session, flash, abort, jsonify
+from flask import Blueprint, render_template, request, redirect, url_for, session, flash, abort, jsonify, current_app
 
 from models import (
     Classroom, ClassroomStudent, Assignment, Topic, PracticeLink,
@@ -393,10 +394,25 @@ def classroom_assign(classroom_id):
         if not title:
             title = "\u0e01\u0e32\u0e23\u0e1a\u0e49\u0e32\u0e19"
         max_score = int(request.form.get("max_score") or 10)
+        link_url = (request.form.get("link_url") or "").strip()
+
+        # Handle image upload
+        image_file = ""
+        uploaded = request.files.get("attach_image")
+        if uploaded and uploaded.filename:
+            from werkzeug.utils import secure_filename
+            ext = uploaded.filename.rsplit(".", 1)[-1].lower() if "." in uploaded.filename else ""
+            if ext in ("png", "jpg", "jpeg", "gif", "webp"):
+                safe_name = secure_filename(uploaded.filename)
+                final_name = f"hw_{secrets.token_hex(6)}_{safe_name}"
+                uploaded.save(os.path.join(current_app.config["UPLOAD_FOLDER"], final_name))
+                image_file = final_name
+
         Assignment.create_homework(
             classroom_id, title,
             request.form.get("description") or "",
-            due_date, session["user_id"], max_score
+            due_date, session["user_id"], max_score,
+            image_file=image_file, link_url=link_url,
         )
     else:
         # MCQ / Fill / Unscramble: need topic
