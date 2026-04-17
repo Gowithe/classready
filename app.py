@@ -288,8 +288,14 @@ def uploaded_file(filename):
 
 
 # ==============================================================================
-# SEO: robots.txt + sitemap.xml
+# SEO: favicon, robots.txt + sitemap.xml
 # ==============================================================================
+@app.route("/favicon.ico")
+def favicon():
+    return send_from_directory(os.path.join(app.root_path, "static"),
+                               "favicon.ico", mimetype="image/x-icon")
+
+
 @app.route("/robots.txt")
 def robots_txt():
     content = """User-agent: *
