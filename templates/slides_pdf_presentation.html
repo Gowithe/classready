@@ -99,6 +99,21 @@
     background: rgba(245, 101, 101, 0.15);
     border: 1px solid rgba(245, 101, 101, 0.35);
   }
+
+  .loading-overlay{
+    position:absolute; inset:0;
+    display:flex; flex-direction:column;
+    align-items:center; justify-content:center;
+    color:#94a3b8; z-index:5;
+  }
+  .loading-overlay .spinner{
+    width:50px; height:50px; border:4px solid rgba(255,255,255,.15);
+    border-top-color:#667eea; border-radius:50%;
+    animation:spin .8s linear infinite; margin-bottom:1rem;
+  }
+  @keyframes spin{ to{transform:rotate(360deg);} }
+  .loading-overlay.hide{ display:none; }
+
   .error-box.show{ display:flex; }
 </style>
 {% endblock %}
@@ -137,6 +152,11 @@
   </div>
 
   <div class="stage" id="stage">
+    <div class="loading-overlay" id="loadingOverlay">
+      <div class="spinner"></div>
+      <div style="font-size:1rem;font-weight:700;">⏳ กำลังโหลด PDF...</div>
+      <div style="font-size:.85rem;margin-top:6px;">กรุณารอสักครู่</div>
+    </div>
     <canvas id="pdfCanvas"></canvas>
     <div class="laser" id="laser"></div>
     <div class="error-box" id="errorBox"></div>
@@ -184,6 +204,8 @@
   let pointerOn = false;
 
   function showError(msg){
+    const lo = document.getElementById('loadingOverlay');
+    if(lo) lo.classList.add('hide');
     errorBox.innerHTML = `
       <div>
         <div style="font-size:18px; font-weight:800; margin-bottom:8px;">❌ โหลด PDF ไม่สำเร็จ</div>
@@ -226,6 +248,10 @@
     await page.render(renderContext).promise;
 
     rendering = false;
+    // Hide loading overlay after first render
+    const lo = document.getElementById('loadingOverlay');
+    if(lo) lo.classList.add('hide');
+
     if (pendingPage !== null) {
       const p = pendingPage;
       pendingPage = null;
