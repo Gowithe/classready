@@ -288,6 +288,61 @@ def uploaded_file(filename):
 
 
 # ==============================================================================
+# SEO: robots.txt + sitemap.xml
+# ==============================================================================
+@app.route("/robots.txt")
+def robots_txt():
+    content = """User-agent: *
+Allow: /
+Allow: /freebies
+Allow: /try-slides
+Allow: /login
+Allow: /register
+Allow: /pricing
+Disallow: /admin/
+Disallow: /api/
+Disallow: /uploads/
+Disallow: /classroom/
+Disallow: /student/
+
+Sitemap: https://clazzee.com/sitemap.xml
+"""
+    return Response(content, mimetype="text/plain")
+
+
+@app.route("/sitemap.xml")
+def sitemap_xml():
+    from models import Freebie
+    pages = [
+        {"url": "https://clazzee.com/", "priority": "1.0", "changefreq": "weekly"},
+        {"url": "https://clazzee.com/login", "priority": "0.6", "changefreq": "monthly"},
+        {"url": "https://clazzee.com/register", "priority": "0.6", "changefreq": "monthly"},
+        {"url": "https://clazzee.com/try-slides", "priority": "0.9", "changefreq": "weekly"},
+        {"url": "https://clazzee.com/freebies", "priority": "0.9", "changefreq": "daily"},
+        {"url": "https://clazzee.com/pricing", "priority": "0.7", "changefreq": "monthly"},
+    ]
+
+    # Add freebie categories
+    for cat_key in Freebie.CATEGORIES.keys():
+        pages.append({
+            "url": f"https://clazzee.com/freebies?category={cat_key}",
+            "priority": "0.7",
+            "changefreq": "daily",
+        })
+
+    xml = '<?xml version="1.0" encoding="UTF-8"?>\n'
+    xml += '<urlset xmlns="http://www.sitemaps.org/schemas/sitemap/0.9">\n'
+    for p in pages:
+        xml += f'  <url>\n'
+        xml += f'    <loc>{p["url"]}</loc>\n'
+        xml += f'    <changefreq>{p["changefreq"]}</changefreq>\n'
+        xml += f'    <priority>{p["priority"]}</priority>\n'
+        xml += f'  </url>\n'
+    xml += '</urlset>'
+    return Response(xml, mimetype="application/xml")
+
+
+# ==============================================================================
 # Dashboard
 # ==============================================================================
 @app.route("/dashboard")
