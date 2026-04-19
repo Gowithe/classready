@@ -715,7 +715,6 @@
       </div>
     </div>
     <div class="modal-actions">
-      <button class="btn btn-secondary" onclick="fillFromExamples()">✨ ดึงจาก Examples (ที่มีไทย) มาเป็นร่าง</button>
       <button class="btn btn-success" onclick="saveCustomSentences()">💾 บันทึก</button>
     </div>
   </div>
@@ -973,48 +972,72 @@ function splitEnglishTokens(text) {
 
 function prepareQuestions() {
   const result = [];
+  const seen = new Set(); // ป้องกันประโยคซ้ำ
 
-  // 0) Custom sentences (teacher-edited)
+  function addQ(th, en) {
+    const key = en.trim().toLowerCase();
+    if (seen.has(key)) return;
+    const words = splitEnglishTokens(en);
+    if (!words || words.length < 2) return; // ข้ามถ้าสั้นเกินไป
+    seen.add(key);
+    result.push({
+      prompt: th.trim(),
+      target: en.replace(/\s+/g, ' ').trim(),
+      words: words
+    });
+  }
+
+  // 0) Custom sentences (teacher-edited) — สูงสุด
   if (Array.isArray(customSentences) && customSentences.length > 0) {
     customSentences.forEach(it => {
       if (!it) return;
       const th = (it.th || '').trim();
       const en = (it.en || '').trim();
-      if (th && en && /[ก-๙]/.test(th)) {
-        result.push({
-          prompt: th,
-          target: en.replace(/\s+/g, ' ').trim(),
-          words: splitEnglishTokens(en)
-        });
+      if (th && en && /[ก-๙]/.test(th)) addQ(th, en);
+    });
+  }
+
+  // 1. ดึงจาก Examples (มี th จริงๆ)
+  if (gameData.examples && gameData.examples.length > 0) {
+    gameData.examples.forEach(ex => {
+      if (ex.en && ex.th && /[ก-๙]/.test(ex.th)) {
+        addQ(ex.th, ex.en);
       }
     });
   }
 
-  // 1. ดึงจาก Examples
-  if (gameData.examples && gameData.examples.length > 0) {
-    gameData.examples.forEach(ex => {
-      // ต้องมีทั้ง EN และ TH
-      if (ex.en && ex.th) {
-        // ตรวจสอบว่าเป็นภาษาไทยจริงๆ (กันกรณีข้อมูลขยะที่เป็นภาษาอังกฤษ)
-        const hasThaiChar = /[ก-๙]/.test(ex.th);
-        
-        if (hasThaiChar) {
-          result.push({
-            prompt: ex.th, // โจทย์ = ไทย
-            target: ex.en.replace(/\s+/g, ' ').trim(), // เฉลย = อังกฤษ
-            words: splitEnglishTokens(ex.en) // ตัดคำอังกฤษเป็น Tokens
-          });
-        }
+  // 2. Fallback: ดึงจาก Vocabulary (example sentence + meaning)
+  //    ใช้เมื่อ examples ไม่มี Thai — vocabulary มี meaning ภาษาไทยเสมอ
+  if (result.length === 0 && gameData.vocabulary && gameData.vocabulary.length > 0) {
+    gameData.vocabulary.forEach(v => {
+      const en = (v.example || '').trim();
+      const th = (v.meaning || '').trim();
+      if (en && th && /[ก-๙]/.test(th)) addQ(th, en);
+    });
+  }
+
+  // 3. Fallback: ดึงจาก Game Tiles (question/answer คู่ที่เป็น EN/TH)
+  if (result.length === 0 && gameData.questions && gameData.questions.length > 0) {
+    gameData.questions.forEach(q => {
+      const question = (q.question || '').trim();
+      const answer = (q.answer || '').trim();
+      // ถ้า question มีไทย และ answer เป็นอังกฤษ
+      if (question && answer && /[ก-๙]/.test(question) && !/[ก-๙]/.test(answer)) {
+        addQ(question, answer);
+      }
+      // ถ้า answer มีไทย และ question เป็นอังกฤษ
+      else if (question && answer && /[ก-๙]/.test(answer) && !/[ก-๙]/.test(question)) {
+        addQ(answer, question);
       }
     });
   }
-  
+
   // Shuffle โจทย์
   for (let i = result.length - 1; i > 0; i--) {
     const j = Math.floor(Math.random() * (i + 1));
     [result[i], result[j]] = [result[j], result[i]];
   }
-  
+
   const qLimit = parseInt(document.getElementById('qCount').value) || 10;
   return result.slice(0, qLimit);
 }
@@ -1211,12 +1234,7 @@ function checkAnswer(autoSubmit = false) {
 
 function nextQuestion() {
   currentIndex++;
-  if (students.length >= 2 && currentIndex < questions.length) {
-    document.getElementById('gameSection').classList.remove('active');
-    setTimeout(() => spinWheel(), 500);
-  } else {
-    loadQuestion();
-  }
+  loadQuestion();
 }
 
 function showResult() {
@@ -1294,13 +1312,44 @@ async function loadCustomSentences(showToast){
     customSentences = (data.items || []);
     const tb = document.getElementById('editorTbody');
     tb.innerHTML = '';
-    if(customSentences.length === 0){
-      addEditorRow('', '');
-      addEditorRow('', '');
-      addEditorRow('', '');
-    }else{
-      customSentences.forEach(it => addEditorRow(it.th||'', it.en||''));
+
+    // รวม saved custom + examples จาก slides (ที่มีไทย) ไม่ซ้ำกัน
+    const seen = new Set();
+    const merged = [];
+
+    // 1. ใส่ saved custom sentences ก่อน (priority สูงสุด)
+    customSentences.forEach(it => {
+      const key = (it.th||'').trim() + '||' + (it.en||'').trim();
+      if(!seen.has(key)){
+        seen.add(key);
+        merged.push({th: it.th||'', en: it.en||''});
+      }
+    });
+
+    // 2. เติม examples จาก slides ที่มีคำแปลไทย (ที่ยังไม่ซ้ำ)
+    if(gameData.examples && Array.isArray(gameData.examples)){
+      gameData.examples.forEach(ex => {
+        if(!ex || !ex.en || !ex.th) return;
+        const th = String(ex.th).trim();
+        const en = String(ex.en).trim();
+        if(!th || !en || !/[ก-๙]/.test(th)) return;
+        const key = th + '||' + en;
+        if(!seen.has(key)){
+          seen.add(key);
+          merged.push({th, en});
+        }
+      });
     }
+
+    if(merged.length === 0){
+      // ยังไม่มีข้อมูลเลย — เพิ่มแถวว่าง 3 แถวให้เริ่มพิมพ์ได้
+      addEditorRow('', '');
+      addEditorRow('', '');
+      addEditorRow('', '');
+    } else {
+      merged.forEach(it => addEditorRow(it.th, it.en));
+    }
+
     if(showToast) alert('โหลดข้อมูลล่าสุดแล้ว');
   }catch(e){
     alert('โหลดข้อมูลไม่สำเร็จ');
