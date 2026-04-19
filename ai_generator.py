@@ -820,8 +820,11 @@ type="vocabulary" (⚠️ MAX 4-5 WORDS PER SLIDE!)
   ⚠️ If you have 20 vocabulary words, create 4-5 separate vocabulary slides!
 
 type="examples" (⚠️ MAX 4-5 EXAMPLES PER SLIDE!)
-  fields: title, subtitle, examples (4-5 items MAXIMUM per slide, each with en and th), teacher_notes
+  fields: title, subtitle, examples (4-5 items MAXIMUM per slide), teacher_notes
   ⚠️ If you have 15 examples, create 3-4 separate example slides!
+  ⚠️ MANDATORY: Every example item MUST contain BOTH fields:
+    - "en": the English sentence
+    - "th": Thai translation (ALWAYS REQUIRED even in EN mode — the game system depends on this field)
 
 type="guided_practice" (⚠️ MAX 3-4 QUESTIONS PER SLIDE!)
   fields: title, subtitle, items (3-4 MCQ MAXIMUM per slide, each with q, choices[4], answer), teacher_notes
@@ -840,10 +843,10 @@ type="exit_ticket"
   fields: title, subtitle, questions (3-4 questions max), teacher_notes
 
 CRITICAL REQUIREMENTS:
-- ⚠️ SPLIT CONTENT! Never crowd a slide - create more slides instead!
+- SPLIT CONTENT! Never crowd a slide - create more slides instead!
 - Include teacher_notes for EVERY slide (1-3 helpful sentences)
 - Vocabulary slides: Include IPA pronunciation for every word
-- Examples: Always include both English and Thai translation
+- Examples: ALWAYS include both "en" and "th" fields in EVERY example item — even in EN mode!
 - Dialogues: Split long dialogues into Part 1, Part 2, etc.
 - Guided practice: Questions should test understanding, not memory
 - Make content PRACTICAL and relevant to students' real lives
@@ -880,9 +883,14 @@ Language mode: "{language}"
 Style: "{style}"
 
 Language mode rules:
-- EN: Everything in English (no Thai)
-- EN+TH: English main content with Thai translations/meanings
-- TH: Everything in Thai
+- EN: Main content in English. Vocabulary "meaning" field in English. BUT the "th" field in every "examples" slide item is ALWAYS REQUIRED (Thai translation) — needed for the game system regardless of language mode.
+- EN+TH: English main content with Thai translations/meanings throughout all content.
+- TH: Everything in Thai.
+
+UNIVERSAL RULE (applies to ALL language modes):
+Every item in "examples" slides MUST have BOTH "en" (English) AND "th" (Thai) fields.
+EXAMPLE: {{"en": "Can I have the bill?", "th": "ขอบิลด้วยได้ไหมครับ"}}
+NEVER omit the "th" field from examples, even in EN mode.
 
 ========================
 QUALITY STANDARDS
