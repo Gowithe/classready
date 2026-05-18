@@ -1850,9 +1850,30 @@ class Classroom:
     def delete(classroom_id: int) -> None:
         conn = get_db()
         c = conn.cursor()
-        c.execute("DELETE FROM classroom_students WHERE classroom_id = ?", (classroom_id,))
+        c.execute("PRAGMA foreign_keys = OFF")
+
+        # Get student IDs and assignment IDs for cascading deletes
+        c.execute("SELECT id FROM classroom_students WHERE classroom_id = ?", (classroom_id,))
+        student_ids = [r["id"] for r in c.fetchall()]
+
+        c.execute("SELECT id FROM assignments WHERE classroom_id = ?", (classroom_id,))
+        assignment_ids = [r["id"] for r in c.fetchall()]
+
+        # Delete homework submissions for these assignments
+        for aid in assignment_ids:
+            c.execute("DELETE FROM homework_submissions WHERE assignment_id = ?", (aid,))
+
+        # Delete student extra scores and attendance
+        for sid in student_ids:
+            c.execute("DELETE FROM student_extra_scores WHERE student_id = ?", (sid,))
+        c.execute("DELETE FROM attendance WHERE classroom_id = ?", (classroom_id,))
+
+        # Delete assignments, students, then classroom
         c.execute("DELETE FROM assignments WHERE classroom_id = ?", (classroom_id,))
+        c.execute("DELETE FROM classroom_students WHERE classroom_id = ?", (classroom_id,))
         c.execute("DELETE FROM classrooms WHERE id = ?", (classroom_id,))
+
+        c.execute("PRAGMA foreign_keys = ON")
         conn.commit()
         conn.close()
 
