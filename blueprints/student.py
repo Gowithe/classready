@@ -233,15 +233,17 @@ def student_homework_submit(assignment_id):
     link_url = (request.form.get("link_url") or "").strip()
     image_file = ""
 
-    # Handle image upload
-    file = request.files.get("image_file")
-    if file and file.filename:
-        allowed = file.filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.pdf'))
-        if allowed:
-            fn = f"hw_{assignment_id}_{student['id']}_{secrets.token_hex(6)}_{secure_filename(file.filename)}"
-            upload_folder = current_app.config.get("UPLOAD_FOLDER", "uploads")
-            file.save(os.path.join(upload_folder, fn))
-            image_file = fn
+    # Handle multiple image uploads
+    image_files = []
+    for file in request.files.getlist("image_files"):
+        if file and file.filename:
+            allowed = file.filename.lower().endswith(('.jpg', '.jpeg', '.png', '.gif', '.pdf'))
+            if allowed:
+                fn = f"hw_{assignment_id}_{student['id']}_{secrets.token_hex(6)}_{secure_filename(file.filename)}"
+                upload_folder = current_app.config.get("UPLOAD_FOLDER", "uploads")
+                file.save(os.path.join(upload_folder, fn))
+                image_files.append(fn)
+    image_file = ",".join(image_files)
 
     if not text_content and not image_file and not link_url:
         flash("\u0e01\u0e23\u0e38\u0e13\u0e32\u0e01\u0e23\u0e2d\u0e01\u0e04\u0e33\u0e15\u0e2d\u0e1a \u0e41\u0e19\u0e1a\u0e23\u0e39\u0e1b \u0e2b\u0e23\u0e37\u0e2d\u0e41\u0e19\u0e1a\u0e25\u0e34\u0e07\u0e01\u0e4c\u0e2d\u0e22\u0e48\u0e32\u0e07\u0e19\u0e49\u0e2d\u0e22 1 \u0e2d\u0e22\u0e48\u0e32\u0e07", "error")
