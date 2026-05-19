@@ -396,17 +396,18 @@ def classroom_assign(classroom_id):
         max_score = int(request.form.get("max_score") or 10)
         link_url = (request.form.get("link_url") or "").strip()
 
-        # Handle image upload
-        image_file = ""
-        uploaded = request.files.get("attach_image")
-        if uploaded and uploaded.filename:
-            from werkzeug.utils import secure_filename
-            ext = uploaded.filename.rsplit(".", 1)[-1].lower() if "." in uploaded.filename else ""
-            if ext in ("png", "jpg", "jpeg", "gif", "webp"):
-                safe_name = secure_filename(uploaded.filename)
-                final_name = f"hw_{secrets.token_hex(6)}_{safe_name}"
-                uploaded.save(os.path.join(current_app.config["UPLOAD_FOLDER"], final_name))
-                image_file = final_name
+        # Handle multiple image uploads
+        image_files = []
+        from werkzeug.utils import secure_filename
+        for uploaded in request.files.getlist("attach_images"):
+            if uploaded and uploaded.filename:
+                ext = uploaded.filename.rsplit(".", 1)[-1].lower() if "." in uploaded.filename else ""
+                if ext in ("png", "jpg", "jpeg", "gif", "webp"):
+                    safe_name = secure_filename(uploaded.filename)
+                    final_name = f"hw_{secrets.token_hex(6)}_{safe_name}"
+                    uploaded.save(os.path.join(current_app.config["UPLOAD_FOLDER"], final_name))
+                    image_files.append(final_name)
+        image_file = ",".join(image_files)
 
         Assignment.create_homework(
             classroom_id, title,
@@ -448,9 +449,56 @@ def assignment_detail(assignment_id):
     if exercise_type == "homework":
         students = ClassroomStudent.get_by_classroom(a["classroom_id"])
         hw_submissions = HomeworkSubmission.get_by_assignment(assignment_id)
-        hw_student_ids = set(s["student_id"] for s in hw_submissions)
-        submitted = [s for s in students if s["id"] in hw_student_ids]
-        not_submitted = [s for s in students if s["id"] not in hw_student_ids]
+        prepared_submissions = []
+
+        def to_number(value, default=0):
+            try:
+                return float(value)
+            except (TypeError, ValueError):
+                return float(default)
+
+        for sub in hw_submissions:
+            prepared = dict(sub)
+            image_file = prepared.get("image_file") or ""
+            prepared["attachments"] = [
+                {
+                    "filename": filename,
+                    "is_image": filename.rsplit(".", 1)[-1].lower() in {"jpg", "jpeg", "png", "gif", "webp"},
+                }
+                for filename in (part.strip() for part in image_file.split(","))
+                if filename
+            ]
+
+            score = prepared.get("score")
+            max_score = to_number(prepared.get("max_score") or prepared.get("total") or 0)
+            if max_score.is_integer():
+                max_score = int(max_score)
+            prepared["total"] = max_score
+            if score is not None and max_score:
+                prepared["percentage"] = (to_number(score) / max_score) * 100
+            else:
+                prepared["percentage"] = prepared.get("percentage") or 0
+            prepared_submissions.append(prepared)
+
+        submissions_by_student = {s["student_id"]: s for s in prepared_submissions}
+        submitted = []
+        not_submitted = []
+        for student in students:
+            row = dict(student)
+            row["submission"] = submissions_by_student.get(row["id"])
+            if row["submission"]:
+                submitted.append(row)
+            else:
+                not_submitted.append(row)
+
+        graded_submissions = [
+            s for s in prepared_submissions
+            if s.get("score") is not None and s.get("total")
+        ]
+        avg_score = (
+            sum(s.get("percentage") or 0 for s in graded_submissions) / len(graded_submissions)
+            if graded_submissions else 0
+        )
         return render_template(
             "assignment_detail.html",
             assignment=a, classroom=cls, topic=topic,
@@ -458,7 +506,7 @@ def assignment_detail(assignment_id):
             total_students=len(students),
             submitted_count=len(submitted),
             not_submitted_count=len(not_submitted),
-            avg_score=0, practice_link=None, student_url=None,
+            avg_score=avg_score, practice_link=None, student_url=None,
             exercise_type="homework", hw_submissions=hw_submissions,
         )
 
@@ -505,6 +553,14 @@ def homework_grade(assignment_id, sub_id):
     HomeworkSubmission.grade(sub_id, score, max_score, comment)
     flash("\u0e43\u0e2b\u0e49\u0e04\u0e30\u0e41\u0e19\u0e19\u0e40\u0e23\u0e35\u0e22\u0e1a\u0e23\u0e49\u0e2d\u0e22", "success")
     return redirect(url_for("classroom.assignment_detail", assignment_id=assignment_id))
+
+
+@classroom_bp.route("/classroom/file/<path:filename>")
+@login_required
+def classroom_file(filename):
+    """Serve uploaded assignment/homework files for logged-in teachers."""
+    from flask import send_from_directory
+    return send_from_directory(current_app.config["UPLOAD_FOLDER"], filename)
 
 
 # ==============================================================================
