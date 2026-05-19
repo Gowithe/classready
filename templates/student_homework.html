@@ -102,10 +102,14 @@
     </div>
     {% endif %}
     {% if assignment.image_file %}
-    <div>
-      <img src="{{ url_for('student.student_file', filename=assignment.image_file) }}" alt="แนบรูป"
-           style="max-width:100%;max-height:400px;border-radius:10px;border:1px solid #e2e8f0;cursor:pointer;"
+    <div style="display:flex;flex-wrap:wrap;gap:8px;">
+      {% for img in assignment.image_file.split(',') %}
+      {% if img.strip() %}
+      <img src="{{ url_for('student.student_file', filename=img.strip()) }}" alt="แนบรูป"
+           style="max-width:200px;max-height:200px;border-radius:10px;border:1px solid #e2e8f0;cursor:pointer;object-fit:cover;"
            onclick="window.open(this.src)">
+      {% endif %}
+      {% endfor %}
     </div>
     {% endif %}
   </div>
@@ -121,8 +125,16 @@
     {% endif %}
 
     {% if submission.image_file %}
-    <div style="margin-top:8px;"><strong>รูปที่แนบ:</strong><br>
-      <img src="{{ url_for('student.student_file', filename=submission.image_file) }}" class="img-preview">
+    <div style="margin-top:8px;"><strong>รูปที่แนบ:</strong>
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-top:6px;">
+        {% for img in submission.image_file.split(',') %}
+        {% if img.strip() %}
+        <img src="{{ url_for('student.student_file', filename=img.strip()) }}" class="img-preview"
+             style="max-width:150px;max-height:150px;object-fit:cover;border-radius:10px;cursor:pointer;"
+             onclick="window.open(this.src)">
+        {% endif %}
+        {% endfor %}
+      </div>
     </div>
     {% endif %}
 
@@ -155,13 +167,14 @@
       </div>
 
       <div class="form-group">
-        <label>&#x1F4F7; แนบรูปภาพ / ไฟล์</label>
+        <label>&#x1F4F7; แนบรูปภาพ (เลือกได้หลายรูป)</label>
         <label class="file-upload" id="fileUploadLabel">
           <div class="icon">&#x1F4F7;</div>
-          <p>คลิกเพื่อเลือกไฟล์<br><span style="font-size:0.8rem;color:#94a3b8;">JPG, PNG, GIF, PDF (สูงสุด 5MB)</span></p>
-          <input type="file" name="image_file" accept=".jpg,.jpeg,.png,.gif,.pdf" onchange="showFileName(this)">
+          <p>คลิกเพื่อเลือกไฟล์<br><span style="font-size:0.8rem;color:#94a3b8;">JPG, PNG, GIF, PDF (เลือกได้หลายไฟล์)</span></p>
+          <input type="file" name="image_files" accept=".jpg,.jpeg,.png,.gif,.pdf" multiple onchange="previewStudentImages(this)">
           <div class="file-name" id="fileName"></div>
         </label>
+        <div id="studentImagePreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:10px;"></div>
       </div>
 
       <div class="form-group">
@@ -177,11 +190,27 @@
 </div>
 
 <script>
-function showFileName(input){
-  const el=document.getElementById('fileName');
-  if(input.files.length>0){
-    el.textContent='&#x1F4CE; '+input.files[0].name;
+function previewStudentImages(input){
+  const preview = document.getElementById('studentImagePreview');
+  const nameEl = document.getElementById('fileName');
+  preview.innerHTML = '';
+  if(!input.files || input.files.length === 0){
+    nameEl.textContent = '';
+    return;
   }
+  nameEl.textContent = '&#x1F4CE; ' + input.files.length + ' ไฟล์';
+  Array.from(input.files).forEach(file => {
+    if(!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const div = document.createElement('div');
+      div.style.cssText = 'position:relative;width:100px;height:100px;border-radius:10px;overflow:hidden;border:2px solid #e2e8f0;flex-shrink:0;';
+      div.innerHTML = '<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover;">' +
+        '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);color:#fff;font-size:.6rem;padding:2px 4px;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">'+file.name+'</div>';
+      preview.appendChild(div);
+    };
+    reader.readAsDataURL(file);
+  });
 }
 </script>
 {% endblock %}
