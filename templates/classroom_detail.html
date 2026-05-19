@@ -529,8 +529,10 @@
             <input type="url" name="link_url" placeholder="https://..." style="font-size:.9rem;">
           </div>
           <div class="form-group">
-            <label>📷 แนบรูปภาพ (ไม่บังคับ)</label>
-            <input type="file" name="attach_image" accept="image/*" style="font-size:.9rem;">
+            <label>📷 แนบรูปภาพ (เลือกได้หลายรูป)</label>
+            <input type="file" name="attach_images" accept="image/*" multiple
+                   style="font-size:.9rem;" onchange="previewTeacherImages(this)">
+            <div id="teacherImagePreview" style="display:flex;flex-wrap:wrap;gap:8px;margin-top:8px;"></div>
           </div>
         </div>
 
@@ -621,6 +623,24 @@ function toggleTopicField(){
   }
 }
 // --- Attendance helpers ---
+
+function previewTeacherImages(input){
+  const preview = document.getElementById('teacherImagePreview');
+  preview.innerHTML = '';
+  if(!input.files) return;
+  Array.from(input.files).forEach(file => {
+    if(!file.type.startsWith('image/')) return;
+    const reader = new FileReader();
+    reader.onload = e => {
+      const div = document.createElement('div');
+      div.style.cssText = 'position:relative;width:100px;height:100px;border-radius:10px;overflow:hidden;border:2px solid #e2e8f0;';
+      div.innerHTML = '<img src="'+e.target.result+'" style="width:100%;height:100%;object-fit:cover;">' +
+        '<div style="position:absolute;bottom:0;left:0;right:0;background:rgba(0,0,0,.6);color:#fff;font-size:.65rem;padding:2px 4px;text-align:center;overflow:hidden;white-space:nowrap;text-overflow:ellipsis;">'+file.name+'</div>';
+      preview.appendChild(div);
+    };
+    reader.readAsDataURL(file);
+  });
+}
 function setAllStatus(status){
   document.querySelectorAll(`.att-radio[value="${status}"]`).forEach(r=>r.checked=true);
 }
