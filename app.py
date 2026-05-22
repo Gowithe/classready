@@ -492,6 +492,16 @@ def topic_detail(topic_id):
 # ==============================================================================
 # My Topics CRUD
 # ==============================================================================
+@app.route("/my/topics")
+@login_required
+def my_topics_list():
+    user_id = session["user_id"]
+    topics = Topic.get_by_owner(user_id)
+    is_premium = is_premium_user(user_id)
+    can_create, msg = UsageLimits.can_create_topic(user_id, is_premium)
+    return render_template("my_topics.html", topics=topics, can_create=can_create, msg=msg)
+
+
 @app.route("/my/topics/create", methods=["GET", "POST"])
 @login_required
 def my_create_topic():
