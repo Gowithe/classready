@@ -438,13 +438,13 @@
 <!-- Welcome Banner -->
 <div class="welcome-banner">
   <div class="welcome-text">
-    <h1>👋 สวัสดี, {{ session.get('display_name') or session.get('email', 'Teacher').split('@')[0] }}!</h1>
-    <p>ยินดีต้อนรับสู่ Clazzee.Com</p>
+    <h1>👋 สวัสดี, {{ session.username or 'Teacher' }}!</h1>
+    <p>ยินดีต้อนรับสู่ Teacher Platform</p>
   </div>
   <div class="action-bar">
     <a href="{{ url_for('classroom.classrooms') }}" class="btn-action primary">🏫 ห้องเรียน</a>
-    <a href="{{ url_for('my_create_topic') }}" class="btn-action">➕ สร้าง Slide ด้วย PDF</a>
-    <a href="{{ url_for('ai_slides') }}" class="btn-action">✨ สร้าง Slides ด้วย AI</a>
+    <a href="{{ url_for('my_create_topic') }}" class="btn-action">➕ สร้าง Topic</a>
+    <a href="{{ url_for('ai_slides') }}" class="btn-action">✨ AI Slides</a>
     {% if session.role == 'admin' %}
     <a href="{{ url_for('admin.admin_dashboard') }}" class="btn-action">⚙️ Admin</a>
     {% endif %}
@@ -634,8 +634,11 @@
 </div>
 
 <!-- My Topics Section -->
-<div class="section-header">
+<div class="section-header" style="display:flex;justify-content:space-between;align-items:center;">
   <h3>📚 Topics ของฉัน</h3>
+  {% if my_topics|length > 6 %}
+  <a href="{{ url_for('my_topics_list') }}" style="color:#667eea;font-weight:700;text-decoration:none;font-size:.9rem;">ดูทั้งหมด ({{ my_topics|length }}) →</a>
+  {% endif %}
 </div>
 
 {% if my_topics %}
@@ -670,7 +673,7 @@
 
 {% if my_topics|length > 6 %}
 <div style="text-align: center; margin-bottom: 2rem;">
-  <span style="color: #64748b;">แสดง 6 จาก {{ my_topics|length }} Topics</span>
+  <a href="{{ url_for('my_topics_list') }}" style="color:#667eea;font-weight:700;text-decoration:none;">📂 ดูทั้งหมด {{ my_topics|length }} Topics →</a>
 </div>
 {% endif %}
 
