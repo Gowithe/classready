@@ -22,7 +22,7 @@ from models import (
     UserSubscription, SubscriptionPlan, PaymentTransaction,
     GameQuestion, PracticeQuestion, get_db,
 )
-from blueprints.helpers import admin_required, login_required, _is_admin, is_premium_user
+from blueprints.helpers import admin_required, login_required, _is_admin, is_premium_user, get_disk_usage
 
 admin_bp = Blueprint("admin", __name__)
 
@@ -37,7 +37,8 @@ def _allowed_file(filename):
 @admin_bp.route("/admin")
 @admin_required
 def admin_dashboard():
-    return render_template("admin_dashboard.html", topics=Topic.get_all())
+    disk = get_disk_usage()
+    return render_template("admin_dashboard.html", topics=Topic.get_all(), disk=disk)
 
 
 @admin_bp.route("/admin/topics/create", methods=["GET", "POST"])
