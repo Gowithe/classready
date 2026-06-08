@@ -16,6 +16,109 @@ from models import User, Topic, UserSubscription, UsageLimits
 
 
 # ==============================================================================
+# Image Compression Helper
+# ==============================================================================
+def save_compressed_image(file_storage, upload_folder, prefix="hw", max_size=1200, quality=80):
+    """Save uploaded image with auto-resize and compression.
+    Returns the filename or empty string if invalid."""
+    import secrets as _secrets
+    from werkzeug.utils import secure_filename as _sf
+
+    if not file_storage or not file_storage.filename:
+        return ""
+
+    fname = file_storage.filename
+    ext = fname.rsplit(".", 1)[-1].lower() if "." in fname else ""
+    if ext not in ("png", "jpg", "jpeg", "gif", "webp"):
+        return ""
+
+    safe_name = _sf(fname)
+    final_name = f"{prefix}_{_secrets.token_hex(6)}_{safe_name}"
+    save_path = os.path.join(upload_folder, final_name)
+
+    try:
+        from PIL import Image as _Image
+        img = _Image.open(file_storage)
+
+        # Auto-rotate based on EXIF
+        try:
+            from PIL import ExifTags
+            for k, v in ExifTags.TAGS.items():
+                if v == "Orientation":
+                    exif = img._getexif()
+                    if exif and k in exif:
+                        orient = exif[k]
+                        if orient == 3:
+                            img = img.rotate(180, expand=True)
+                        elif orient == 6:
+                            img = img.rotate(270, expand=True)
+                        elif orient == 8:
+                            img = img.rotate(90, expand=True)
+                    break
+        except Exception:
+            pass
+
+        # Resize if too large
+        w, h = img.size
+        if w > max_size or h > max_size:
+            ratio = min(max_size / w, max_size / h)
+            img = img.resize((int(w * ratio), int(h * ratio)), _Image.LANCZOS)
+
+        # Save as JPEG for smaller size (unless PNG with transparency)
+        if ext == "png" and img.mode in ("RGBA", "LA"):
+            img.save(save_path, "PNG", optimize=True)
+        else:
+            if img.mode in ("RGBA", "LA", "P"):
+                img = img.convert("RGB")
+            save_path = save_path.rsplit(".", 1)[0] + ".jpg"
+            final_name = final_name.rsplit(".", 1)[0] + ".jpg"
+            img.save(save_path, "JPEG", quality=quality, optimize=True)
+
+    except ImportError:
+        # Pillow not installed — save as-is
+        file_storage.seek(0)
+        file_storage.save(save_path)
+    except Exception as e:
+        print(f"[WARN] Image compression failed: {e}, saving raw")
+        file_storage.seek(0)
+        file_storage.save(save_path)
+
+    return final_name
+
+
+def save_multiple_images(file_list, upload_folder, prefix="hw", max_size=1200, quality=80):
+    """Save multiple uploaded images. Returns comma-separated filenames."""
+    names = []
+    for f in file_list:
+        name = save_compressed_image(f, upload_folder, prefix, max_size, quality)
+        if name:
+            names.append(name)
+    return ",".join(names)
+
+
+# ==============================================================================
+# Disk Usage Helper
+# ==============================================================================
+def get_disk_usage(path="/var/data"):
+    """Return disk usage dict: total, used, free (in MB), percent."""
+    try:
+        import shutil
+        usage = shutil.disk_usage(path)
+        total_mb = usage.total / (1024 * 1024)
+        used_mb = usage.used / (1024 * 1024)
+        free_mb = usage.free / (1024 * 1024)
+        pct = (usage.used / usage.total) * 100 if usage.total > 0 else 0
+        return {
+            "total_mb": round(total_mb),
+            "used_mb": round(used_mb),
+            "free_mb": round(free_mb),
+            "percent": round(pct, 1),
+        }
+    except Exception:
+        return {"total_mb": 0, "used_mb": 0, "free_mb": 0, "percent": 0}
+
+
+# ==============================================================================
 # Email Config
 # ==============================================================================
 GMAIL_USER = os.environ.get("GMAIL_USER", "").strip()
