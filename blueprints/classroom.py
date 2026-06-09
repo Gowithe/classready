@@ -215,6 +215,125 @@ def classroom_edit(classroom_id):
     return redirect(url_for("classroom.classrooms"))
 
 
+# ==============================================================================
+# Export student list to Excel
+# ==============================================================================
+@classroom_bp.route("/classroom/<int:classroom_id>/export-excel")
+@login_required
+def classroom_export_excel(classroom_id):
+    cls = Classroom.get_by_id(classroom_id)
+    if not cls or cls["owner_id"] != session["user_id"]:
+        abort(404)
+
+    students = ClassroomStudent.get_by_classroom(classroom_id)
+    assignments = Assignment.get_by_classroom(classroom_id)
+
+    import io
+    from openpyxl import Workbook
+    from openpyxl.styles import Font, PatternFill, Alignment, Border, Side
+
+    wb = Workbook()
+    ws = wb.active
+    ws.title = cls.get("name", "Students").replace("/", "-").replace("\\", "-").replace("*", "").replace("?", "").replace("[", "").replace("]", "")[:31]
+
+    # Styles
+    header_font = Font(bold=True, color="FFFFFF", size=11)
+    header_fill = PatternFill("solid", fgColor="667EEA")
+    cell_border = Border(
+        left=Side(style="thin", color="E2E8F0"),
+        right=Side(style="thin", color="E2E8F0"),
+        top=Side(style="thin", color="E2E8F0"),
+        bottom=Side(style="thin", color="E2E8F0"),
+    )
+    center = Alignment(horizontal="center", vertical="center")
+
+    # Title row
+    ws.merge_cells("A1:D1")
+    title_cell = ws["A1"]
+    title_cell.value = f"{cls.get('name', '')} - {cls.get('level', '')} ({len(students)} คน)"
+    title_cell.font = Font(bold=True, size=14, color="1E293B")
+
+    # Headers
+    headers = ["เลขที่", "ชื่อ-สกุล", "ชื่อเล่น"]
+    # Add assignment columns
+    for a in assignments:
+        headers.append(a.get("title", f"งาน {a['id']}"))
+    headers.append("รวม")
+
+    row = 3
+    for col_idx, h in enumerate(headers, 1):
+        cell = ws.cell(row=row, column=col_idx, value=h)
+        cell.font = header_font
+        cell.fill = header_fill
+        cell.alignment = center
+        cell.border = cell_border
+
+    # Student data
+    for s in students:
+        row += 1
+        ws.cell(row=row, column=1, value=s.get("student_no", "")).alignment = center
+        ws.cell(row=row, column=2, value=s.get("student_name", ""))
+        ws.cell(row=row, column=3, value=s.get("nickname", ""))
+
+        total_score = 0
+        for ai, a in enumerate(assignments):
+            col = 4 + ai
+            exercise_type = a.get("exercise_type", "mcq")
+            score_val = ""
+
+            if exercise_type == "homework":
+                hw_sub = HomeworkSubmission.get_by_student_and_assignment(s["id"], a["id"])
+                if hw_sub and hw_sub.get("score") is not None:
+                    score_val = hw_sub["score"]
+                    total_score += score_val
+                elif hw_sub:
+                    score_val = "ส่งแล้ว"
+            else:
+                link = PracticeLink.get_by_id(a.get("practice_link_id")) if a.get("practice_link_id") else None
+                if link:
+                    subs = PracticeSubmission.get_by_link(link["id"])
+                    s_name = (s.get("student_name") or "").strip().lower()
+                    s_no = (s.get("student_no") or "").strip()
+                    for sub in subs:
+                        sub_name = (sub.get("student_name") or "").strip().lower()
+                        sub_no = (sub.get("student_no") or "").strip()
+                        if (s_name and sub_name == s_name) or (s_no and sub_no and sub_no == s_no):
+                            score_val = sub.get("score", 0)
+                            total_score += score_val
+                            break
+
+            cell = ws.cell(row=row, column=col, value=score_val)
+            cell.alignment = center
+
+        ws.cell(row=row, column=len(headers), value=total_score).alignment = center
+
+        # Add borders
+        for col_idx in range(1, len(headers) + 1):
+            ws.cell(row=row, column=col_idx).border = cell_border
+
+    # Column widths
+    ws.column_dimensions["A"].width = 8
+    ws.column_dimensions["B"].width = 28
+    ws.column_dimensions["C"].width = 14
+    for i in range(4, len(headers) + 1):
+        from openpyxl.utils import get_column_letter
+        ws.column_dimensions[get_column_letter(i)].width = 14
+
+    # Save to buffer
+    buffer = io.BytesIO()
+    wb.save(buffer)
+    buffer.seek(0)
+
+    from flask import send_file
+    safe_name = cls.get("name", "classroom").replace(" ", "_")
+    return send_file(
+        buffer,
+        mimetype="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
+        as_attachment=True,
+        download_name=f"{safe_name}_students.xlsx",
+    )
+
+
 @classroom_bp.route("/classroom/<int:classroom_id>/delete", methods=["POST"])
 @login_required
 def classroom_delete(classroom_id):
