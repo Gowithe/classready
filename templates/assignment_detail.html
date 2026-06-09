@@ -134,28 +134,6 @@
   .score-high{background:#dcfce7;color:#166534;}
   .score-mid{background:#fef3c7;color:#92400e;}
   .score-low{background:#fee2e2;color:#991b1b;}
-  .grade-form{
-    display:grid;
-    grid-template-columns:62px 62px minmax(120px,1fr) auto;
-    gap:8px;
-    align-items:center;
-    min-width:320px;
-  }
-  .grade-form input{
-    width:100%;
-    border:1px solid #e2e8f0;
-    border-radius:10px;
-    padding:8px 10px;
-    font:inherit;
-  }
-  .grade-form button{
-    white-space:nowrap;
-    padding:8px 12px;
-  }
-  @media(max-width:900px){
-    .grade-form{grid-template-columns:1fr 1fr;}
-    .grade-form input[name="comment"],.grade-form button{grid-column:1 / -1;}
-  }
   
   /* Progress */
   .progress-big{
@@ -286,17 +264,78 @@
     <div class="card-header">
       <div class="card-title">✅ ส่งแล้ว ({{ submitted|length }})</div>
     </div>
-    {% if submitted %}
+
+    {% if exercise_type == 'homework' and hw_submissions %}
+    <!-- Homework Submissions with grading -->
+    {% for hw in hw_submissions %}
+    {% set student = None %}
+    {% for s in submitted %}{% if s.id == hw.student_id %}{% set student = s %}{% endif %}{% endfor %}
+    <div style="border-bottom:1px solid #f1f5f9;padding:16px;">
+      <div style="display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+        <div>
+          <strong>{{ student.student_no if student else '-' }}</strong> —
+          <strong>{{ student.student_name if student else 'นักเรียน #' ~ hw.student_id }}</strong>
+          <span style="color:#94a3b8;font-size:.85rem;margin-left:8px;">ส่งเมื่อ {{ hw.created_at[:16].replace('T', ' ') }}</span>
+        </div>
+        {% if hw.score is not none %}
+        <span class="score-pill {% if hw.score >= 8 %}score-high{% elif hw.score >= 5 %}score-mid{% else %}score-low{% endif %}">
+          ⭐ {{ hw.score }}/{{ hw.max_score or 10 }}
+        </span>
+        {% endif %}
+      </div>
+
+      {% if hw.text_content %}
+      <div style="background:#f8fafc;border:1px solid #e2e8f0;border-radius:10px;padding:12px;margin-bottom:10px;white-space:pre-wrap;">{{ hw.text_content }}</div>
+      {% endif %}
+
+      {% if hw.image_file %}
+      <div style="display:flex;flex-wrap:wrap;gap:8px;margin-bottom:10px;">
+        {% for img in hw.image_file.split(',') %}
+        {% if img.strip() %}
+        <img src="{{ url_for('uploaded_file', filename=img.strip()) }}" alt="รูปแนบ"
+             style="max-width:180px;max-height:180px;border-radius:10px;border:1px solid #e2e8f0;cursor:pointer;object-fit:cover;"
+             onclick="window.open(this.src)">
+        {% endif %}
+        {% endfor %}
+      </div>
+      {% endif %}
+
+      {% if hw.link_url %}
+      <div style="margin-bottom:10px;">🔗 <a href="{{ hw.link_url }}" target="_blank" style="color:#2563eb;font-weight:600;">{{ hw.link_url }}</a></div>
+      {% endif %}
+
+      {% if hw.teacher_comment %}
+      <div style="background:#fef3c7;border-radius:8px;padding:8px 12px;margin-bottom:10px;font-size:.9rem;">
+        💬 ความเห็นครู: {{ hw.teacher_comment }}
+      </div>
+      {% endif %}
+
+      <!-- Grading form -->
+      <form method="POST" action="{{ url_for('classroom.homework_grade', assignment_id=assignment.id, sub_id=hw.id) }}"
+            style="display:flex;align-items:center;gap:10px;flex-wrap:wrap;background:#f0fdf4;border-radius:10px;padding:10px;">
+        <label style="font-weight:700;font-size:.9rem;white-space:nowrap;">📝 ให้คะแนน:</label>
+        <input type="number" name="score" value="{{ hw.score if hw.score is not none else '' }}" min="0" max="100"
+               placeholder="คะแนน" style="width:80px;padding:6px 10px;margin:0;" required>
+        <span style="color:#64748b;">/</span>
+        <input type="number" name="max_score" value="{{ hw.max_score or 10 }}" min="1" max="100"
+               style="width:70px;padding:6px 10px;margin:0;">
+        <input type="text" name="comment" value="{{ hw.teacher_comment or '' }}" placeholder="ความเห็น (ไม่บังคับ)"
+               style="flex:1;min-width:120px;padding:6px 10px;margin:0;">
+        <button type="submit" style="padding:6px 16px;border-radius:8px;font-size:.85rem;">✅ บันทึก</button>
+      </form>
+    </div>
+    {% endfor %}
+
+    {% elif submitted %}
+    <!-- MCQ/Practice submissions table -->
     <table>
       <thead>
         <tr>
           <th style="width:60px">เลขที่</th>
           <th>ชื่อ-สกุล</th>
-          <th>งานที่ส่ง</th>
           <th style="width:100px">คะแนน</th>
           <th style="width:80px">%</th>
           <th style="width:160px">เวลาส่ง</th>
-          <th style="width:360px">ตรวจ</th>
         </tr>
       </thead>
       <tbody>
@@ -307,41 +346,6 @@
           <td>
             {% if s.submission %}
               {% set sub = s.submission %}
-              {% if sub.text_content %}
-              <div style="white-space:pre-wrap;margin-bottom:8px;">{{ sub.text_content }}</div>
-              {% endif %}
-              {% if sub.link_url %}
-              <div style="margin-bottom:8px;">
-                <a href="{{ sub.link_url }}" target="_blank" style="color:#2563eb;font-weight:600;word-break:break-all;">{{ sub.link_url }}</a>
-              </div>
-              {% endif %}
-              {% if sub.attachments %}
-              <div style="display:flex;flex-wrap:wrap;gap:8px;">
-                {% for file in sub.attachments %}
-                  {% set file_url = url_for('classroom.classroom_file', filename=file.filename) %}
-                  {% if file.is_image %}
-                  <img src="{{ file_url }}" alt="{{ file.filename }}"
-                       style="width:90px;height:90px;border-radius:10px;border:1px solid #e2e8f0;cursor:pointer;object-fit:cover;"
-                       onclick="window.open(this.src)">
-                  {% else %}
-                  <a href="{{ file_url }}" target="_blank"
-                     style="display:inline-flex;align-items:center;gap:6px;padding:8px 10px;border:1px solid #e2e8f0;border-radius:10px;color:#2563eb;font-weight:600;text-decoration:none;">
-                    &#x1F4CE; {{ file.filename }}
-                  </a>
-                  {% endif %}
-                {% endfor %}
-              </div>
-              {% endif %}
-              {% if not sub.text_content and not sub.link_url and not sub.attachments %}
-                -
-              {% endif %}
-            {% else %}
-              -
-            {% endif %}
-          </td>
-          <td>
-            {% if s.submission and s.submission.score is not none %}
-              {% set sub = s.submission %}
               {% set pct = sub.percentage|default(0)|int %}
               <span class="score-pill {% if pct >= 80 %}score-high{% elif pct >= 50 %}score-mid{% else %}score-low{% endif %}">
                 {{ sub.score }}/{{ sub.total }}
@@ -351,7 +355,7 @@
             {% endif %}
           </td>
           <td>
-            {% if s.submission and s.submission.score is not none %}
+            {% if s.submission %}
               {{ '%.0f'|format(s.submission.percentage or 0) }}%
             {% else %}
               -
@@ -362,23 +366,11 @@
               {{ s.submission.created_at[:16].replace('T', ' ') }}
             {% endif %}
           </td>
-          <td>
-            {% if s.submission %}
-              {% set sub = s.submission %}
-              <form class="grade-form" method="post" action="{{ url_for('classroom.homework_grade', assignment_id=assignment.id, sub_id=sub.id) }}">
-                <input type="number" name="score" min="0" value="{{ sub.score if sub.score is not none else '' }}" placeholder="คะแนน" required>
-                <input type="number" name="max_score" min="1" value="{{ sub.total or assignment.max_score or 10 }}" placeholder="เต็ม" required>
-                <input type="text" name="comment" value="{{ sub.teacher_comment or '' }}" placeholder="คอมเมนต์">
-                <button type="submit" class="btn btn-success">{% if sub.score is not none %}แก้คะแนน{% else %}ให้คะแนน{% endif %}</button>
-              </form>
-            {% else %}
-              -
-            {% endif %}
-          </td>
         </tr>
         {% endfor %}
       </tbody>
     </table>
+
     {% else %}
     <div class="empty">
       <div class="empty-icon">📭</div>
