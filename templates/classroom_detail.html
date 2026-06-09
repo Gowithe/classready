@@ -141,6 +141,7 @@
         <div class="card-title">📊 รายชื่อและคะแนน ({{ students|length }} คน)</div>
         <div style="display:flex;gap:8px;">
           <button class="btn btn-secondary" onclick="openImportModal()">📥 Import</button>
+          <a href="{{ url_for('classroom.classroom_export_excel', classroom_id=classroom.id) }}" class="btn btn-secondary" style="background:#22c55e;color:#fff;">📊 Excel</a>
           <button class="btn btn-primary" onclick="openAddStudentModal()">➕ เพิ่ม</button>
         </div>
       </div>
